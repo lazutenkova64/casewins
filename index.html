@@ -99,6 +99,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            position: relative;
         }
 
         .balance {
@@ -122,12 +123,42 @@
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid var(--primary-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
         }
 
         .user-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        /* Кнопка админ-панели */
+        .admin-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 70, 85, 0.7);
         }
 
         /* Основной контент */
@@ -256,6 +287,102 @@
             transform: scale(1.02);
         }
 
+        /* Секция прокрутки кейса */
+        .case-opening-section {
+            background-color: rgba(15, 25, 35, 0.7);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid rgba(255, 70, 85, 0.3);
+        }
+
+        .case-opening-container {
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .case-items-scroll {
+            display: flex;
+            gap: 15px;
+            padding: 20px 0;
+            transition: transform 0.1s linear;
+            width: max-content;
+        }
+
+        .scroll-item {
+            width: 120px;
+            height: 120px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .scroll-item.active {
+            border-color: var(--primary-color);
+            background-color: rgba(255, 70, 85, 0.1);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 70, 85, 0.5);
+        }
+
+        .scroll-item img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
+        .scroll-item-name {
+            font-size: 12px;
+            text-align: center;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .case-opening-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .spin-btn {
+            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 70, 85, 0.7);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         /* Секция битвы */
         .battle-section {
             background-color: rgba(15, 25, 35, 0.7);
@@ -350,7 +477,7 @@
             letter-spacing: 2px;
         }
 
-        .battle-btn:hover {
+        .battle-btn:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 0 20px rgba(255, 70, 85, 0.7);
         }
@@ -403,7 +530,7 @@
             font-weight: 700;
         }
 
-        /* Модальное окно с результатом */
+        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -438,11 +565,26 @@
             text-align: center;
             font-size: 28px;
             font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-modal-btn:hover {
+            transform: scale(1.2);
         }
 
         .modal-body {
             padding: 30px;
-            text-align: center;
         }
 
         .won-item {
@@ -484,10 +626,40 @@
             font-size: 14px;
         }
 
+        .rarity-common {
+            background-color: rgba(150, 150, 150, 0.2);
+            color: #969696;
+            border: 1px solid #969696;
+        }
+
+        .rarity-uncommon {
+            background-color: rgba(77, 181, 58, 0.2);
+            color: #4db53a;
+            border: 1px solid #4db53a;
+        }
+
+        .rarity-rare {
+            background-color: rgba(76, 110, 244, 0.2);
+            color: #4c6ef4;
+            border: 1px solid #4c6ef4;
+        }
+
+        .rarity-mythical {
+            background-color: rgba(182, 80, 155, 0.2);
+            color: #b6509b;
+            border: 1px solid #b6509b;
+        }
+
         .rarity-legendary {
             background-color: rgba(255, 215, 0, 0.2);
             color: var(--gold-color);
             border: 1px solid var(--gold-color);
+        }
+
+        .rarity-ancient {
+            background-color: rgba(235, 75, 75, 0.2);
+            color: #eb4b4b;
+            border: 1px solid #eb4b4b;
         }
 
         .modal-actions {
@@ -519,6 +691,136 @@
 
         .modal-btn:hover {
             transform: scale(1.05);
+        }
+
+        /* Админ панель */
+        .admin-panel {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid var(--primary-color);
+        }
+
+        .admin-form {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .admin-btn-submit {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .admin-btn-cancel {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        /* Профиль пользователя */
+        .profile-modal {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid var(--primary-color);
+        }
+
+        .profile-header {
+            background-color: rgba(255, 70, 85, 0.9);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid white;
+            margin: 0 auto 15px;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .profile-body {
+            padding: 30px;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .profile-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .profile-stat span:first-child {
+            font-weight: 600;
+        }
+
+        .profile-stat-value {
+            color: var(--gold-color);
+            font-weight: 700;
         }
 
         /* Футер */
@@ -607,6 +909,11 @@
             .modal-content {
                 width: 95%;
             }
+            
+            .admin-btn {
+                top: 10px;
+                left: 10px;
+            }
         }
 
         /* Анимации */
@@ -630,9 +937,19 @@
             background-size: 200px 100%;
             animation: shine 2s infinite;
         }
+
+        @keyframes spin {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-1000px); }
+        }
     </style>
 </head>
 <body>
+    <!-- Кнопка админ-панели -->
+    <button class="admin-btn" id="admin-btn" title="Админ панель">
+        <i class="fas fa-cog"></i>
+    </button>
+
     <!-- Шапка -->
     <header>
         <div class="container header-content">
@@ -657,7 +974,7 @@
                     <span id="user-balance">12,540</span>
                 </div>
                 
-                <div class="user-avatar">
+                <div class="user-avatar" id="user-avatar-btn">
                     <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Аватар">
                 </div>
             </div>
@@ -667,6 +984,29 @@
     <!-- Основной контент -->
     <main class="container">
         <h1 class="page-title">Открой <span>кейсы</span> и выиграй <span>битву</span></h1>
+        
+        <!-- Секция прокрутки кейса -->
+        <section class="case-opening-section">
+            <h2 class="section-title">
+                <i class="fas fa-dice"></i> Открытие кейса
+            </h2>
+            
+            <div class="case-opening-container">
+                <div class="case-items-scroll" id="case-items-scroll">
+                    <!-- Предметы будут добавляться динамически -->
+                </div>
+            </div>
+            
+            <div class="case-opening-controls">
+                <button class="spin-btn" id="spin-btn">
+                    <i class="fas fa-play"></i> Крутить (1,000)
+                </button>
+                <div class="balance">
+                    <i class="fas fa-coins"></i>
+                    <span>Ваш баланс: <span id="balance-display">12,540</span></span>
+                </div>
+            </div>
+        </section>
         
         <!-- Секция выбора кейсов -->
         <section class="case-selection">
@@ -681,11 +1021,11 @@
                         <img src="https://cdn-icons-png.flaticon.com/512/287/287221.png" alt="Кейс Оружие">
                     </div>
                     <div class="case-info">
-                        <div class="case-name">Оружейный кейс</div>
+                        <div class="case-name">Кейс CS2 "Prisma"</div>
                         <div class="case-price"><i class="fas fa-coins"></i> 2,500</div>
                         <div class="case-items">
-                            <span>16 предметов</span>
-                            <span>Шанс на легендарку: 5%</span>
+                            <span id="case1-items-count">12 предметов</span>
+                            <span id="case1-chance">Шанс на редкое: 15%</span>
                         </div>
                         <button class="open-case-btn" data-case="1">Открыть кейс</button>
                     </div>
@@ -697,11 +1037,11 @@
                         <img src="https://cdn-icons-png.flaticon.com/512/869/869869.png" alt="Кейс Доспехи">
                     </div>
                     <div class="case-info">
-                        <div class="case-name">Кейс с доспехами</div>
+                        <div class="case-name">Кейс CS2 "Гамма"</div>
                         <div class="case-price"><i class="fas fa-coins"></i> 1,800</div>
                         <div class="case-items">
-                            <span>12 предметов</span>
-                            <span>Шанс на легендарку: 3%</span>
+                            <span id="case2-items-count">10 предметов</span>
+                            <span id="case2-chance">Шанс на редкое: 12%</span>
                         </div>
                         <button class="open-case-btn" data-case="2">Открыть кейс</button>
                     </div>
@@ -713,11 +1053,11 @@
                         <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Кейс Скин">
                     </div>
                     <div class="case-info">
-                        <div class="case-name">Кейс со скинами</div>
+                        <div class="case-name">Кейс CS2 "Операция"</div>
                         <div class="case-price"><i class="fas fa-coins"></i> 3,200</div>
                         <div class="case-items">
-                            <span>10 предметов</span>
-                            <span>Шанс на легендарку: 7%</span>
+                            <span id="case3-items-count">14 предметов</span>
+                            <span id="case3-chance">Шанс на редкое: 18%</span>
                         </div>
                         <button class="open-case-btn" data-case="3">Открыть кейс</button>
                     </div>
@@ -781,22 +1121,116 @@
         <div class="modal-content">
             <div class="modal-header">
                 Поздравляем!
+                <button class="close-modal-btn" id="close-result-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <p>Вы выиграли битву и получаете предмет:</p>
                 
                 <div class="won-item">
                     <div class="item-image">
-                        <img id="won-item-img" src="https://cdn-icons-png.flaticon.com/512/287/287221.png" alt="Выигранный предмет">
+                        <img id="won-item-img" src="https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" alt="Выигранный предмет">
                     </div>
-                    <div class="item-name" id="won-item-name">Легендарный меч дракона</div>
-                    <div class="item-rarity rarity-legendary" id="won-item-rarity">Легендарный</div>
+                    <div class="item-name" id="won-item-name">AK-47 | Красная линия</div>
+                    <div class="item-rarity rarity-rare" id="won-item-rarity">Редкий</div>
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="modal-btn close-modal" id="close-modal">Закрыть</button>
-                    <button class="modal-btn open-again" id="open-again">Открыть еще кейс</button>
+                    <button class="modal-btn close-modal" id="close-modal-btn">Закрыть</button>
+                    <button class="modal-btn open-again" id="open-again-btn">Открыть еще кейс</button>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Админ-панель -->
+    <div class="modal" id="admin-modal">
+        <div class="admin-panel">
+            <div class="modal-header">
+                Админ панель
+                <button class="close-modal-btn" id="close-admin-modal">&times;</button>
+            </div>
+            <div class="admin-form">
+                <div class="form-group">
+                    <label for="admin-password">Пароль</label>
+                    <input type="password" id="admin-password" placeholder="Введите пароль">
+                </div>
+                
+                <div id="admin-content" style="display: none;">
+                    <h3 style="margin-bottom: 20px; color: var(--primary-color);">Настройки системы</h3>
+                    
+                    <div class="form-group">
+                        <label for="admin-balance">Баланс пользователя</label>
+                        <input type="number" id="admin-balance" value="12540">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-case1-chance">Шанс на редкое для Кейса 1 (%)</label>
+                        <input type="number" id="admin-case1-chance" min="0" max="100" value="15">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-case2-chance">Шанс на редкое для Кейса 2 (%)</label>
+                        <input type="number" id="admin-case2-chance" min="0" max="100" value="12">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-case3-chance">Шанс на редкое для Кейса 3 (%)</label>
+                        <input type="number" id="admin-case3-chance" min="0" max="100" value="18">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-spin-price">Цена прокрутки кейса</label>
+                        <input type="number" id="admin-spin-price" value="1000">
+                    </div>
+                    
+                    <div class="admin-actions">
+                        <button class="admin-btn-submit" id="admin-save-btn">Сохранить</button>
+                        <button class="admin-btn-cancel" id="admin-cancel-btn">Отмена</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Профиль пользователя -->
+    <div class="modal" id="profile-modal">
+        <div class="profile-modal">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Аватар">
+                </div>
+                <div class="profile-name">Игрок_Профи</div>
+            </div>
+            <div class="profile-body">
+                <div class="profile-info">
+                    <div class="profile-stat">
+                        <span>Уровень:</span>
+                        <span class="profile-stat-value">24</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Баланс:</span>
+                        <span class="profile-stat-value" id="profile-balance">12,540</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Открыто кейсов:</span>
+                        <span class="profile-stat-value">187</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Выиграно битв:</span>
+                        <span class="profile-stat-value">42</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Процент побед:</span>
+                        <span class="profile-stat-value">68%</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span>Лучший предмет:</span>
+                        <span class="profile-stat-value">AWP | Дракон Лор</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-header">
+                <button class="admin-btn-cancel" id="close-profile-modal" style="width: 100%;">Закрыть</button>
             </div>
         </div>
     </div>
@@ -822,44 +1256,64 @@
     </footer>
 
     <script>
-        // Данные о кейсах и предметах
+        // Данные о кейсах и предметах CS2
+        const cs2Items = [
+            // Обычные (common)
+            { name: "P250 | Песочная дюна", rarity: "common", value: 50, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhz2v_Nfz5H_uOxh7-Gw_alIITdn2xZ18l4j_v--Y3nj1H6_kBtYzv7J4WUcQY3ZQ3S8wO-xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+            { name: "Glock-18 | Кость", rarity: "common", value: 60, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+            { name: "USP-S | Кость", rarity: "common", value: 70, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+            { name: "P2000 | Гранит", rarity: "common", value: 55, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+            
+            // Необычные (uncommon)
+            { name: "M4A1-S | Кровавый тигр", rarity: "uncommon", value: 300, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            { name: "AK-47 | Красная линия", rarity: "uncommon", value: 400, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            { name: "AWP | Электрический hive", rarity: "uncommon", value: 500, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+            
+            // Редкие (rare)
+            { name: "M4A4 | Змеиный укус", rarity: "rare", value: 800, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            { name: "AK-47 | Вулкан", rarity: "rare", value: 1200, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            { name: "Desert Eagle | Прямо из ада", rarity: "rare", value: 1000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+            
+            // Мифические (mythical)
+            { name: "AWP | Азимов", rarity: "mythical", value: 2500, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+            { name: "M4A1-S | Цифровой китель", rarity: "mythical", value: 2000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            
+            // Легендарные (legendary)
+            { name: "Нож | Слайдер", rarity: "legendary", value: 5000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+            { name: "Перчатки | Спектр", rarity: "legendary", value: 6000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+            
+            // Древние (ancient)
+            { name: "AK-47 | Огненный змей", rarity: "ancient", value: 8000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+            { name: "AWP | Дракон Лор", rarity: "ancient", value: 10000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
+        ];
+
+        // Данные о кейсах
         const casesData = {
             1: {
-                name: "Оружейный кейс",
+                name: "Кейс CS2 \"Prisma\"",
                 price: 2500,
-                items: [
-                    { name: "Обычный меч", rarity: "common", value: 100, img: "https://cdn-icons-png.flaticon.com/512/287/287221.png" },
-                    { name: "Редкий лук", rarity: "rare", value: 500, img: "https://cdn-icons-png.flaticon.com/512/869/869869.png" },
-                    { name: "Эпический щит", rarity: "epic", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" },
-                    { name: "Легендарный меч дракона", rarity: "legendary", value: 5000, img: "https://cdn-icons-png.flaticon.com/512/2972/2972544.png" },
-                    { name: "Обычный кинжал", rarity: "common", value: 80, img: "https://cdn-icons-png.flaticon.com/512/2972/2972425.png" },
-                    { name: "Редкий топор", rarity: "rare", value: 600, img: "https://cdn-icons-png.flaticon.com/512/2830/2830284.png" }
-                ]
+                rareChance: 15,
+                items: cs2Items.filter(item => ["common", "uncommon", "rare"].includes(item.rarity))
             },
             2: {
-                name: "Кейс с доспехами",
+                name: "Кейс CS2 \"Гамма\"",
                 price: 1800,
-                items: [
-                    { name: "Обычный шлем", rarity: "common", value: 90, img: "https://cdn-icons-png.flaticon.com/512/863/863822.png" },
-                    { name: "Редкие поножи", rarity: "rare", value: 450, img: "https://cdn-icons-png.flaticon.com/512/2405/2405472.png" },
-                    { name: "Эпическая кираса", rarity: "epic", value: 1200, img: "https://cdn-icons-png.flaticon.com/512/863/863836.png" },
-                    { name: "Легендарный полный доспех", rarity: "legendary", value: 4000, img: "https://cdn-icons-png.flaticon.com/512/3191/3191691.png" },
-                    { name: "Обычные перчатки", rarity: "common", value: 70, img: "https://cdn-icons-png.flaticon.com/512/3191/3191675.png" },
-                    { name: "Редкий щит", rarity: "rare", value: 550, img: "https://cdn-icons-png.flaticon.com/512/3191/3191665.png" }
-                ]
+                rareChance: 12,
+                items: cs2Items.filter(item => ["common", "uncommon", "mythical"].includes(item.rarity))
             },
             3: {
-                name: "Кейс со скинами",
+                name: "Кейс CS2 \"Операция\"",
                 price: 3200,
-                items: [
-                    { name: "Обычный скин", rarity: "common", value: 150, img: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" },
-                    { name: "Редкий скин", rarity: "rare", value: 800, img: "https://cdn-icons-png.flaticon.com/512/4359/4359674.png" },
-                    { name: "Эпический скин", rarity: "epic", value: 2000, img: "https://cdn-icons-png.flaticon.com/512/3135/3135768.png" },
-                    { name: "Легендарный анимационный скин", rarity: "legendary", value: 7000, img: "https://cdn-icons-png.flaticon.com/512/4359/4359828.png" },
-                    { name: "Обычный скин оружия", rarity: "common", value: 120, img: "https://cdn-icons-png.flaticon.com/512/3135/3135727.png" },
-                    { name: "Редкий скин персонажа", rarity: "rare", value: 950, img: "https://cdn-icons-png.flaticon.com/512/3135/3135746.png" }
-                ]
+                rareChance: 18,
+                items: cs2Items.filter(item => ["common", "rare", "legendary", "ancient"].includes(item.rarity))
             }
+        };
+
+        // Настройки системы
+        const systemSettings = {
+            userBalance: 12540,
+            spinPrice: 1000,
+            adminPassword: "1234"
         };
 
         // Текущее состояние игры
@@ -867,8 +1321,9 @@
             selectedCase: 1,
             player1Items: [],
             player2Items: [],
-            playerBalance: 12540,
-            battleHistory: []
+            battleHistory: [],
+            isSpinning: false,
+            spinResult: null
         };
 
         // DOM элементы
@@ -881,17 +1336,39 @@
         const startBattleBtn = document.getElementById('start-battle');
         const historyList = document.getElementById('history-list');
         const resultModal = document.getElementById('result-modal');
-        const closeModalBtn = document.getElementById('close-modal');
-        const openAgainBtn = document.getElementById('open-again');
+        const closeResultModalBtn = document.getElementById('close-result-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const openAgainBtn = document.getElementById('open-again-btn');
         const userBalanceSpan = document.getElementById('user-balance');
+        const balanceDisplay = document.getElementById('balance-display');
         const wonItemImg = document.getElementById('won-item-img');
         const wonItemName = document.getElementById('won-item-name');
         const wonItemRarity = document.getElementById('won-item-rarity');
+        const caseItemsScroll = document.getElementById('case-items-scroll');
+        const spinBtn = document.getElementById('spin-btn');
+        const adminBtn = document.getElementById('admin-btn');
+        const adminModal = document.getElementById('admin-modal');
+        const closeAdminModalBtn = document.getElementById('close-admin-modal');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminContent = document.getElementById('admin-content');
+        const adminBalanceInput = document.getElementById('admin-balance');
+        const adminCase1ChanceInput = document.getElementById('admin-case1-chance');
+        const adminCase2ChanceInput = document.getElementById('admin-case2-chance');
+        const adminCase3ChanceInput = document.getElementById('admin-case3-chance');
+        const adminSpinPriceInput = document.getElementById('admin-spin-price');
+        const adminSaveBtn = document.getElementById('admin-save-btn');
+        const adminCancelBtn = document.getElementById('admin-cancel-btn');
+        const userAvatarBtn = document.getElementById('user-avatar-btn');
+        const profileModal = document.getElementById('profile-modal');
+        const closeProfileModalBtn = document.getElementById('close-profile-modal');
+        const profileBalanceSpan = document.getElementById('profile-balance');
 
         // Инициализация
         function init() {
             updateBalanceDisplay();
             loadHistory();
+            initCaseScroll();
+            updateCaseDisplays();
             
             // Выбор кейса
             caseCards.forEach(card => {
@@ -919,7 +1396,11 @@
             // Кнопка начала битвы
             startBattleBtn.addEventListener('click', startBattle);
             
-            // Модальное окно
+            // Модальное окно с результатом
+            closeResultModalBtn.addEventListener('click', () => {
+                resultModal.style.display = 'none';
+            });
+            
             closeModalBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
             });
@@ -929,8 +1410,65 @@
                 selectCase(gameState.selectedCase);
             });
             
+            // Кнопка прокрутки
+            spinBtn.addEventListener('click', spinCase);
+            
+            // Админ панель
+            adminBtn.addEventListener('click', () => {
+                adminModal.style.display = 'flex';
+                adminPasswordInput.value = '';
+                adminContent.style.display = 'none';
+            });
+            
+            closeAdminModalBtn.addEventListener('click', () => {
+                adminModal.style.display = 'none';
+            });
+            
+            adminPasswordInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    checkAdminPassword();
+                }
+            });
+            
+            adminSaveBtn.addEventListener('click', saveAdminSettings);
+            adminCancelBtn.addEventListener('click', () => {
+                adminModal.style.display = 'none';
+            });
+            
+            // Профиль пользователя
+            userAvatarBtn.addEventListener('click', () => {
+                profileModal.style.display = 'flex';
+                profileBalanceSpan.textContent = systemSettings.userBalance.toLocaleString();
+            });
+            
+            closeProfileModalBtn.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+            });
+            
             // Загружаем начальные данные
             selectCase(1);
+        }
+
+        // Инициализация прокрутки кейсов
+        function initCaseScroll() {
+            caseItemsScroll.innerHTML = '';
+            
+            // Добавляем предметы для прокрутки
+            for (let i = 0; i < 30; i++) {
+                const randomItem = getRandomItem(cs2Items);
+                const itemElement = document.createElement('div');
+                itemElement.className = 'scroll-item';
+                itemElement.innerHTML = `
+                    <img src="${randomItem.img}" alt="${randomItem.name}">
+                    <div class="scroll-item-name">${randomItem.name}</div>
+                `;
+                itemElement.title = `${randomItem.name} (${getRarityName(randomItem.rarity)})`;
+                
+                // Добавляем класс редкости
+                itemElement.classList.add(`rarity-${randomItem.rarity}`);
+                
+                caseItemsScroll.appendChild(itemElement);
+            }
         }
 
         // Выбор кейса
@@ -945,6 +1483,118 @@
                     card.classList.remove('active');
                 }
             });
+            
+            // Обновляем цену прокрутки
+            spinBtn.innerHTML = `<i class="fas fa-play"></i> Крутить (${systemSettings.spinPrice})`;
+        }
+
+        // Обновление отображения кейсов
+        function updateCaseDisplays() {
+            // Кейс 1
+            document.getElementById('case1-items-count').textContent = `${casesData[1].items.length} предметов`;
+            document.getElementById('case1-chance').textContent = `Шанс на редкое: ${casesData[1].rareChance}%`;
+            
+            // Кейс 2
+            document.getElementById('case2-items-count').textContent = `${casesData[2].items.length} предметов`;
+            document.getElementById('case2-chance').textContent = `Шанс на редкое: ${casesData[2].rareChance}%`;
+            
+            // Кейс 3
+            document.getElementById('case3-items-count').textContent = `${casesData[3].items.length} предметов`;
+            document.getElementById('case3-chance').textContent = `Шанс на редкое: ${casesData[3].rareChance}%`;
+        }
+
+        // Прокрутка кейса
+        function spinCase() {
+            if (gameState.isSpinning) return;
+            
+            // Проверяем баланс
+            if (systemSettings.userBalance < systemSettings.spinPrice) {
+                alert('Недостаточно средств для прокрутки!');
+                return;
+            }
+            
+            // Списываем деньги
+            systemSettings.userBalance -= systemSettings.spinPrice;
+            updateBalanceDisplay();
+            
+            // Начинаем прокрутку
+            gameState.isSpinning = true;
+            spinBtn.disabled = true;
+            spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Прокрутка...`;
+            
+            // Получаем случайный предмет
+            const selectedCase = casesData[gameState.selectedCase];
+            const randomItem = getRandomItemWithChance(selectedCase);
+            gameState.spinResult = randomItem;
+            
+            // Анимация прокрутки
+            const scrollItems = caseItemsScroll.querySelectorAll('.scroll-item');
+            const totalItems = scrollItems.length;
+            const targetIndex = Math.floor(Math.random() * (totalItems - 10)) + 5;
+            
+            // Сбрасываем активный класс
+            scrollItems.forEach(item => item.classList.remove('active'));
+            
+            // Анимируем прокрутку
+            let currentPosition = 0;
+            const targetPosition = -targetIndex * 135; // 120px width + 15px gap
+            const duration = 3000; // 3 секунды
+            const startTime = Date.now();
+            
+            const animateScroll = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Замедляем к концу
+                const easing = 1 - Math.pow(1 - progress, 3);
+                currentPosition = targetPosition * easing;
+                
+                caseItemsScroll.style.transform = `translateX(${currentPosition}px)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                } else {
+                    // Завершаем анимацию
+                    setTimeout(() => {
+                        // Показываем выигранный предмет
+                        showResultModal(randomItem);
+                        
+                        // Добавляем в историю
+                        addToHistory('spin', {
+                            case: selectedCase.name,
+                            item: randomItem.name,
+                            value: randomItem.value
+                        });
+                        
+                        // Сбрасываем состояние
+                        gameState.isSpinning = false;
+                        spinBtn.disabled = false;
+                        spinBtn.innerHTML = `<i class="fas fa-play"></i> Крутить (${systemSettings.spinPrice})`;
+                    }, 500);
+                }
+            };
+            
+            requestAnimationFrame(animateScroll);
+        }
+
+        // Получение случайного предмета с учетом шансов
+        function getRandomItemWithChance(caseData) {
+            const items = caseData.items;
+            const rareChance = caseData.rareChance;
+            
+            // Определяем, будет ли редкий предмет
+            const isRare = Math.random() * 100 < rareChance;
+            
+            if (isRare) {
+                // Фильтруем редкие предметы (не common)
+                const rareItems = items.filter(item => item.rarity !== 'common');
+                if (rareItems.length > 0) {
+                    return rareItems[Math.floor(Math.random() * rareItems.length)];
+                }
+            }
+            
+            // Иначе возвращаем случайный предмет
+            return items[Math.floor(Math.random() * items.length)];
         }
 
         // Открытие кейса на главной
@@ -953,17 +1603,17 @@
             const casePrice = caseData.price;
             
             // Проверяем баланс
-            if (gameState.playerBalance < casePrice) {
+            if (systemSettings.userBalance < casePrice) {
                 alert('Недостаточно средств для открытия кейса!');
                 return;
             }
             
             // Списываем деньги
-            gameState.playerBalance -= casePrice;
+            systemSettings.userBalance -= casePrice;
             updateBalanceDisplay();
             
             // Получаем случайный предмет
-            const randomItem = getRandomItem(caseData.items);
+            const randomItem = getRandomItemWithChance(caseData);
             
             // Показываем результат
             showResultModal(randomItem);
@@ -978,13 +1628,13 @@
             const casePrice = caseData.price;
             
             // Проверяем баланс
-            if (gameState.playerBalance < casePrice * 3) {
+            if (systemSettings.userBalance < casePrice * 3) {
                 alert('Недостаточно средств для открытия 3 кейсов!');
                 return;
             }
             
             // Списываем деньги
-            gameState.playerBalance -= casePrice * 3;
+            systemSettings.userBalance -= casePrice * 3;
             updateBalanceDisplay();
             
             // Открываем 3 кейса
@@ -995,7 +1645,7 @@
             container.innerHTML = '';
             
             for (let i = 0; i < 3; i++) {
-                const randomItem = getRandomItem(caseData.items);
+                const randomItem = getRandomItemWithChance(caseData);
                 items.push(randomItem);
                 
                 // Создаем элемент предмета
@@ -1005,7 +1655,7 @@
                 itemElement.title = `${randomItem.name} (${getRarityName(randomItem.rarity)})`;
                 
                 // Добавляем анимацию для редких предметов
-                if (randomItem.rarity === 'legendary') {
+                if (randomItem.rarity !== 'common') {
                     itemElement.classList.add('shiny-item');
                 }
                 
@@ -1021,29 +1671,6 @@
             
             // Проверяем, можно ли начать битву
             checkBattleReady();
-        }
-
-        // Получение случайного предмета с учетом редкости
-        function getRandomItem(items) {
-            // Создаем взвешенный массив с учетом редкости
-            const weightedItems = [];
-            items.forEach(item => {
-                let weight = 1;
-                switch(item.rarity) {
-                    case 'common': weight = 50; break;
-                    case 'rare': weight = 30; break;
-                    case 'epic': weight = 15; break;
-                    case 'legendary': weight = 5; break;
-                }
-                
-                for (let i = 0; i < weight; i++) {
-                    weightedItems.push(item);
-                }
-            });
-            
-            // Выбираем случайный предмет из взвешенного массива
-            const randomIndex = Math.floor(Math.random() * weightedItems.length);
-            return {...weightedItems[randomIndex]}; // Копируем объект
         }
 
         // Проверка готовности к битве
@@ -1088,6 +1715,10 @@
                 if (winner === 'Игрок 1') {
                     // Игрок получает предмет
                     showResultModal(bestItem);
+                    
+                    // Начисляем бонус за победу
+                    systemSettings.userBalance += Math.floor(bestItem.value * 0.5);
+                    updateBalanceDisplay();
                 }
             }
             
@@ -1139,6 +1770,16 @@
                         <span> (${data.value})</span>
                     </div>
                 `;
+            } else if (type === 'spin') {
+                html = `
+                    <div class="history-players">
+                        <span>Прокрутка кейса</span>
+                    </div>
+                    <div>
+                        <span class="history-prize">${data.item}</span>
+                        <span> (${data.value})</span>
+                    </div>
+                `;
             } else if (type === 'battle') {
                 html = `
                     <div class="history-players">
@@ -1169,8 +1810,9 @@
         function loadHistory() {
             // Пример начальной истории
             const initialHistory = [
-                {type: 'battle', data: {winner: 'Игрок 1', player1Value: 2450, player2Value: 1800, item: 'Легендарный меч дракона'}},
-                {type: 'single', data: {case: 'Оружейный кейс', item: 'Эпический щит', value: 1500}},
+                {type: 'battle', data: {winner: 'Игрок 1', player1Value: 2450, player2Value: 1800, item: 'AK-47 | Вулкан'}},
+                {type: 'spin', data: {case: 'Кейс CS2 "Prisma"', item: 'AWP | Азимов', value: 2500}},
+                {type: 'single', data: {case: 'Кейс CS2 "Операция"', item: 'P250 | Песочная дюна', value: 50}},
                 {type: 'battle', data: {winner: 'Бот', player1Value: 1200, player2Value: 3100, item: null}}
             ];
             
@@ -1179,16 +1821,62 @@
 
         // Обновление отображения баланса
         function updateBalanceDisplay() {
-            userBalanceSpan.textContent = gameState.playerBalance.toLocaleString();
+            userBalanceSpan.textContent = systemSettings.userBalance.toLocaleString();
+            balanceDisplay.textContent = systemSettings.userBalance.toLocaleString();
+        }
+
+        // Проверка пароля админ-панели
+        function checkAdminPassword() {
+            if (adminPasswordInput.value === systemSettings.adminPassword) {
+                adminContent.style.display = 'block';
+                
+                // Заполняем поля текущими значениями
+                adminBalanceInput.value = systemSettings.userBalance;
+                adminCase1ChanceInput.value = casesData[1].rareChance;
+                adminCase2ChanceInput.value = casesData[2].rareChance;
+                adminCase3ChanceInput.value = casesData[3].rareChance;
+                adminSpinPriceInput.value = systemSettings.spinPrice;
+            } else {
+                alert('Неверный пароль!');
+            }
+        }
+
+        // Сохранение настроек админ-панели
+        function saveAdminSettings() {
+            // Обновляем настройки
+            systemSettings.userBalance = parseInt(adminBalanceInput.value);
+            systemSettings.spinPrice = parseInt(adminSpinPriceInput.value);
+            
+            // Обновляем шансы для кейсов
+            casesData[1].rareChance = parseInt(adminCase1ChanceInput.value);
+            casesData[2].rareChance = parseInt(adminCase2ChanceInput.value);
+            casesData[3].rareChance = parseInt(adminCase3ChanceInput.value);
+            
+            // Обновляем отображение
+            updateBalanceDisplay();
+            updateCaseDisplays();
+            spinBtn.innerHTML = `<i class="fas fa-play"></i> Крутить (${systemSettings.spinPrice})`;
+            
+            // Закрываем админ-панель
+            adminModal.style.display = 'none';
+            
+            alert('Настройки успешно сохранены!');
+        }
+
+        // Получение случайного предмета
+        function getRandomItem(items) {
+            return items[Math.floor(Math.random() * items.length)];
         }
 
         // Получение названия редкости
         function getRarityName(rarity) {
             const names = {
                 'common': 'Обычный',
+                'uncommon': 'Необычный',
                 'rare': 'Редкий',
-                'epic': 'Эпический',
-                'legendary': 'Легендарный'
+                'mythical': 'Мифический',
+                'legendary': 'Легендарный',
+                'ancient': 'Древний'
             };
             return names[rarity] || rarity;
         }
