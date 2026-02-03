@@ -247,7 +247,7 @@
             width: 50px;
             height: 50px;
             border-radius: 15px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -1262,7 +1262,7 @@
         }
 
         .admin-btn-cancel:hover {
-            background: linear-gradient(45deg, #3a3f46, #4a4f56);
+            background: linear-gradient(45deg, #3a3f46, #4a4f46);
             transform: translateY(-3px);
         }
 
@@ -1526,6 +1526,36 @@
             background: linear-gradient(45deg, rgba(255, 0, 84, 0.2), rgba(255, 64, 102, 0.1));
             color: var(--red-color);
             border: 1px solid var(--red-color);
+        }
+
+        /* Апгрейд и контракты страницы */
+        .upgrade-page, .contracts-page {
+            display: none;
+        }
+
+        .upgrade-page.active, .contracts-page.active {
+            display: block;
+        }
+
+        .page-content {
+            background: var(--glass-bg);
+            border-radius: 25px;
+            padding: 40px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            text-align: center;
+        }
+
+        .page-content h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: var(--light-color);
+        }
+
+        .page-content p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            line-height: 1.6;
         }
 
         /* Футер */
@@ -2051,7 +2081,7 @@
                 <h2 style="color: var(--light-color);">Система апгрейда</h2>
             </div>
             
-            <div style="text-align: center; padding: 50px;">
+            <div class="page-content">
                 <h3 style="color: var(--primary-color); margin-bottom: 20px;">Скоро будет доступно!</h3>
                 <p style="color: rgba(255,255,255,0.7);">Система апгрейда находится в разработке</p>
             </div>
@@ -2066,7 +2096,7 @@
                 <h2 style="color: var(--light-color);">Контракты</h2>
             </div>
             
-            <div style="text-align: center; padding: 50px;">
+            <div class="page-content">
                 <h3 style="color: var(--primary-color); margin-bottom: 20px;">Скоро будет доступно!</h3>
                 <p style="color: rgba(255,255,255,0.7);">Система контрактов находится в разработке</p>
             </div>
@@ -2273,60 +2303,71 @@
     </footer>
 
     <script>
-        // Системные настройки
-        const systemSettings = {
-            adminPassword: "1234",
-            defaultBalance: 10000
+        // База данных для пользователей (хранится в localStorage)
+        let usersDatabase = {
+            // Администратор по умолчанию
+            "admin": {
+                password: "admin123",
+                balance: 12540,
+                casesOpened: 0,
+                totalValue: 0,
+                bestItem: "Нет",
+                createdAt: new Date().toLocaleDateString(),
+                isAdmin: true,
+                inventory: [],
+                supportChat: []
+            },
+            "k1lame": {
+                password: "k1lame1234",
+                balance: 12540,
+                casesOpened: 0,
+                totalValue: 0,
+                bestItem: "Нет",
+                createdAt: new Date().toLocaleDateString(),
+                isAdmin: true,
+                inventory: [],
+                supportChat: []
+            }
+        };
+
+        // База данных для сообщений поддержки
+        let supportDatabase = {
+            // Структура: username: { messages: [], lastUpdate: timestamp }
         };
 
         // Данные о скинах по цветам
         const skinData = {
-            // Синие скины (Армейский кейс)
             blue: [
                 { name: "AK-47 | Синий ламинат", value: 400, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=AK-47+Blue+Laminate" },
                 { name: "M4A4 | Синий тигр", value: 350, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=M4A4+Blue+Tiger" },
                 { name: "AWP | Синяя линия", value: 500, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=AWP+Blue+Line" },
                 { name: "Desert Eagle | Синий", value: 300, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=Deagle+Blue" },
-                { name: "Glock-18 | Синяя трещина", value: 250, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=Glock+Blue+Fissure" },
-                { name: "USP-S | Синий неон", value: 280, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=USP-S+Blue+Neon" },
-                { name: "P250 | Синий градиент", value: 200, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=P250+Blue+Gradient" },
-                { name: "MP7 | Синий армейский", value: 180, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=MP7+Army+Blue" }
+                { name: "Glock-18 | Синяя трещина", value: 250, img: "https://via.placeholder.com/300x200/4c6ef4/ffffff?text=Glock+Blue+Fissure" }
             ],
             
-            // Фиолетовые скины (Запрещенный кейс)
             purple: [
                 { name: "AK-47 | Фиолетовый градиент", value: 800, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=AK-47+Purple+Gradient" },
                 { name: "M4A1-S | Фиолетовая ночь", value: 750, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=M4A1-S+Purple+Night" },
                 { name: "AWP | Фиолетовая линия", value: 900, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=AWP+Purple+Line" },
-                { name: "Desert Eagle | Фиолетовый", value: 600, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=Deagle+Purple" },
-                { name: "Glock-18 | Фиолетовая трещина", value: 450, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=Glock+Purple+Fissure" },
-                { name: "USP-S | Фиолетовый неон", value: 480, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=USP-S+Purple+Neon" }
+                { name: "Desert Eagle | Фиолетовый", value: 600, img: "https://via.placeholder.com/300x200/b6509b/ffffff?text=Deagle+Purple" }
             ],
             
-            // Розовые скины (Засекреченный кейс)
             pink: [
                 { name: "AK-47 | Розовый градиент", value: 1500, img: "https://via.placeholder.com/300x200/ff6b9d/ffffff?text=AK-47+Pink+Gradient" },
                 { name: "M4A4 | Розовая ночь", value: 1400, img: "https://via.placeholder.com/300x200/ff6b9d/ffffff?text=M4A4+Pink+Night" },
-                { name: "AWP | Розовая линия", value: 1800, img: "https://via.placeholder.com/300x200/ff6b9d/ffffff?text=AWP+Pink+Line" },
-                { name: "Desert Eagle | Розовый", value: 1200, img: "https://via.placeholder.com/300x200/ff6b9d/ffffff?text=Deagle+Pink" }
+                { name: "AWP | Розовая линия", value: 1800, img: "https://via.placeholder.com/300x200/ff6b9d/ffffff?text=AWP+Pink+Line" }
             ],
             
-            // Красные скины (Тайный кейс)
             red: [
                 { name: "AK-47 | Красный градиент", value: 3000, img: "https://via.placeholder.com/300x200/eb4b4b/ffffff?text=AK-47+Red+Gradient" },
                 { name: "M4A1-S | Красная ночь", value: 2800, img: "https://via.placeholder.com/300x200/eb4b4b/ffffff?text=M4A1-S+Red+Night" },
-                { name: "AWP | Красная линия", value: 3500, img: "https://via.placeholder.com/300x200/eb4b4b/ffffff?text=AWP+Red+Line" },
-                { name: "Desert Eagle | Красный", value: 2500, img: "https://via.placeholder.com/300x200/eb4b4b/ffffff?text=Deagle+Red" }
+                { name: "AWP | Красная линия", value: 3500, img: "https://via.placeholder.com/300x200/eb4b4b/ffffff?text=AWP+Red+Line" }
             ],
             
-            // Желтые скины (Ножевой кейс)
             yellow: [
                 { name: "Нож | Сапфир", value: 8000, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Sapphire" },
                 { name: "Нож | Рубин", value: 7500, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Ruby" },
-                { name: "Нож | Изумруд", value: 7000, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Emerald" },
-                { name: "Перчатки | Золотые", value: 6000, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Gold+Gloves" },
-                { name: "Нож | Черный жемчуг", value: 9000, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Black+Pearl" },
-                { name: "Нож | Фазе 4", value: 8500, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Phase+4" }
+                { name: "Нож | Изумруд", value: 7000, img: "https://via.placeholder.com/300x200/ffd700/333333?text=Knife+Emerald" }
             ]
         };
 
@@ -2369,33 +2410,6 @@
             }
         };
 
-        // Система пользователей
-        const users = {
-            // Предустановленный аккаунт администратора
-            "admin": {
-                password: "admin123",
-                balance: 12540,
-                casesOpened: 0,
-                totalValue: 0,
-                bestItem: "Нет",
-                createdAt: new Date().toLocaleDateString(),
-                isAdmin: true,
-                inventory: [],
-                supportChat: []
-            },
-            "k1lame": {
-                password: "k1lame1234",
-                balance: 12540,
-                casesOpened: 0,
-                totalValue: 0,
-                bestItem: "Нет",
-                createdAt: new Date().toLocaleDateString(),
-                isAdmin: true,
-                inventory: [],
-                supportChat: []
-            }
-        };
-
         // Текущий пользователь
         let currentUser = null;
 
@@ -2405,7 +2419,6 @@
             isSpinning: false,
             spinResult: null,
             recentDrops: [],
-            activeSupportChats: {},
             onlineUsers: 1247,
             currentPage: 'cases'
         };
@@ -2525,7 +2538,10 @@
 
         // Инициализация
         function init() {
-            // Проверяем сохраненные данные пользователя
+            // Загружаем базы данных из localStorage
+            loadDatabases();
+            
+            // Проверяем сохраненного пользователя
             checkSavedUser();
             
             // Обновляем счетчик онлайн
@@ -2541,20 +2557,38 @@
             
             // Обновляем кнопки открытия кейсов
             updateOpenCaseButtons();
+        }
+
+        // Загрузка баз данных из localStorage
+        function loadDatabases() {
+            const savedUsers = localStorage.getItem('casewins_users_database');
+            const savedSupport = localStorage.getItem('casewins_support_database');
             
-            // Показываем админ кнопку если администратор
-            updateAdminButton();
+            if (savedUsers) {
+                usersDatabase = JSON.parse(savedUsers);
+            } else {
+                // Сохраняем начальные данные
+                saveDatabases();
+            }
+            
+            if (savedSupport) {
+                supportDatabase = JSON.parse(savedSupport);
+            }
+        }
+
+        // Сохранение баз данных в localStorage
+        function saveDatabases() {
+            localStorage.setItem('casewins_users_database', JSON.stringify(usersDatabase));
+            localStorage.setItem('casewins_support_database', JSON.stringify(supportDatabase));
         }
 
         // Проверка сохраненного пользователя
         function checkSavedUser() {
-            const savedUser = localStorage.getItem('casewins_user');
+            const savedUser = localStorage.getItem('casewins_current_user');
             if (savedUser) {
                 try {
                     const userData = JSON.parse(savedUser);
-                    if (userData.username && users[userData.username]) {
-                        // Восстанавливаем данные пользователя
-                        users[userData.username] = { ...users[userData.username], ...userData };
+                    if (userData.username && usersDatabase[userData.username]) {
                         currentUser = userData.username;
                         updateUserDisplay();
                         updateProfilePage();
@@ -2565,28 +2599,21 @@
             }
         }
 
-        // Сохранение пользователя
-        function saveUser() {
-            if (currentUser && users[currentUser]) {
+        // Сохранение текущего пользователя
+        function saveCurrentUser() {
+            if (currentUser && usersDatabase[currentUser]) {
                 const userData = {
                     username: currentUser,
-                    balance: users[currentUser].balance,
-                    casesOpened: users[currentUser].casesOpened,
-                    totalValue: users[currentUser].totalValue,
-                    bestItem: users[currentUser].bestItem,
-                    createdAt: users[currentUser].createdAt,
-                    inventory: users[currentUser].inventory || [],
-                    supportChat: users[currentUser].supportChat || []
+                    lastLogin: new Date().toISOString()
                 };
-                localStorage.setItem('casewins_user', JSON.stringify(userData));
+                localStorage.setItem('casewins_current_user', JSON.stringify(userData));
             } else {
-                localStorage.removeItem('casewins_user');
+                localStorage.removeItem('casewins_current_user');
             }
         }
 
         // Обновление счетчика онлайн
         function updateOnlineCounter() {
-            // Реальный онлайн - случайные колебания вокруг базового значения
             const baseCount = 1247;
             const randomChange = Math.floor(Math.random() * 50) - 25;
             const newCount = Math.max(1000, baseCount + randomChange);
@@ -2599,6 +2626,7 @@
             // Навигация
             logo.addEventListener('click', () => {
                 showPage('cases');
+                setActiveTab(homeTab);
             });
             
             homeTab.addEventListener('click', (e) => {
@@ -2628,14 +2656,17 @@
             // Кнопки назад
             profileBackBtn.addEventListener('click', () => {
                 showPage('cases');
+                setActiveTab(homeTab);
             });
             
             upgradeBackBtn.addEventListener('click', () => {
                 showPage('cases');
+                setActiveTab(homeTab);
             });
             
             contractsBackBtn.addEventListener('click', () => {
                 showPage('cases');
+                setActiveTab(homeTab);
             });
             
             // Футер навигация
@@ -2764,27 +2795,6 @@
             loginBtn.addEventListener('click', login);
             registerBtn.addEventListener('click', register);
             
-            // Авторизация по нажатию Enter
-            loginUsername.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') login();
-            });
-            
-            loginPassword.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') login();
-            });
-            
-            registerUsername.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') register();
-            });
-            
-            registerPassword.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') register();
-            });
-            
-            registerConfirm.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') register();
-            });
-            
             // Админ панель
             adminBtn.addEventListener('click', () => {
                 adminModal.style.display = 'flex';
@@ -2878,7 +2888,7 @@
                 return;
             }
             
-            if (users[username] && users[username].password === password) {
+            if (usersDatabase[username] && usersDatabase[username].password === password) {
                 currentUser = username;
                 updateUserDisplay();
                 updateOpenCaseButtons();
@@ -2887,8 +2897,8 @@
                 loginUsername.value = '';
                 loginPassword.value = '';
                 
-                // Сохраняем пользователя
-                saveUser();
+                // Сохраняем текущего пользователя
+                saveCurrentUser();
                 
                 // Обновляем админ-кнопку
                 updateAdminButton();
@@ -2925,15 +2935,15 @@
                 return;
             }
             
-            if (users[username]) {
+            if (usersDatabase[username]) {
                 showNotification('Логин уже занят');
                 return;
             }
             
             // Создаем нового пользователя
-            users[username] = {
+            usersDatabase[username] = {
                 password: password,
-                balance: systemSettings.defaultBalance,
+                balance: 10000,
                 casesOpened: 0,
                 totalValue: 0,
                 bestItem: "Нет",
@@ -2953,8 +2963,9 @@
             registerPassword.value = '';
             registerConfirm.value = '';
             
-            // Сохраняем пользователя
-            saveUser();
+            // Сохраняем базу данных
+            saveDatabases();
+            saveCurrentUser();
             
             // Переключаемся на вкладку входа
             loginTab.click();
@@ -2969,7 +2980,7 @@
             updateOpenCaseButtons();
             logoutHeaderBtn.style.display = 'none';
             adminBtn.classList.remove('visible');
-            localStorage.removeItem('casewins_user');
+            localStorage.removeItem('casewins_current_user');
             
             if (gameState.currentPage === 'profile') {
                 showPage('cases');
@@ -2987,17 +2998,14 @@
                 return;
             }
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             userBalanceSpan.textContent = user.balance.toLocaleString();
             
-            // Обновляем инициалы
             const initials = currentUser.substring(0, 2).toUpperCase();
             userInitials.textContent = initials;
             
-            // Показываем кнопку выхода
             logoutHeaderBtn.style.display = 'flex';
             
-            // Цвет аватара на основе имени
             const colors = [
                 'linear-gradient(45deg, #FF6B6B, #FF8E8E)',
                 'linear-gradient(45deg, #4ECDC4, #88E0D0)',
@@ -3012,7 +3020,7 @@
 
         // Обновление админ кнопки
         function updateAdminButton() {
-            if (currentUser && users[currentUser] && users[currentUser].isAdmin) {
+            if (currentUser && usersDatabase[currentUser] && usersDatabase[currentUser].isAdmin) {
                 adminBtn.classList.add('visible');
             } else {
                 adminBtn.classList.remove('visible');
@@ -3041,7 +3049,7 @@
         function updateProfilePage() {
             if (!currentUser) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             profilePageBalance.textContent = user.balance.toLocaleString();
             profilePageName.textContent = currentUser;
             profilePageCases.textContent = user.casesOpened;
@@ -3049,11 +3057,9 @@
             profilePageBest.textContent = user.bestItem;
             profilePageCreated.textContent = user.createdAt;
             
-            // Обновляем инициалы
             const initials = currentUser.substring(0, 2).toUpperCase();
             profilePageInitials.textContent = initials;
             
-            // Цвет аватара
             const colors = [
                 'linear-gradient(45deg, #FF6B6B, #FF8E8E)',
                 'linear-gradient(45deg, #4ECDC4, #88E0D0)',
@@ -3065,7 +3071,6 @@
             const colorIndex = currentUser.length % colors.length;
             profilePageAvatar.style.background = colors[colorIndex];
             
-            // Обновляем инвентарь
             updateInventory();
         }
 
@@ -3073,7 +3078,7 @@
         function updateInventory() {
             if (!currentUser) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             inventoryGrid.innerHTML = '';
             
             if (!user.inventory || user.inventory.length === 0) {
@@ -3091,7 +3096,6 @@
                 return;
             }
             
-            // Показываем все предметы
             user.inventory.forEach((item, index) => {
                 const itemCard = document.createElement('div');
                 itemCard.className = `inventory-item ${item.sold ? 'sold' : ''}`;
@@ -3112,7 +3116,6 @@
                     ` : ''}
                 `;
                 
-                // Добавляем обработчик для кнопки продажи
                 if (!item.sold) {
                     const sellBtn = itemCard.querySelector('.sell-item-btn');
                     sellBtn.addEventListener('click', (e) => {
@@ -3148,26 +3151,22 @@
         function sellInventoryItem(index) {
             if (!currentUser) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             if (!user.inventory || index >= user.inventory.length) return;
             
             const item = user.inventory[index];
             
-            // Отмечаем как проданный
             user.inventory[index].sold = true;
-            
-            // Добавляем деньги
             user.balance += item.value;
             
-            // Обновляем отображение
             updateUserDisplay();
             updateProfilePage();
-            saveUser();
+            saveDatabases();
             
             showNotification(`Предмет "${item.name}" продан за ${item.value} монет!`);
         }
 
-        // Открыть кейс (нажатие на кнопку "Открыть кейс")
+        // Открыть кейс
         function openCase(caseId) {
             if (!currentUser) {
                 authModal.style.display = 'flex';
@@ -3176,29 +3175,24 @@
             
             gameState.selectedCase = caseId;
             const caseData = casesData[caseId];
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             
-            // Проверяем баланс
             if (user.balance < caseData.price) {
                 showNotification('Недостаточно средств для открытия кейса!');
                 return;
             }
             
-            // Списываем деньги
             user.balance -= caseData.price;
             user.casesOpened++;
             
-            // Начинаем прокрутку
             gameState.isSpinning = true;
             spinBtn.disabled = true;
             centerOpenBtn.disabled = true;
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открываем...`;
             
-            // Получаем случайный предмет с учетом шансов
             const randomItem = getRandomItemWithChance(caseData);
             gameState.spinResult = randomItem;
             
-            // Определяем редкость
             let rarity = 'common';
             if (randomItem.value >= 8000) rarity = 'ancient';
             else if (randomItem.value >= 5000) rarity = 'legendary';
@@ -3206,11 +3200,9 @@
             else if (randomItem.value >= 800) rarity = 'rare';
             else if (randomItem.value >= 300) rarity = 'uncommon';
             
-            // Анимация прокрутки
             const scrollItems = caseItemsScroll.querySelectorAll('.scroll-item');
             const totalItems = scrollItems.length;
             
-            // Находим индекс случайного предмета
             let targetIndex = 0;
             for (let i = 0; i < totalItems; i++) {
                 const itemName = scrollItems[i].querySelector('.scroll-item-name').textContent;
@@ -3220,10 +3212,8 @@
                 }
             }
             
-            // Сбрасываем активный класс
             scrollItems.forEach(item => item.classList.remove('active'));
             
-            // Быстрая прокрутка с замедлением
             let currentPosition = 0;
             const targetPosition = -targetIndex * 240;
             const duration = 2500;
@@ -3233,7 +3223,6 @@
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Эффект замедления в конце
                 let easing;
                 if (progress < 0.8) {
                     easing = progress * 1.2;
@@ -3244,7 +3233,6 @@
                 currentPosition = targetPosition * easing;
                 caseItemsScroll.style.transform = `translateX(${currentPosition}px)`;
                 
-                // Подсвечиваем центральный элемент в конце
                 if (progress > 0.9) {
                     const centerIndex = Math.round(-currentPosition / 240) % totalItems;
                     if (centerIndex >= 0 && centerIndex < totalItems) {
@@ -3257,12 +3245,9 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateScroll);
                 } else {
-                    // Завершаем анимацию
                     setTimeout(() => {
-                        // Показываем результат
                         showResultModal(randomItem, rarity);
                         
-                        // Добавляем предмет в инвентарь пользователя
                         if (!user.inventory) user.inventory = [];
                         user.inventory.push({
                             ...randomItem,
@@ -3270,21 +3255,17 @@
                             droppedAt: new Date().toLocaleString()
                         });
                         
-                        // Обновляем статистику пользователя
                         user.totalValue += randomItem.value;
                         if (user.bestItem === "Нет" || randomItem.value > getItemValue(user.bestItem)) {
                             user.bestItem = randomItem.name;
                         }
                         
-                        // Добавляем в историю выпадений
                         addToRecentDrops(randomItem);
                         
-                        // Обновляем отображение
                         updateUserDisplay();
                         updateProfilePage();
-                        saveUser();
+                        saveDatabases();
                         
-                        // Сбрасываем состояние
                         gameState.isSpinning = false;
                         spinBtn.disabled = false;
                         centerOpenBtn.disabled = false;
@@ -3296,7 +3277,7 @@
             requestAnimationFrame(animateScroll);
         }
 
-        // Открыть вид открытия кейса (нажатие на сам кейс)
+        // Открыть вид открытия кейса
         function openCaseView(caseId) {
             if (!currentUser) {
                 authModal.style.display = 'flex';
@@ -3306,21 +3287,15 @@
             gameState.selectedCase = caseId;
             const caseData = casesData[caseId];
             
-            // Обновляем интерфейс
             openingCaseName.textContent = caseData.name;
             spinPriceSpan.textContent = caseData.price.toLocaleString();
             
-            // Инициализируем прокрутку
             initCaseScroll(caseData);
-            
-            // Инициализируем превью предметов
             initItemsPreview(caseData);
             
-            // Показываем секцию открытия кейса
             caseOpeningSection.classList.add('active');
             caseSelection.style.display = 'none';
             
-            // Прокручиваем к началу
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -3328,7 +3303,6 @@
         function initCaseScroll(caseData) {
             caseItemsScroll.innerHTML = '';
             
-            // Создаем много дубликатов для эффекта бесконечной прокрутки
             const items = [...caseData.items, ...caseData.items, ...caseData.items, ...caseData.items];
             
             items.forEach((item, index) => {
@@ -3340,7 +3314,6 @@
                     <div class="scroll-item-price">${item.value} <i class="fas fa-coins"></i></div>
                 `;
                 
-                // Определяем редкость
                 let rarity = 'common';
                 if (item.value >= 8000) rarity = 'ancient';
                 else if (item.value >= 5000) rarity = 'legendary';
@@ -3357,7 +3330,6 @@
         function initItemsPreview(caseData) {
             itemsPreview.innerHTML = '';
             
-            // Показываем только уникальные предметы
             const uniqueItems = [];
             const seen = new Set();
             
@@ -3368,15 +3340,12 @@
                 }
             });
             
-            // Сортируем по цене
             uniqueItems.sort((a, b) => b.value - a.value);
             
-            // Показываем до 12 предметов
             uniqueItems.slice(0, 12).forEach(item => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
                 
-                // Определяем редкость
                 let rarity = 'common';
                 if (item.value >= 8000) rarity = 'ancient';
                 else if (item.value >= 5000) rarity = 'legendary';
@@ -3400,23 +3369,20 @@
             const items = caseData.items;
             const legendaryChance = caseData.legendaryChance;
             
-            // Определяем, будет ли легендарный предмет
             const isLegendary = Math.random() * 100 < legendaryChance;
             
             if (isLegendary) {
-                // Фильтруем самые дорогие предметы (легендарные)
                 const legendaryItems = items.filter(item => item.value >= 5000);
                 if (legendaryItems.length > 0) {
                     return legendaryItems[Math.floor(Math.random() * legendaryItems.length)];
                 }
             }
             
-            // Иначе возвращаем случайный предмет с учетом весов
             const weights = items.map(item => {
-                if (item.value >= 2000) return 1; // Мифические
-                if (item.value >= 800) return 3; // Редкие
-                if (item.value >= 300) return 5; // Необычные
-                return 10; // Обычные
+                if (item.value >= 2000) return 1;
+                if (item.value >= 800) return 3;
+                if (item.value >= 300) return 5;
+                return 10;
             });
             
             const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
@@ -3457,16 +3423,14 @@
         function sellWonItem() {
             if (!currentUser || !gameState.spinResult) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             const item = gameState.spinResult;
             
-            // Добавляем деньги
             user.balance += item.value;
             
-            // Обновляем отображение
             updateUserDisplay();
             updateProfilePage();
-            saveUser();
+            saveDatabases();
             
             resultModal.style.display = 'none';
             showNotification(`Предмет "${item.name}" продан за ${item.value} монет!`);
@@ -3474,7 +3438,6 @@
 
         // Загрузка истории выпадений
         function loadRecentDrops() {
-            // Примерные начальные данные
             const initialDrops = [
                 { user: "ProPlayer", item: skinData.yellow[0], time: "2 мин назад" },
                 { user: "LuckyGuy", item: skinData.red[2], time: "5 мин назад" },
@@ -3495,7 +3458,6 @@
             let dropIndex = 0;
             
             function createDrop() {
-                // Очищаем старые анимированные элементы
                 const oldDrops = dropsContainer.querySelectorAll('.drop-item[style*="animation"]');
                 oldDrops.forEach(drop => drop.remove());
                 
@@ -3507,12 +3469,10 @@
                 addDropToSidebar(drop.user, drop.item, drop.time);
                 dropIndex++;
                 
-                // Случайный интервал между 20-50 секундами
                 const nextDropTime = 20000 + Math.random() * 30000;
                 setTimeout(createDrop, nextDropTime);
             }
             
-            // Начинаем с небольшой задержки
             setTimeout(createDrop, 2000);
         }
 
@@ -3521,7 +3481,6 @@
             const dropItem = document.createElement('div');
             dropItem.className = 'drop-item';
             
-            // Определяем редкость для цвета границы
             let rarity = 'common';
             if (item.value >= 8000) rarity = 'ancient';
             else if (item.value >= 5000) rarity = 'legendary';
@@ -3529,8 +3488,7 @@
             else if (item.value >= 800) rarity = 'rare';
             else if (item.value >= 300) rarity = 'uncommon';
             
-            // Цвет границы в зависимости от редкости
-            let borderColor = '#969696'; // common
+            let borderColor = '#969696';
             if (rarity === 'uncommon') borderColor = '#4db53a';
             else if (rarity === 'rare') borderColor = '#4c6ef4';
             else if (rarity === 'mythical') borderColor = '#b6509b';
@@ -3539,7 +3497,6 @@
             
             dropItem.style.borderLeftColor = borderColor;
             
-            // Создаем аватар пользователя
             const avatarColor = getAvatarColor(username);
             const initials = username.substring(0, 2).toUpperCase();
             
@@ -3557,7 +3514,6 @@
                 </div>
             `;
             
-            // Случайная задержка для анимации
             const delay = Math.random() * 5;
             dropItem.style.animationDelay = `${delay}s`;
             
@@ -3587,12 +3543,11 @@
 
         // Проверка пароля админ-панели
         function checkAdminPassword() {
-            if (adminPasswordInput.value === systemSettings.adminPassword) {
+            if (adminPasswordInput.value === "admin123") {
                 adminContent.style.display = 'block';
                 
-                // Заполняем поля текущими значениями
-                if (currentUser && users[currentUser]) {
-                    adminBalanceInput.value = users[currentUser].balance;
+                if (currentUser && usersDatabase[currentUser]) {
+                    adminBalanceInput.value = usersDatabase[currentUser].balance;
                 }
                 adminCase1PriceInput.value = casesData[1].price;
                 adminCase2PriceInput.value = casesData[2].price;
@@ -3600,7 +3555,6 @@
                 adminCase4PriceInput.value = casesData[4].price;
                 adminCase5PriceInput.value = casesData[5].price;
                 
-                // Загружаем чат поддержки
                 loadAdminSupportChat();
             } else {
                 showNotification('Неверный пароль!');
@@ -3611,15 +3565,13 @@
         function loadAdminSupportChat() {
             adminChatMessages.innerHTML = '';
             
-            // Проверяем, есть ли активные чаты поддержки
             let hasActiveChats = false;
             
-            for (const username in users) {
-                const user = users[username];
+            for (const username in usersDatabase) {
+                const user = usersDatabase[username];
                 if (user.supportChat && user.supportChat.length > 0) {
                     hasActiveChats = true;
                     
-                    // Показываем последний чат пользователя
                     user.supportChat.forEach(message => {
                         const messageDiv = document.createElement('div');
                         messageDiv.className = `chat-message ${message.sender === 'admin' ? 'message-admin' : 'message-user'}`;
@@ -3631,7 +3583,6 @@
                         adminChatMessages.appendChild(messageDiv);
                     });
                     
-                    // Сохраняем текущего пользователя для ответа
                     adminChatInput.dataset.user = username;
                     adminChatActions.style.display = 'flex';
                     break;
@@ -3648,7 +3599,6 @@
                 adminChatActions.style.display = 'none';
             }
             
-            // Прокручиваем вниз
             adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
         }
 
@@ -3659,8 +3609,7 @@
             
             if (!message || !username) return;
             
-            // Добавляем сообщение в чат пользователя
-            const user = users[username];
+            const user = usersDatabase[username];
             if (!user.supportChat) user.supportChat = [];
             
             user.supportChat.push({
@@ -3669,13 +3618,21 @@
                 time: new Date().toLocaleTimeString()
             });
             
-            // Сохраняем пользователя
-            saveUser();
+            // Сохраняем в базе данных поддержки
+            if (!supportDatabase[username]) {
+                supportDatabase[username] = { messages: [], lastUpdate: Date.now() };
+            }
+            supportDatabase[username].messages.push({
+                sender: 'admin',
+                text: message,
+                time: new Date().toISOString()
+            });
+            supportDatabase[username].lastUpdate = Date.now();
             
-            // Обновляем чат
+            saveDatabases();
+            
             loadAdminSupportChat();
             
-            // Очищаем поле ввода
             adminChatInput.value = '';
             
             showNotification('Сообщение отправлено');
@@ -3686,8 +3643,7 @@
             const username = adminChatInput.dataset.user;
             if (!username) return;
             
-            // Отправляем автоматическое сообщение
-            const user = users[username];
+            const user = usersDatabase[username];
             if (!user.supportChat) user.supportChat = [];
             
             user.supportChat.push({
@@ -3697,18 +3653,29 @@
                 resolved: true
             });
             
-            // Планируем удаление чата через 10 минут
+            // Сохраняем в базе данных
+            if (!supportDatabase[username]) {
+                supportDatabase[username] = { messages: [], lastUpdate: Date.now() };
+            }
+            supportDatabase[username].messages.push({
+                sender: 'admin',
+                text: 'Спасибо за обращение, всего доброго!',
+                time: new Date().toISOString(),
+                resolved: true
+            });
+            
             setTimeout(() => {
-                if (users[username]) {
-                    users[username].supportChat = [];
-                    saveUser();
+                if (usersDatabase[username]) {
+                    usersDatabase[username].supportChat = [];
+                    if (supportDatabase[username]) {
+                        supportDatabase[username].messages = [];
+                    }
+                    saveDatabases();
                 }
             }, 10 * 60 * 1000);
             
-            // Сохраняем пользователя
-            saveUser();
+            saveDatabases();
             
-            // Обновляем чат
             loadAdminSupportChat();
             
             showNotification('Чат поддержки решен');
@@ -3719,13 +3686,14 @@
             const username = adminChatInput.dataset.user;
             if (!username) return;
             
-            // Очищаем чат пользователя
-            if (users[username]) {
-                users[username].supportChat = [];
-                saveUser();
+            if (usersDatabase[username]) {
+                usersDatabase[username].supportChat = [];
+                if (supportDatabase[username]) {
+                    supportDatabase[username].messages = [];
+                }
+                saveDatabases();
             }
             
-            // Обновляем чат
             loadAdminSupportChat();
             
             showNotification('Чат поддержки закрыт');
@@ -3733,28 +3701,23 @@
 
         // Сохранение настроек админ-панели
         function saveAdminSettings() {
-            // Обновляем настройки
-            if (currentUser && users[currentUser]) {
-                users[currentUser].balance = parseInt(adminBalanceInput.value);
+            if (currentUser && usersDatabase[currentUser]) {
+                usersDatabase[currentUser].balance = parseInt(adminBalanceInput.value);
             }
             
-            // Обновляем цены кейсов
             casesData[1].price = parseInt(adminCase1PriceInput.value);
             casesData[2].price = parseInt(adminCase2PriceInput.value);
             casesData[3].price = parseInt(adminCase3PriceInput.value);
             casesData[4].price = parseInt(adminCase4PriceInput.value);
             casesData[5].price = parseInt(adminCase5PriceInput.value);
             
-            // Обновляем отображение цен на кейсах
             document.querySelectorAll('.case-price-value').forEach((span, index) => {
                 span.textContent = casesData[index + 1].price.toLocaleString();
             });
             
-            // Обновляем отображение
             updateUserDisplay();
-            saveUser();
+            saveDatabases();
             
-            // Закрываем админ-панель
             adminModal.style.display = 'none';
             
             showNotification('Настройки успешно сохранены!');
@@ -3777,7 +3740,7 @@
             
             if (!currentUser) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             
             if (!user.supportChat || user.supportChat.length === 0) {
                 const welcomeMessage = document.createElement('div');
@@ -3788,7 +3751,6 @@
                 `;
                 supportChatMessages.appendChild(welcomeMessage);
             } else {
-                // Показываем все сообщения
                 user.supportChat.forEach(message => {
                     const messageDiv = document.createElement('div');
                     messageDiv.className = `chat-message ${message.sender === 'admin' ? 'message-admin' : 'message-user'}`;
@@ -3798,7 +3760,6 @@
                         <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 5px;">${message.time}</div>
                     `;
                     
-                    // Проверяем, не решен ли уже вопрос
                     if (message.resolved) {
                         messageDiv.style.opacity = '0.7';
                     }
@@ -3807,7 +3768,6 @@
                 });
             }
             
-            // Прокручиваем вниз
             supportChatMessages.scrollTop = supportChatMessages.scrollHeight;
         }
 
@@ -3818,23 +3778,30 @@
             const message = supportChatInput.value.trim();
             if (!message) return;
             
-            const user = users[currentUser];
+            const user = usersDatabase[currentUser];
             if (!user.supportChat) user.supportChat = [];
             
-            // Добавляем сообщение пользователя
             user.supportChat.push({
                 sender: 'user',
                 text: message,
                 time: new Date().toLocaleTimeString()
             });
             
-            // Сохраняем пользователя
-            saveUser();
+            // Сохраняем в базе данных поддержки
+            if (!supportDatabase[currentUser]) {
+                supportDatabase[currentUser] = { messages: [], lastUpdate: Date.now() };
+            }
+            supportDatabase[currentUser].messages.push({
+                sender: 'user',
+                text: message,
+                time: new Date().toISOString()
+            });
+            supportDatabase[currentUser].lastUpdate = Date.now();
             
-            // Обновляем чат
+            saveDatabases();
+            
             loadSupportChat();
             
-            // Очищаем поле ввода
             supportChatInput.value = '';
             
             showNotification('Сообщение отправлено в поддержку');
@@ -3855,13 +3822,11 @@
 
         // Показать уведомление
         function showNotification(message) {
-            // Удаляем старое уведомление
             const oldNotification = document.querySelector('.notification');
             if (oldNotification) {
                 document.body.removeChild(oldNotification);
             }
             
-            // Создаем новое уведомление
             const notification = document.createElement('div');
             notification.className = 'notification';
             notification.innerHTML = `
@@ -3873,12 +3838,10 @@
             
             document.body.appendChild(notification);
             
-            // Показываем уведомление
             setTimeout(() => {
                 notification.classList.add('show');
             }, 10);
             
-            // Скрываем через 3 секунды
             setTimeout(() => {
                 notification.classList.remove('show');
                 setTimeout(() => {
@@ -3895,7 +3858,6 @@
         // Обработка видимости вкладки для фикса анимации дропов
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden) {
-                // При возвращении на вкладку перезапускаем анимацию дропов
                 const animatedDrops = dropsContainer.querySelectorAll('.drop-item[style*="animation"]');
                 animatedDrops.forEach(drop => drop.remove());
                 startDropAnimation();
