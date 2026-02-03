@@ -1107,7 +1107,7 @@
         .admin-panel {
             background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             border-radius: 25px;
             overflow: hidden;
             border: 1px solid var(--glass-border);
@@ -1242,57 +1242,243 @@
             display: flex;
         }
 
-        /* Окно авторизации - ИСПРАВЛЕНО */
-        .auth-modal {
+        /* Окно профиля */
+        .profile-modal {
             background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
-            max-width: 450px;
+            max-width: 500px;
             border-radius: 25px;
             overflow: hidden;
             border: 1px solid var(--glass-border);
         }
 
-        .auth-tabs {
-            display: flex;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .auth-tab {
-            flex: 1;
-            padding: 20px;
+        .profile-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            padding: 30px;
             text-align: center;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            color: rgba(255, 255, 255, 0.7);
+            position: relative;
         }
 
-        .auth-tab.active {
-            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            border: 3px solid white;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-username {
+            font-size: 28px;
+            font-weight: 800;
             color: white;
+            margin-bottom: 5px;
         }
 
-        .auth-form {
+        .profile-status {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .profile-body {
             padding: 40px;
         }
 
-        .auth-form h3 {
-            text-align: center;
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
             margin-bottom: 30px;
-            font-size: 24px;
-            color: var(--light-color);
         }
 
-        .auth-error {
-            background: rgba(255, 70, 85, 0.2);
-            border: 1px solid var(--primary-color);
-            padding: 15px;
+        .profile-stat {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
             border-radius: 12px;
-            margin-bottom: 25px;
             text-align: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gold-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Апгрейд секция */
+        .upgrade-section {
             display: none;
+        }
+
+        .upgrade-wheel {
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 40px;
+            position: relative;
+        }
+
+        .wheel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #ff6b6b 0deg 45deg,
+                #4ecdc4 45deg 90deg,
+                #ffd166 90deg 135deg,
+                #06d6a0 135deg 180deg,
+                #118ab2 180deg 225deg,
+                #ef476f 225deg 270deg,
+                #7209b7 270deg 315deg,
+                #f72585 315deg 360deg
+            );
+            position: relative;
+            transition: transform 3s cubic-bezier(0.2, 0.8, 0.3, 1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--primary-color);
+            font-size: 48px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        .wheel-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 800;
             color: white;
+            text-align: center;
+            z-index: 1;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .inventory-select {
+            margin-bottom: 30px;
+        }
+
+        .inventory-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .inventory-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .inventory-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .inventory-item.selected {
+            border-color: var(--gold-color);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .inventory-item img {
+            width: 80px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .inventory-item-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .inventory-item-value {
+            color: var(--gold-color);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .upgrade-form {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .chance-display {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+
+        .chance-value {
+            color: var(--primary-color);
+            font-weight: 800;
+            font-size: 24px;
+        }
+
+        .upgrade-btn {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .upgrade-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 70, 85, 0.3);
+        }
+
+        .upgrade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Чат поддержки */
@@ -1567,6 +1753,15 @@
                 width: 200px;
                 height: 150px;
             }
+            
+            .upgrade-wheel {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .inventory-items {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
         }
 
         @media (max-width: 480px) {
@@ -1619,6 +1814,11 @@
             .auth-form h3 {
                 font-size: 20px;
                 margin-bottom: 20px;
+            }
+            
+            .upgrade-wheel {
+                width: 250px;
+                height: 250px;
             }
         }
 
@@ -1763,6 +1963,25 @@
                 transform: translateX(-100px);
             }
         }
+        
+        .admin-users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -1847,7 +2066,18 @@
         
         <!-- Основная секция -->
         <div class="main-content">
-            <h1 class="page-title">Открой <span class="gradient-text">кейсы CS2</span> и выиграй <span class="gradient-text">скины</span></h1>
+            <!-- Секция кейсов (главная) -->
+            <section class="case-selection" id="case-selection">
+                <h1 class="page-title">Открой <span class="gradient-text">кейсы CS2</span> и выиграй <span class="gradient-text">скины</span></h1>
+                
+                <h2 class="section-title">
+                    <i class="fas fa-gem"></i> Доступные кейсы
+                </h2>
+                
+                <div class="cases-grid">
+                    <!-- Кейсы будут добавляться динамически -->
+                </div>
+            </section>
             
             <!-- Секция открытия кейса (скрыта по умолчанию) -->
             <section class="case-opening-section" id="case-opening-section">
@@ -1883,14 +2113,48 @@
                 </div>
             </section>
             
-            <!-- Секция выбора кейсов -->
-            <section class="case-selection" id="case-selection">
-                <h2 class="section-title">
-                    <i class="fas fa-gem"></i> Доступные кейсы
-                </h2>
+            <!-- Секция апгрейда (скрыта по умолчанию) -->
+            <section class="upgrade-section" id="upgrade-section">
+                <h1 class="page-title">Апгрейд <span class="gradient-text">скинов</span></h1>
                 
-                <div class="cases-grid">
-                    <!-- Кейсы будут добавляться динамически -->
+                <div class="upgrade-content">
+                    <div class="upgrade-wheel">
+                        <div class="wheel-container">
+                            <div class="wheel" id="upgrade-wheel"></div>
+                            <div class="wheel-pointer">
+                                <i class="fas fa-caret-down"></i>
+                            </div>
+                            <div class="wheel-text">
+                                Колесо удачи<br>
+                                <span id="chance-percent">50%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-select">
+                        <h3 class="section-title">
+                            <i class="fas fa-box"></i> Ваш инвентарь
+                        </h3>
+                        
+                        <div class="inventory-items" id="inventory-items">
+                            <!-- Предметы инвентаря будут добавляться динамически -->
+                        </div>
+                        
+                        <div class="upgrade-form">
+                            <div class="form-group">
+                                <label for="upgrade-amount">Сумма апгрейда</label>
+                                <input type="number" id="upgrade-amount" placeholder="Введите сумму" min="1">
+                            </div>
+                            
+                            <div class="chance-display">
+                                Шанс успеха: <span class="chance-value" id="chance-value">0%</span>
+                            </div>
+                            
+                            <button class="upgrade-btn" id="upgrade-btn" disabled>
+                                <i class="fas fa-sync-alt"></i> Апгрейднуть
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -1930,6 +2194,69 @@
         </div>
     </div>
     
+    <!-- Модальное окно результата апгрейда -->
+    <div class="modal" id="upgrade-result-modal">
+        <div class="modal-content">
+            <div class="modal-header" id="upgrade-result-header">
+                <span class="gradient-text">Результат апгрейда</span>
+                <button class="close-modal-btn" id="close-upgrade-result-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="won-item">
+                    <div class="item-image">
+                        <img id="upgrade-result-img" src="" alt="Результат" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png'">
+                    </div>
+                    <div class="item-name" id="upgrade-result-text"></div>
+                    <div class="item-price" id="upgrade-result-value"></div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="modal-btn close-modal" id="close-upgrade-modal-btn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Профиль пользователя -->
+    <div class="modal" id="profile-modal">
+        <div class="profile-modal">
+            <div class="profile-header">
+                <button class="close-modal-btn" id="close-profile-modal" style="position: absolute; top: 20px; right: 20px;">&times;</button>
+                <div class="profile-avatar" id="profile-avatar">
+                    <img src="" alt="Аватар">
+                </div>
+                <div class="profile-username" id="profile-username"></div>
+                <div class="profile-status" id="profile-status"></div>
+            </div>
+            <div class="profile-body">
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="stat-value" id="profile-balance">0</div>
+                        <div class="stat-label">Баланс</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="stat-value" id="profile-cases">0</div>
+                        <div class="stat-label">Кейсов открыто</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="stat-value" id="profile-total">0</div>
+                        <div class="stat-label">Общая стоимость</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="stat-value" id="profile-best">-</div>
+                        <div class="stat-label">Лучший предмет</div>
+                    </div>
+                </div>
+                
+                <button class="admin-btn-submit" id="logout-btn" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Админ-панель -->
     <div class="modal" id="admin-modal">
         <div class="admin-panel">
@@ -1941,10 +2268,28 @@
                 <div class="form-group">
                     <label for="admin-password">Пароль администратора</label>
                     <input type="password" id="admin-password" placeholder="Введите пароль">
+                    <button class="admin-btn-submit" id="admin-login-btn" style="width: 100%; margin-top: 10px;">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
                 </div>
                 
                 <div id="admin-content" style="display: none;">
                     <h3 style="margin-bottom: 30px; text-align: center; color: var(--primary-color);">Панель управления</h3>
+                    
+                    <div class="form-group">
+                        <label>Управление пользователями</label>
+                        <div class="admin-users-list" id="admin-users-list">
+                            <!-- Список пользователей -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="user-balance-control" style="display: none;">
+                        <label>Изменение баланса пользователя: <span id="selected-username"></span></label>
+                        <input type="number" id="new-balance" placeholder="Новый баланс">
+                        <button class="admin-btn-submit" id="save-balance-btn" style="width: 100%; margin-top: 10px;">
+                            <i class="fas fa-save"></i> Сохранить баланс
+                        </button>
+                    </div>
                     
                     <div class="form-group">
                         <label>Сообщения поддержки (<span id="support-messages-count">0</span> новых)</label>
@@ -1986,7 +2331,7 @@
         </div>
     </div>
     
-    <!-- Окно авторизации - ИСПРАВЛЕНО -->
+    <!-- Окно авторизации -->
     <div class="modal" id="auth-modal">
         <div class="auth-modal">
             <div class="auth-tabs">
@@ -2100,6 +2445,10 @@
                     localStorage.setItem('adminMessages', JSON.stringify([]));
                 }
                 
+                if (!localStorage.getItem('currentUser')) {
+                    localStorage.setItem('currentUser', JSON.stringify(null));
+                }
+                
                 // Предустановленный аккаунт администратора
                 const users = this.getUsers();
                 if (!users['k1lame']) {
@@ -2111,8 +2460,7 @@
                         bestItem: 'Нет',
                         createdAt: new Date().toLocaleDateString(),
                         isAdmin: true,
-                        inventory: [],
-                        supportTickets: []
+                        inventory: []
                     };
                     this.saveUsers(users);
                 }
@@ -2136,6 +2484,18 @@
                 const users = this.getUsers();
                 users[username] = userData;
                 this.saveUsers(users);
+            }
+            
+            getCurrentUser() {
+                return JSON.parse(localStorage.getItem('currentUser'));
+            }
+            
+            setCurrentUser(username) {
+                localStorage.setItem('currentUser', JSON.stringify(username));
+            }
+            
+            clearCurrentUser() {
+                localStorage.setItem('currentUser', JSON.stringify(null));
             }
             
             // Поддержка
@@ -2214,6 +2574,13 @@
                 return items;
             }
             
+            removeFromInventory(username, itemId) {
+                const items = this.getInventory(username);
+                const filtered = items.filter(i => i.id !== itemId);
+                this.saveInventory(username, filtered);
+                return filtered;
+            }
+            
             // Сообщения администратора
             getAdminMessages() {
                 return JSON.parse(localStorage.getItem('adminMessages')) || [];
@@ -2245,94 +2612,164 @@
             defaultBalance: 10000
         };
 
-        // Данные о скинах (используем знак вопроса для изображений)
+        // Данные о скинах (расширенные)
         const cs2Items = {
-            // Синие скины (Армейское качество)
+            // Армейские скины (базовая цена 10, x7 = 70)
             common: [
-                { name: "Glock-18 | Армейский камуфляж", value: 60, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "USP-S | Тактический серый", value: 70, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "P250 | Пустынный песок", value: 50, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "MAC-10 | Городской камуфляж", value: 55, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "UMP-45 | Военный камуфляж", value: 65, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "Glock-18 | Армейский камуфляж", value: 10, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "USP-S | Тактический серый", value: 15, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P250 | Пустынный песок", value: 12, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAC-10 | Городской камуфляж", value: 18, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "UMP-45 | Военный камуфляж", value: 20, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Базовый камуфляж", value: 25, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A4 | Тактический песок", value: 22, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Полевой камуфляж", value: 30, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Тактический серый", value: 28, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P90 | Городская роспись", value: 16, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "FAMAS | Лесной камуфляж", value: 14, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Galil AR | Пустынный бой", value: 19, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SG 553 | Тактический камуфляж", value: 24, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SSG 08 | Лесной патруль", value: 21, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAG-7 | Пустынный рассвет", value: 17, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
-            // Фиолетовые скины (Запрещенное качество)
+            // Фиолетовые скины (базовая цена 50, x7 = 350)
             uncommon: [
-                { name: "M4A1-S | Синий тигр", value: 300, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AK-47 | Синяя линия", value: 400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AWP | Электрический океан", value: 500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "Desert Eagle | Синяя змея", value: 250, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "M4A1-S | Синий тигр", value: 50, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Синяя линия", value: 70, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Электрический океан", value: 100, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Синяя змея", value: 60, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Glock-18 | Синий кристалл", value: 45, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "USP-S | Синий шторм", value: 55, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P250 | Синяя волна", value: 40, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAC-10 | Синий градиент", value: 48, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "UMP-45 | Синий лабиринт", value: 65, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P90 | Синий прилив", value: 58, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "FAMAS | Синий паттерн", value: 52, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Galil AR | Синяя буря", value: 62, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SG 553 | Синий рассвет", value: 75, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SSG 08 | Синий кристалл", value: 68, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAG-7 | Синий омут", value: 42, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
-            // Розовые скины (Засекреченное качество)
+            // Розовые скины (базовая цена 150, x7 = 1050)
             rare: [
-                { name: "M4A4 | Розовый укус", value: 800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AK-47 | Розовый вулкан", value: 1200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "Desert Eagle | Розовый кристалл", value: 1000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AWP | Розовая линия", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "M4A4 | Розовый укус", value: 150, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Розовый вулкан", value: 250, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Розовый кристалл", value: 200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Розовая линия", value: 300, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Glock-18 | Розовый блеск", value: 120, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "USP-S | Розовый туман", value: 180, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P250 | Розовый цветок", value: 140, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAC-10 | Розовый граффити", value: 160, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "UMP-45 | Розовый узор", value: 220, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P90 | Розовый поток", value: 190, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "FAMAS | Розовый паттерн", value: 170, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Galil AR | Розовая буря", value: 230, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SG 553 | Розовый закат", value: 280, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SSG 08 | Розовый кристалл", value: 210, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAG-7 | Розовый взрыв", value: 130, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
-            // Красные скины (Тайное качество)
+            // Красные скины (базовая цена 400, x7 = 2800)
             mythical: [
-                { name: "AWP | Красный дракон", value: 2500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "M4A1-S | Красный кристалл", value: 2000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AK-47 | Красный вулкан", value: 2800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "AWP | Красный дракон", value: 400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A1-S | Красный кристалл", value: 500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Красный вулкан", value: 600, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Glock-18 | Красный блеск", value: 350, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "USP-S | Красный шторм", value: 450, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Красный кристалл", value: 550, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P250 | Красный цветок", value: 380, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAC-10 | Красный граффити", value: 420, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "UMP-45 | Красный узор", value: 520, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P90 | Красный поток", value: 480, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "FAMAS | Красный паттерн", value: 440, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Galil AR | Красная буря", value: 580, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SG 553 | Красный закат", value: 650, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "SSG 08 | Красный кристалл", value: 470, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAG-7 | Красный взрыв", value: 360, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
-            // Желтые скины (Ножевой кейс)
+            // Желтые скины (базовая цена 1000, x7 = 7000)
             legendary: [
-                { name: "Нож | Золотой бабочка", value: 5000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "Перчатки | Золотые когти", value: 6000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "Нож | Золотой карамбут", value: 7000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "Нож | Золотой бабочка", value: 1000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые когти", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой карамбут", value: 2000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой охотничий", value: 1200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые драконы", value: 1800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой флип", value: 1600, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые тигры", value: 2200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой коготь", value: 1400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые львы", value: 1900, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой клинок", value: 1700, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые орлы", value: 2400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой меч", value: 1300, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые волки", value: 2100, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой кинжал", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые фениксы", value: 2500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
-            // Особые скины
+            // Особые скины (базовая цена 1500, x7 = 10500)
             ancient: [
-                { name: "AK-47 | Огненный дракон", value: 8000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "AWP | Драконья слава", value: 10000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
-                { name: "Нож | Сапфировый клинок", value: 12000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
+                { name: "AK-47 | Огненный дракон", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Драконья слава", value: 2000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Сапфировый клинок", value: 2500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A4 | Огненный феникс", value: 1800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Сапфировая слава", value: 2200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Изумрудный клинок", value: 2800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Сапфировый дракон", value: 1900, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A1-S | Огненный кристалл", value: 2100, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Изумрудная слава", value: 2400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Рубиновый клинок", value: 3000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Изумрудный вулкан", value: 2300, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A4 | Сапфировый феникс", value: 2600, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Рубиновая слава", value: 2700, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Алмазный клинок", value: 3500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Рубиновый дракон", value: 2900, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ]
         };
 
-        // Данные о кейсах
+        // Данные о кейсах с расчетом средней цены
         const casesData = {
             1: {
                 name: "Армейское",
-                price: 1500,
-                color: '#5e98d9',
-                items: cs2Items.common.slice()
+                items: cs2Items.common,
+                color: '#5e98d9'
             },
             2: {
                 name: "Запрещенное",
-                price: 2500,
-                color: '#8847ff',
-                items: cs2Items.uncommon.slice()
+                items: cs2Items.uncommon,
+                color: '#8847ff'
             },
             3: {
                 name: "Засекреченное",
-                price: 3500,
-                color: '#d32ee6',
-                items: cs2Items.rare.slice()
+                items: cs2Items.rare,
+                color: '#d32ee6'
             },
             4: {
                 name: "Тайное",
-                price: 5000,
-                color: '#eb4b4b',
-                items: cs2Items.mythical.slice()
+                items: cs2Items.mythical,
+                color: '#eb4b4b'
             },
             5: {
                 name: "Ножевой",
-                price: 7500,
-                color: '#ffd700',
-                items: cs2Items.legendary.concat(cs2Items.ancient)
+                items: cs2Items.legendary.concat(cs2Items.ancient),
+                color: '#ffd700'
             }
         };
+
+        // Расчет средней цены для каждого кейса
+        Object.keys(casesData).forEach(caseId => {
+            const caseData = casesData[caseId];
+            const totalValue = caseData.items.reduce((sum, item) => sum + item.value, 0);
+            caseData.price = Math.round(totalValue / caseData.items.length);
+        });
 
         // Инициализация базы данных
         const db = new Database();
 
         // Текущий пользователь
-        let currentUser = null;
+        let currentUser = db.getCurrentUser();
 
         // Текущее состояние
         const gameState = {
@@ -2341,7 +2778,8 @@
             spinResult: null,
             activeSupportTicket: null,
             currentScrollItems: [],
-            animationInterval: null
+            animationInterval: null,
+            selectedUpgradeItem: null
         };
 
         // DOM элементы
@@ -2365,7 +2803,16 @@
         const mainTab = document.getElementById('main-tab');
         const casesTab = document.getElementById('cases-tab');
         const upgradeTab = document.getElementById('upgrade-tab');
+        const upgradeSection = document.getElementById('upgrade-section');
         const contractsTab = document.getElementById('contracts-tab');
+        
+        // Апгрейд элементы
+        const upgradeWheel = document.getElementById('upgrade-wheel');
+        const chancePercent = document.getElementById('chance-percent');
+        const chanceValue = document.getElementById('chance-value');
+        const inventoryItems = document.getElementById('inventory-items');
+        const upgradeAmount = document.getElementById('upgrade-amount');
+        const upgradeBtn = document.getElementById('upgrade-btn');
         
         // Чат поддержки
         const supportChat = document.getElementById('support-chat');
@@ -2376,6 +2823,7 @@
         
         // Модальные окна
         const authModal = document.getElementById('auth-modal');
+        const profileModal = document.getElementById('profile-modal');
         const loginTab = document.getElementById('login-tab');
         const registerTab = document.getElementById('register-tab');
         const loginForm = document.getElementById('login-form');
@@ -2402,10 +2850,34 @@
         const wonItemPrice = document.getElementById('won-item-price');
         const wonItemRarity = document.getElementById('won-item-rarity');
         
+        const upgradeResultModal = document.getElementById('upgrade-result-modal');
+        const closeUpgradeResultModal = document.getElementById('close-upgrade-result-modal');
+        const upgradeResultHeader = document.getElementById('upgrade-result-header');
+        const upgradeResultImg = document.getElementById('upgrade-result-img');
+        const upgradeResultText = document.getElementById('upgrade-result-text');
+        const upgradeResultValue = document.getElementById('upgrade-result-value');
+        const closeUpgradeModalBtn = document.getElementById('close-upgrade-modal-btn');
+        
+        const closeProfileModal = document.getElementById('close-profile-modal');
+        const profileUsername = document.getElementById('profile-username');
+        const profileStatus = document.getElementById('profile-status');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const profileBalance = document.getElementById('profile-balance');
+        const profileCases = document.getElementById('profile-cases');
+        const profileTotal = document.getElementById('profile-total');
+        const profileBest = document.getElementById('profile-best');
+        const logoutBtn = document.getElementById('logout-btn');
+        
         const adminModal = document.getElementById('admin-modal');
         const closeAdminModalBtn = document.getElementById('close-admin-modal');
         const adminPasswordInput = document.getElementById('admin-password');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminContent = document.getElementById('admin-content');
+        const adminUsersList = document.getElementById('admin-users-list');
+        const userBalanceControl = document.getElementById('user-balance-control');
+        const selectedUsername = document.getElementById('selected-username');
+        const newBalance = document.getElementById('new-balance');
+        const saveBalanceBtn = document.getElementById('save-balance-btn');
         const supportMessagesList = document.getElementById('support-messages-list');
         const supportMessagesCount = document.getElementById('support-messages-count');
         const adminReplyForm = document.getElementById('admin-reply-form');
@@ -2422,9 +2894,19 @@
 
         // Инициализация
         function init() {
-            // Начинаем в гостевом режиме
-            currentUser = null;
-            updateUserDisplay();
+            // Проверяем сохраненного пользователя
+            if (currentUser) {
+                const user = db.getUser(currentUser);
+                if (user) {
+                    updateUserDisplay();
+                    if (user.isAdmin) {
+                        adminBtn.classList.add('visible');
+                    }
+                } else {
+                    db.clearCurrentUser();
+                    currentUser = null;
+                }
+            }
             
             // Загружаем историю выпадений
             loadRecentDrops();
@@ -2471,9 +2953,8 @@
             
             upgradeTab.addEventListener('click', (e) => {
                 e.preventDefault();
-                showMainPage();
+                showUpgradeSection();
                 setActiveTab(upgradeTab);
-                alert('Раздел "Апгрейд" находится в разработке');
             });
             
             contractsTab.addEventListener('click', (e) => {
@@ -2485,7 +2966,9 @@
             
             // Профиль
             userAvatarBtn.addEventListener('click', () => {
-                if (!currentUser) {
+                if (currentUser) {
+                    showProfileModal();
+                } else {
                     authModal.style.display = 'flex';
                 }
             });
@@ -2525,6 +3008,10 @@
                 }
             });
             
+            // Апгрейд
+            upgradeAmount.addEventListener('input', updateUpgradeChance);
+            upgradeBtn.addEventListener('click', startUpgrade);
+            
             // Админ панель
             adminBtn.addEventListener('click', () => {
                 adminModal.style.display = 'flex';
@@ -2536,6 +3023,7 @@
                 adminModal.style.display = 'none';
             });
             
+            adminLoginBtn.addEventListener('click', checkAdminPassword);
             adminPasswordInput.addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') {
                     checkAdminPassword();
@@ -2549,6 +3037,9 @@
             adminCancelBtn.addEventListener('click', () => {
                 adminModal.style.display = 'none';
             });
+            
+            // Управление балансом пользователей
+            saveBalanceBtn.addEventListener('click', saveUserBalance);
             
             // Модальное окно результата
             closeModalBtn.addEventListener('click', () => {
@@ -2568,7 +3059,23 @@
                 }
             });
             
-            // Авторизация - ИСПРАВЛЕНО
+            // Модальное окно результата апгрейда
+            closeUpgradeResultModal.addEventListener('click', () => {
+                upgradeResultModal.style.display = 'none';
+            });
+            
+            closeUpgradeModalBtn.addEventListener('click', () => {
+                upgradeResultModal.style.display = 'none';
+            });
+            
+            // Профиль
+            closeProfileModal.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+            });
+            
+            logoutBtn.addEventListener('click', logout);
+            
+            // Авторизация
             loginTab.addEventListener('click', () => {
                 loginTab.classList.add('active');
                 registerTab.classList.remove('active');
@@ -2625,9 +3132,41 @@
         // Показать главную страницу
         function showMainPage() {
             caseOpeningSection.classList.remove('active');
+            upgradeSection.style.display = 'none';
             caseSelection.style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
             stopItemAnimation();
+        }
+
+        // Показать секцию апгрейда
+        function showUpgradeSection() {
+            caseOpeningSection.classList.remove('active');
+            caseSelection.style.display = 'none';
+            upgradeSection.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            stopItemAnimation();
+            loadInventory();
+        }
+
+        // Показать модальное окно профиля
+        function showProfileModal() {
+            if (!currentUser) return;
+            
+            const user = db.getUser(currentUser);
+            if (!user) return;
+            
+            // Обновляем данные профиля
+            profileUsername.textContent = currentUser;
+            profileStatus.textContent = user.isAdmin ? 'Администратор' : 'Игрок';
+            profileBalance.textContent = user.balance.toLocaleString();
+            profileCases.textContent = user.casesOpened;
+            profileTotal.textContent = user.totalValue.toLocaleString();
+            profileBest.textContent = user.bestItem;
+            
+            // Обновляем аватар
+            updateAvatar(currentUser, profileAvatar.querySelector('img'));
+            
+            profileModal.style.display = 'flex';
         }
 
         // Установить активную вкладку
@@ -2636,7 +3175,7 @@
             tab.classList.add('active');
         }
 
-        // Авторизация - ИСПРАВЛЕНО
+        // Авторизация
         function login() {
             const username = loginUsername.value.trim();
             const password = loginPassword.value;
@@ -2651,6 +3190,7 @@
             
             if (user && user.password === password) {
                 currentUser = username;
+                db.setCurrentUser(username);
                 
                 // Обновляем отображение
                 updateUserDisplay();
@@ -2673,7 +3213,7 @@
             }
         }
 
-        // Регистрация - ИСПРАВЛЕНО
+        // Регистрация
         function register() {
             const username = registerUsername.value.trim();
             const password = registerPassword.value;
@@ -2718,14 +3258,14 @@
                 bestItem: "Нет",
                 createdAt: new Date().toLocaleDateString(),
                 isAdmin: false,
-                inventory: [],
-                supportTickets: []
+                inventory: []
             };
             
             db.saveUser(username, userData);
             
             // Автоматически входим
             currentUser = username;
+            db.setCurrentUser(username);
             
             // Обновляем отображение
             updateUserDisplay();
@@ -2741,6 +3281,17 @@
             
             // Переключаемся на вкладку входа
             loginTab.click();
+        }
+
+        // Выход
+        function logout() {
+            currentUser = null;
+            db.clearCurrentUser();
+            updateUserDisplay();
+            updateOpenCaseButtons();
+            profileModal.style.display = 'none';
+            adminBtn.classList.remove('visible');
+            alert('Вы вышли из аккаунта');
         }
 
         // Обновление отображения пользователя
@@ -2810,6 +3361,7 @@
             });
             
             spinBtn.disabled = !isLoggedIn;
+            upgradeBtn.disabled = !isLoggedIn || !gameState.selectedUpgradeItem;
         }
 
         // Загрузить кейсы
@@ -2839,7 +3391,7 @@
                         </div>
                         <div class="case-items">
                             <span>${caseData.items.length} предметов</span>
-                            <span>Цвет: <span style="color: ${caseData.color}">${caseData.name}</span></span>
+                            <span>Средняя цена: ${caseData.price}</span>
                         </div>
                         <div class="open-case-section">
                             <button class="open-case-btn" data-case="${caseId}" disabled>
@@ -2890,6 +3442,7 @@
             // Показываем секцию открытия кейса
             caseOpeningSection.classList.add('active');
             caseSelection.style.display = 'none';
+            upgradeSection.style.display = 'none';
             
             // Запускаем анимацию появления предметов
             startItemAnimation();
@@ -3296,6 +3849,199 @@
             }
         }
 
+        // Загрузка инвентаря для апгрейда
+        function loadInventory() {
+            if (!currentUser) return;
+            
+            inventoryItems.innerHTML = '';
+            
+            const items = db.getInventory(currentUser);
+            
+            if (items.length === 0) {
+                inventoryItems.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5); grid-column: 1 / -1;">
+                        <i class="fas fa-box-open" style="font-size: 32px; margin-bottom: 10px;"></i>
+                        <p>Ваш инвентарь пуст</p>
+                        <p style="font-size: 12px;">Откройте кейсы чтобы получить предметы</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'inventory-item';
+                itemElement.dataset.itemId = item.id;
+                
+                // Определяем редкость
+                const rarity = getRarityByValue(item.value);
+                const rarityColor = getRarityColor(rarity);
+                
+                itemElement.style.borderColor = rarityColor;
+                
+                itemElement.innerHTML = `
+                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png'">
+                    <div class="inventory-item-name">${item.name}</div>
+                    <div class="inventory-item-value">${item.value} <i class="fas fa-coins"></i></div>
+                `;
+                
+                itemElement.addEventListener('click', () => {
+                    // Сбрасываем выделение у всех предметов
+                    document.querySelectorAll('.inventory-item').forEach(i => {
+                        i.classList.remove('selected');
+                    });
+                    
+                    // Выделяем выбранный предмет
+                    itemElement.classList.add('selected');
+                    gameState.selectedUpgradeItem = item;
+                    
+                    // Обновляем шанс
+                    updateUpgradeChance();
+                });
+                
+                inventoryItems.appendChild(itemElement);
+            });
+        }
+
+        // Обновление шанса апгрейда
+        function updateUpgradeChance() {
+            if (!gameState.selectedUpgradeItem || !upgradeAmount.value) {
+                chanceValue.textContent = '0%';
+                chancePercent.textContent = '0%';
+                upgradeBtn.disabled = true;
+                return;
+            }
+            
+            const itemValue = gameState.selectedUpgradeItem.value;
+            const upgradeValue = parseInt(upgradeAmount.value) || 0;
+            
+            if (upgradeValue <= 0) {
+                chanceValue.textContent = '0%';
+                chancePercent.textContent = '0%';
+                upgradeBtn.disabled = true;
+                return;
+            }
+            
+            // Расчет шанса: отношение стоимости предмета к сумме апгрейда
+            // Если предмет стоит 50, а апгрейд на 100, шанс 50%
+            const chance = Math.min(95, Math.round((itemValue / (itemValue + upgradeValue)) * 100));
+            
+            chanceValue.textContent = chance + '%';
+            chancePercent.textContent = chance + '%';
+            upgradeBtn.disabled = false;
+        }
+
+        // Запуск апгрейда
+        function startUpgrade() {
+            if (!currentUser || !gameState.selectedUpgradeItem) return;
+            
+            const user = db.getUser(currentUser);
+            const itemValue = gameState.selectedUpgradeItem.value;
+            const upgradeValue = parseInt(upgradeAmount.value) || 0;
+            const chance = Math.min(95, Math.round((itemValue / (itemValue + upgradeValue)) * 100));
+            
+            // Проверяем баланс
+            if (user.balance < upgradeValue) {
+                alert('Недостаточно средств для апгрейда!');
+                return;
+            }
+            
+            // Списываем деньги
+            user.balance -= upgradeValue;
+            
+            // Анимация вращения колеса
+            const spins = 5 + Math.random() * 3; // 5-8 полных оборотов
+            const targetRotation = spins * 360 + (Math.random() * 360);
+            let currentRotation = 0;
+            const duration = 3000;
+            const startTime = Date.now();
+            
+            upgradeBtn.disabled = true;
+            upgradeBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Апгрейд...`;
+            
+            const animateWheel = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Замедление в конце
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentRotation = easeOut * targetRotation;
+                
+                upgradeWheel.style.transform = `rotate(${currentRotation}deg)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateWheel);
+                } else {
+                    // Определяем результат
+                    const isSuccess = Math.random() * 100 < chance;
+                    
+                    // Обновляем баланс
+                    db.saveUser(currentUser, user);
+                    
+                    if (isSuccess) {
+                        // Успешный апгрейд
+                        const newValue = itemValue + upgradeValue;
+                        const updatedItem = {
+                            ...gameState.selectedUpgradeItem,
+                            value: newValue
+                        };
+                        
+                        // Обновляем предмет в инвентаре
+                        db.updateInventoryItem(currentUser, gameState.selectedUpgradeItem.id, {
+                            value: newValue,
+                            name: gameState.selectedUpgradeItem.name.replace(/\d+$/, '') + newValue
+                        });
+                        
+                        // Показываем результат
+                        upgradeResultHeader.innerHTML = '<span class="gradient-text">Апгрейд успешен!</span>';
+                        upgradeResultImg.src = gameState.selectedUpgradeItem.img;
+                        upgradeResultText.textContent = `${gameState.selectedUpgradeItem.name}`;
+                        upgradeResultValue.innerHTML = `Новая стоимость: ${newValue} <i class="fas fa-coins"></i>`;
+                        
+                        // Обновляем статистику
+                        user.totalValue += upgradeValue;
+                        if (newValue > getItemValue(user.bestItem)) {
+                            user.bestItem = gameState.selectedUpgradeItem.name;
+                        }
+                    } else {
+                        // Неудачный апгрейд
+                        // Удаляем предмет из инвентаря
+                        db.removeFromInventory(currentUser, gameState.selectedUpgradeItem.id);
+                        
+                        // Показываем результат
+                        upgradeResultHeader.innerHTML = '<span style="color: #ff4757;">Апгрейд провален</span>';
+                        upgradeResultImg.src = gameState.selectedUpgradeItem.img;
+                        upgradeResultText.textContent = `Вы потеряли предмет: ${gameState.selectedUpgradeItem.name}`;
+                        upgradeResultValue.innerHTML = `Потеряно: ${itemValue + upgradeValue} <i class="fas fa-coins"></i>`;
+                    }
+                    
+                    // Сохраняем пользователя
+                    db.saveUser(currentUser, user);
+                    
+                    // Обновляем отображение
+                    updateUserDisplay();
+                    loadInventory();
+                    
+                    // Сбрасываем состояние
+                    setTimeout(() => {
+                        upgradeResultModal.style.display = 'flex';
+                        upgradeBtn.disabled = false;
+                        upgradeBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Апгрейднуть`;
+                        gameState.selectedUpgradeItem = null;
+                        upgradeAmount.value = '';
+                        updateUpgradeChance();
+                        
+                        // Сбрасываем выделение
+                        document.querySelectorAll('.inventory-item').forEach(i => {
+                            i.classList.remove('selected');
+                        });
+                    }, 1000);
+                }
+            };
+            
+            animateWheel();
+        }
+
         // Отправка сообщения в поддержку
         function sendSupportMessage() {
             if (!currentUser) {
@@ -3395,10 +4141,79 @@
         function checkAdminPassword() {
             if (adminPasswordInput.value === systemSettings.adminPassword) {
                 adminContent.style.display = 'block';
+                loadAdminUsers();
                 loadSupportMessages();
             } else {
                 alert('Неверный пароль!');
             }
+        }
+
+        // Загрузка списка пользователей в админ-панели
+        function loadAdminUsers() {
+            const users = db.getUsers();
+            adminUsersList.innerHTML = '';
+            
+            Object.keys(users).forEach(username => {
+                const user = users[username];
+                const userElement = document.createElement('div');
+                userElement.className = 'admin-user-item';
+                
+                userElement.innerHTML = `
+                    <div>
+                        <strong>${username}</strong>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                            Баланс: ${user.balance} | Кейсов: ${user.casesOpened}
+                        </div>
+                    </div>
+                    <button class="admin-btn-submit edit-balance-btn" data-username="${username}" style="padding: 8px 15px;">
+                        <i class="fas fa-edit"></i> Изменить баланс
+                    </button>
+                `;
+                
+                adminUsersList.appendChild(userElement);
+            });
+            
+            // Добавляем обработчики для кнопок изменения баланса
+            document.querySelectorAll('.edit-balance-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const username = btn.dataset.username;
+                    selectedUsername.textContent = username;
+                    newBalance.value = users[username].balance;
+                    userBalanceControl.style.display = 'block';
+                    
+                    // Прокручиваем к форме
+                    userBalanceControl.scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        }
+
+        // Сохранение баланса пользователя
+        function saveUserBalance() {
+            const username = selectedUsername.textContent;
+            const balance = parseInt(newBalance.value);
+            
+            if (!username || isNaN(balance)) {
+                alert('Введите корректное значение баланса');
+                return;
+            }
+            
+            const users = db.getUsers();
+            if (!users[username]) {
+                alert('Пользователь не найден');
+                return;
+            }
+            
+            users[username].balance = balance;
+            db.saveUsers(users);
+            
+            // Обновляем отображение, если это текущий пользователь
+            if (currentUser === username) {
+                updateUserDisplay();
+            }
+            
+            alert(`Баланс пользователя ${username} изменен на ${balance}`);
+            userBalanceControl.style.display = 'none';
+            loadAdminUsers();
         }
 
         // Загрузка сообщений поддержки
@@ -3569,11 +4384,11 @@
         }
 
         function getRarityByValue(value) {
-            if (value >= 8000) return 'ancient';
-            if (value >= 5000) return 'legendary';
-            if (value >= 2000) return 'mythical';
-            if (value >= 800) return 'rare';
-            if (value >= 300) return 'uncommon';
+            if (value >= 1500) return 'ancient';
+            if (value >= 1000) return 'legendary';
+            if (value >= 400) return 'mythical';
+            if (value >= 150) return 'rare';
+            if (value >= 50) return 'uncommon';
             return 'common';
         }
 
