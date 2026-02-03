@@ -11,11 +11,12 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         :root {
             --primary-color: #ff4655;
+            --primary-dark: #d93a48;
             --secondary-color: #1e2328;
             --accent-color: #0f1923;
             --light-color: #ece8e1;
@@ -23,7 +24,9 @@
             --success-color: #4caf50;
             --gold-color: #ffd700;
             --blue-color: #4a90e2;
-            --transition: all 0.3s ease;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-bg: rgba(30, 35, 40, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
         body {
@@ -41,13 +44,13 @@
 
         /* Шапка */
         header {
-            background-color: rgba(15, 25, 35, 0.95);
+            background: linear-gradient(180deg, rgba(15, 25, 35, 0.95) 0%, rgba(15, 25, 35, 0.85) 100%);
             padding: 15px 0;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-            border-bottom: 2px solid var(--primary-color);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .header-content {
@@ -68,10 +71,15 @@
 
         .logo i {
             color: var(--primary-color);
+            font-size: 28px;
         }
 
         .logo span {
             color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         nav ul {
@@ -86,13 +94,18 @@
             font-weight: 600;
             font-size: 16px;
             transition: var(--transition);
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         nav a:hover, nav a.active {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
             color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 70, 85, 0.3);
         }
 
         .user-info {
@@ -103,14 +116,15 @@
         }
 
         .balance {
-            background-color: var(--secondary-color);
-            padding: 8px 15px;
-            border-radius: 20px;
+            background: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(5px);
         }
 
         .balance i {
@@ -120,15 +134,17 @@
         .user-avatar {
             width: 45px;
             height: 45px;
-            border-radius: 50%;
+            border-radius: 12px;
             overflow: hidden;
             border: 2px solid var(--primary-color);
             cursor: pointer;
             transition: var(--transition);
+            background: var(--glass-bg);
         }
 
         .user-avatar:hover {
             transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 70, 85, 0.5);
         }
 
         .user-avatar img {
@@ -142,23 +158,26 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
             color: white;
             border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
             display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 1000;
             transition: var(--transition);
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .admin-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 10px rgba(255, 70, 85, 0.7);
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 8px 20px rgba(255, 70, 85, 0.4);
         }
 
         .admin-btn.visible {
@@ -167,67 +186,103 @@
 
         /* Основной контент */
         main {
-            padding: 30px 0 60px;
+            padding: 40px 0 80px;
             display: flex;
             gap: 30px;
         }
 
         .page-title {
-            font-size: 36px;
-            margin-bottom: 30px;
+            font-size: 48px;
+            margin-bottom: 40px;
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        .page-title span {
-            color: var(--primary-color);
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, var(--light-color), var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         /* Боковая панель с историей выпадений */
         .drops-sidebar {
-            width: 280px;
-            background-color: rgba(30, 35, 40, 0.8);
-            border-radius: 15px;
-            padding: 20px;
+            width: 320px;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 25px;
             height: fit-content;
-            border: 1px solid rgba(255, 70, 85, 0.3);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
         .drops-title {
-            font-size: 20px;
-            margin-bottom: 20px;
+            font-size: 22px;
+            margin-bottom: 25px;
             display: flex;
             align-items: center;
             gap: 10px;
             color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .drops-title i {
+            font-size: 24px;
         }
 
         .drops-list {
             display: flex;
             flex-direction: column;
             gap: 15px;
-            max-height: 600px;
-            overflow-y: auto;
-            padding-right: 5px;
+            height: 600px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .drops-container {
+            position: relative;
+            height: 100%;
         }
 
         .drop-item {
             display: flex;
             align-items: center;
             gap: 15px;
-            background-color: rgba(15, 25, 35, 0.6);
-            padding: 12px;
-            border-radius: 10px;
-            border-left: 4px solid var(--primary-color);
+            background: rgba(15, 25, 35, 0.6);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid;
+            animation: slideDown 20s linear infinite;
+            margin-bottom: 15px;
+            opacity: 0;
+            position: absolute;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        @keyframes slideDown {
+            0% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            5% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(600px);
+                opacity: 0;
+            }
         }
 
         .drop-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .drop-avatar img {
@@ -238,23 +293,38 @@
 
         .drop-info {
             flex: 1;
+            min-width: 0;
         }
 
         .drop-user {
             font-weight: 600;
             font-size: 14px;
             margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drop-user span {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
         }
 
         .drop-item-name {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--gold-color);
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .drop-value {
             font-size: 12px;
             color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         /* Основная секция с кейсами */
@@ -264,50 +334,56 @@
 
         /* Секция выбора кейсов */
         .case-selection {
-            margin-bottom: 40px;
+            margin-bottom: 50px;
         }
 
         .section-title {
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 28px;
+            margin-bottom: 30px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
+            color: var(--light-color);
+            font-weight: 700;
         }
 
         .section-title i {
             color: var(--primary-color);
+            font-size: 32px;
         }
 
         .cases-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
         }
 
         .case-card {
-            background-color: rgba(30, 35, 40, 0.8);
-            border-radius: 10px;
+            background: linear-gradient(145deg, rgba(30, 35, 40, 0.9), rgba(15, 25, 35, 0.9));
+            border-radius: 20px;
             overflow: hidden;
             transition: var(--transition);
-            border: 2px solid transparent;
+            border: 1px solid var(--glass-border);
             cursor: pointer;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
         .case-card:hover {
             transform: translateY(-10px);
             border-color: var(--primary-color);
-            box-shadow: 0 10px 20px rgba(255, 70, 85, 0.2);
+            box-shadow: 0 15px 30px rgba(255, 70, 85, 0.2);
         }
 
         .case-card.active {
             border-color: var(--primary-color);
-            box-shadow: 0 0 15px rgba(255, 70, 85, 0.5);
+            box-shadow: 0 0 25px rgba(255, 70, 85, 0.5);
         }
 
         .case-image {
-            height: 180px;
-            background: linear-gradient(45deg, #0f1923, #1e2328);
+            height: 200px;
+            background: linear-gradient(135deg, #0f1923 0%, #1e2328 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -315,32 +391,61 @@
             overflow: hidden;
         }
 
+        .case-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 70, 85, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
         .case-image img {
-            max-width: 80%;
-            max-height: 80%;
+            max-width: 70%;
+            max-height: 70%;
             object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
+            transition: var(--transition);
+        }
+
+        .case-card:hover .case-image img {
+            transform: scale(1.05);
         }
 
         .case-info {
-            padding: 20px;
+            padding: 25px;
+            position: relative;
         }
 
         .case-name {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 10px;
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            color: var(--light-color);
         }
 
         .case-price {
             color: var(--gold-color);
-            font-weight: 700;
-            font-size: 18px;
-            margin-bottom: 15px;
+            font-weight: 800;
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .case-price i {
-            margin-right: 5px;
+            color: var(--gold-color);
+            font-size: 22px;
         }
 
         .case-items {
@@ -348,38 +453,76 @@
             justify-content: space-between;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 15px;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px 15px;
+            border-radius: 10px;
+        }
+
+        .open-case-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         .open-case-btn {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
             color: white;
             border: none;
             width: 100%;
-            padding: 12px;
+            padding: 16px;
             font-weight: 700;
-            border-radius: 5px;
+            border-radius: 12px;
             cursor: pointer;
             transition: var(--transition);
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .open-case-btn:hover {
-            background-color: #e63e4d;
-            transform: scale(1.02);
+            background: linear-gradient(45deg, var(--primary-dark), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 70, 85, 0.4);
+        }
+
+        .open-case-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            background: linear-gradient(45deg, #666, #888);
+        }
+
+        .case-stats {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         /* Секция открытия кейса */
         .case-opening-section {
-            background-color: rgba(15, 25, 35, 0.7);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 40px;
+            background: linear-gradient(135deg, rgba(15, 25, 35, 0.9), rgba(30, 35, 40, 0.9));
+            border-radius: 25px;
+            padding: 40px;
+            margin-bottom: 50px;
             display: none;
             flex-direction: column;
             align-items: center;
-            border: 1px solid rgba(255, 70, 85, 0.3);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
         }
 
         .case-opening-section.active {
@@ -391,161 +534,207 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .opening-title {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--light-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .opening-title i {
+            color: var(--primary-color);
         }
 
         .close-opening {
-            background: none;
-            border: none;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
             color: var(--light-color);
-            font-size: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
             cursor: pointer;
             transition: var(--transition);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .close-opening:hover {
-            color: var(--primary-color);
-            transform: scale(1.1);
+            background: var(--primary-color);
+            transform: rotate(90deg);
         }
 
         .case-opening-container {
             width: 100%;
             overflow: hidden;
             position: relative;
-            margin-bottom: 30px;
-            height: 250px;
-            border-radius: 10px;
-            background-color: rgba(0, 0, 0, 0.3);
+            margin-bottom: 40px;
+            height: 280px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(15, 25, 35, 0.6));
+            border: 2px solid var(--glass-border);
         }
 
         .case-items-scroll {
             display: flex;
             gap: 0;
-            padding: 20px 0;
+            padding: 30px 0;
             transition: transform 0.1s linear;
             width: max-content;
             height: 100%;
         }
 
         .scroll-item {
-            width: 200px;
-            height: 210px;
-            background-color: rgba(0, 0, 0, 0.4);
+            width: 220px;
+            height: 240px;
+            background: rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 15px;
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
             transition: var(--transition);
             flex-shrink: 0;
+            position: relative;
         }
 
         .scroll-item.active {
-            background-color: rgba(255, 70, 85, 0.1);
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 70, 85, 0.5);
+            background: linear-gradient(135deg, rgba(255, 70, 85, 0.15), rgba(255, 107, 122, 0.1));
+            transform: scale(1.08);
+            box-shadow: 0 0 30px rgba(255, 70, 85, 0.6);
+            z-index: 2;
+            border-color: var(--primary-color);
         }
 
         .scroll-item img {
-            width: 140px;
-            height: 105px;
+            width: 160px;
+            height: 120px;
             object-fit: contain;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+            transition: var(--transition);
+        }
+
+        .scroll-item.active img {
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
         }
 
         .scroll-item-name {
             font-size: 14px;
             text-align: center;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--light-color);
         }
 
         .scroll-item-price {
             color: var(--gold-color);
             font-weight: 700;
-            font-size: 16px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .case-opening-controls {
             display: flex;
-            gap: 20px;
+            gap: 30px;
             align-items: center;
+            width: 100%;
+            justify-content: center;
         }
 
         .spin-btn {
-            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 18px;
+            padding: 20px 60px;
+            font-size: 20px;
             font-weight: 800;
-            border-radius: 50px;
+            border-radius: 16px;
             cursor: pointer;
             transition: var(--transition);
             text-transform: uppercase;
             letter-spacing: 2px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(255, 70, 85, 0.3);
         }
 
         .spin-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 70, 85, 0.7);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 70, 85, 0.4);
+            background: linear-gradient(45deg, var(--primary-dark), var(--primary-color));
         }
 
         .spin-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
+            background: linear-gradient(45deg, #666, #888);
         }
 
         .items-preview {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
             width: 100%;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--glass-border);
         }
 
         .preview-item {
-            background-color: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .preview-item:hover {
+            border-color: var(--glass-border);
+            transform: translateY(-5px);
         }
 
         .preview-item img {
-            width: 80px;
-            height: 60px;
+            width: 100px;
+            height: 75px;
             object-fit: contain;
+            filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.3));
         }
 
         .preview-name {
             font-size: 12px;
             text-align: center;
             font-weight: 600;
+            color: var(--light-color);
         }
 
         .preview-price {
             color: var(--gold-color);
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         /* Модальные окна */
@@ -556,32 +745,41 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
         .modal-content {
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
-            max-width: 800px;
-            border-radius: 15px;
+            max-width: 900px;
+            border-radius: 25px;
             overflow: hidden;
-            border: 3px solid var(--primary-color);
-            animation: modalAppear 0.5s ease;
+            border: 1px solid var(--glass-border);
+            animation: modalAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
         }
 
         @keyframes modalAppear {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from { 
+                transform: scale(0.8) translateY(20px);
+                opacity: 0; 
+            }
+            to { 
+                transform: scale(1) translateY(0);
+                opacity: 1; 
+            }
         }
 
         .modal-header {
-            background-color: rgba(255, 70, 85, 0.9);
-            padding: 20px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            padding: 25px;
             text-align: center;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             display: flex;
             justify-content: space-between;
@@ -589,100 +787,134 @@
         }
 
         .close-modal-btn {
-            background: none;
+            background: rgba(0, 0, 0, 0.3);
             border: none;
             color: white;
-            font-size: 24px;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
             cursor: pointer;
             transition: var(--transition);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .close-modal-btn:hover {
-            transform: scale(1.2);
+            background: rgba(0, 0, 0, 0.5);
+            transform: rotate(90deg);
         }
 
         .modal-body {
-            padding: 30px;
+            padding: 40px;
         }
 
         .won-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            margin: 30px 0;
+            gap: 25px;
+            margin: 40px 0;
         }
 
         .item-image {
-            width: 250px;
-            height: 187px;
+            width: 280px;
+            height: 210px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
-            border-radius: 15px;
-            padding: 20px;
+            background: radial-gradient(circle at center, rgba(255, 70, 85, 0.1) 0%, transparent 70%);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-image::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shineEffect 3s infinite;
+        }
+
+        @keyframes shineEffect {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
         }
 
         .item-image img {
             max-width: 100%;
             max-height: 100%;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+            position: relative;
+            z-index: 1;
         }
 
         .item-name {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             color: var(--gold-color);
             text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .item-price {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: 700;
             color: var(--light-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .item-rarity {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: 800;
             text-transform: uppercase;
             font-size: 14px;
+            letter-spacing: 1px;
         }
 
         .rarity-common {
-            background-color: rgba(150, 150, 150, 0.2);
+            background: linear-gradient(45deg, rgba(150, 150, 150, 0.2), rgba(100, 100, 100, 0.2));
             color: #969696;
             border: 1px solid #969696;
         }
 
         .rarity-uncommon {
-            background-color: rgba(77, 181, 58, 0.2);
+            background: linear-gradient(45deg, rgba(77, 181, 58, 0.2), rgba(60, 140, 45, 0.2));
             color: #4db53a;
             border: 1px solid #4db53a;
         }
 
         .rarity-rare {
-            background-color: rgba(76, 110, 244, 0.2);
+            background: linear-gradient(45deg, rgba(76, 110, 244, 0.2), rgba(60, 90, 200, 0.2));
             color: #4c6ef4;
             border: 1px solid #4c6ef4;
         }
 
         .rarity-mythical {
-            background-color: rgba(182, 80, 155, 0.2);
+            background: linear-gradient(45deg, rgba(182, 80, 155, 0.2), rgba(150, 60, 120, 0.2));
             color: #b6509b;
             border: 1px solid #b6509b;
         }
 
         .rarity-legendary {
-            background-color: rgba(255, 215, 0, 0.2);
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.2), rgba(200, 170, 0, 0.2));
             color: var(--gold-color);
             border: 1px solid var(--gold-color);
         }
 
         .rarity-ancient {
-            background-color: rgba(235, 75, 75, 0.2);
+            background: linear-gradient(45deg, rgba(235, 75, 75, 0.2), rgba(200, 50, 50, 0.2));
             color: #eb4b4b;
             border: 1px solid #eb4b4b;
         }
@@ -690,147 +922,178 @@
         .modal-actions {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
+            gap: 25px;
+            margin-top: 40px;
         }
 
         .modal-btn {
-            padding: 12px 30px;
+            padding: 16px 40px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
             text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .close-modal {
-            background-color: var(--secondary-color);
+            background: linear-gradient(45deg, #2a2f36, #3a3f46);
             color: white;
+        }
+
+        .close-modal:hover {
+            background: linear-gradient(45deg, #3a3f46, #4a4f56);
+            transform: translateY(-2px);
         }
 
         .open-again {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
             color: white;
         }
 
-        .modal-btn:hover {
-            transform: scale(1.05);
+        .open-again:hover {
+            background: linear-gradient(45deg, var(--primary-dark), var(--primary-color));
+            transform: translateY(-2px);
         }
 
         /* Админ панель */
         .admin-panel {
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
             max-width: 500px;
-            border-radius: 15px;
+            border-radius: 25px;
             overflow: hidden;
-            border: 3px solid var(--primary-color);
+            border: 1px solid var(--glass-border);
         }
 
         .admin-form {
-            padding: 30px;
+            padding: 40px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
+            color: var(--light-color);
         }
 
-        .form-group input, .form-group select {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
-            padding: 12px 15px;
-            background-color: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
             color: white;
             font-size: 16px;
+            transition: var(--transition);
         }
 
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(255, 70, 85, 0.2);
         }
 
         .admin-actions {
             display: flex;
-            gap: 15px;
-            margin-top: 30px;
+            gap: 20px;
+            margin-top: 40px;
         }
 
         .admin-btn-submit {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
+            padding: 16px 30px;
+            border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
             flex: 1;
+            transition: var(--transition);
+        }
+
+        .admin-btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 70, 85, 0.3);
         }
 
         .admin-btn-cancel {
-            background-color: var(--secondary-color);
+            background: linear-gradient(45deg, #2a2f36, #3a3f46);
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
+            padding: 16px 30px;
+            border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
             flex: 1;
+            transition: var(--transition);
+        }
+
+        .admin-btn-cancel:hover {
+            background: linear-gradient(45deg, #3a3f46, #4a4f56);
+            transform: translateY(-2px);
         }
 
         /* Окно авторизации */
         .auth-modal {
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
-            max-width: 400px;
-            border-radius: 15px;
+            max-width: 450px;
+            border-radius: 25px;
             overflow: hidden;
-            border: 3px solid var(--primary-color);
+            border: 1px solid var(--glass-border);
         }
 
         .auth-tabs {
             display: flex;
-            background-color: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .auth-tab {
             flex: 1;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .auth-tab.active {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
         }
 
         .auth-form {
-            padding: 30px;
+            padding: 40px;
         }
 
         .auth-form h3 {
             text-align: center;
-            margin-bottom: 25px;
-            font-size: 22px;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: var(--light-color);
         }
 
         .auth-error {
-            background-color: rgba(255, 70, 85, 0.2);
+            background: rgba(255, 70, 85, 0.2);
             border: 1px solid var(--primary-color);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
             text-align: center;
             display: none;
+            color: white;
         }
 
         .auth-error.active {
@@ -839,27 +1102,29 @@
 
         /* Профиль пользователя */
         .profile-modal {
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
             width: 90%;
             max-width: 500px;
-            border-radius: 15px;
+            border-radius: 25px;
             overflow: hidden;
-            border: 3px solid var(--primary-color);
+            border: 1px solid var(--glass-border);
         }
 
         .profile-header {
-            background-color: rgba(255, 70, 85, 0.9);
-            padding: 25px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .profile-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
             overflow: hidden;
             border: 3px solid white;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
 
         .profile-avatar img {
@@ -869,12 +1134,13 @@
         }
 
         .profile-name {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 800;
+            color: white;
         }
 
         .profile-body {
-            padding: 30px;
+            padding: 40px;
         }
 
         .profile-info {
@@ -886,13 +1152,21 @@
         .profile-stat {
             display: flex;
             justify-content: space-between;
-            padding: 15px;
-            background-color: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .profile-stat:hover {
+            border-color: var(--primary-color);
+            transform: translateX(5px);
         }
 
         .profile-stat span:first-child {
             font-weight: 600;
+            color: var(--light-color);
         }
 
         .profile-stat-value {
@@ -901,34 +1175,156 @@
         }
 
         .logout-btn {
-            background-color: var(--primary-color);
+            background: linear-gradient(45deg, #2a2f36, #3a3f46);
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 16px;
+            border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 30px;
             transition: var(--transition);
         }
 
         .logout-btn:hover {
-            background-color: #e63e4d;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            transform: translateY(-2px);
+        }
+
+        /* Чат поддержки */
+        .support-chat {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 400px;
+            height: 500px;
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            display: none;
+            flex-direction: column;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .support-chat.active {
+            display: flex;
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chat-close:hover {
+            transform: rotate(90deg);
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .chat-message.support {
+            background: rgba(76, 110, 244, 0.2);
+            border: 1px solid rgba(76, 110, 244, 0.3);
+            align-self: flex-start;
+        }
+
+        .chat-message.user {
+            background: rgba(255, 70, 85, 0.2);
+            border: 1px solid rgba(255, 70, 85, 0.3);
+            align-self: flex-end;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-input input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .chat-input button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 70, 85, 0.3);
         }
 
         /* Футер */
         footer {
-            background-color: rgba(15, 25, 35, 0.95);
-            padding: 30px 0;
-            border-top: 2px solid var(--primary-color);
+            background: linear-gradient(180deg, transparent, rgba(15, 25, 35, 0.9));
+            padding: 40px 0;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 60px;
         }
 
         .footer-content {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 25px;
         }
 
         .footer-logo {
@@ -936,10 +1332,17 @@
             font-weight: 800;
             color: var(--light-color);
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .footer-logo span {
             color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), #ff6b7a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .footer-links {
@@ -953,103 +1356,146 @@
             color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
             transition: var(--transition);
+            padding: 8px 16px;
+            border-radius: 8px;
         }
 
         .footer-links a:hover {
             color: var(--primary-color);
+            background: rgba(255, 70, 85, 0.1);
         }
 
         .copyright {
             color: rgba(255, 255, 255, 0.5);
             font-size: 14px;
             text-align: center;
+            max-width: 600px;
         }
 
         /* Адаптивность */
-        @media (max-width: 1100px) {
+        @media (max-width: 1200px) {
             main {
                 flex-direction: column;
             }
             
             .drops-sidebar {
                 width: 100%;
+                order: 2;
             }
             
             .drops-list {
-                max-height: 200px;
+                height: 250px;
                 flex-direction: row;
                 overflow-x: auto;
             }
             
             .drop-item {
-                min-width: 250px;
+                min-width: 280px;
+                animation: none !important;
+                position: static !important;
+                opacity: 1 !important;
+                margin-bottom: 0;
             }
         }
 
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
             }
             
             nav ul {
-                gap: 15px;
+                gap: 10px;
                 flex-wrap: wrap;
                 justify-content: center;
             }
             
             .page-title {
-                font-size: 28px;
+                font-size: 36px;
             }
             
             .cases-grid {
                 grid-template-columns: 1fr;
             }
             
+            .case-opening-section {
+                padding: 25px;
+            }
+            
             .scroll-item {
                 width: 180px;
+                height: 200px;
             }
             
             .admin-btn {
-                top: 10px;
-                left: 10px;
+                top: 15px;
+                left: 15px;
             }
             
             .spin-btn {
-                padding: 12px 25px;
+                padding: 15px 30px;
                 font-size: 16px;
+            }
+            
+            .support-chat {
+                width: calc(100% - 40px);
+                right: 20px;
+                bottom: 20px;
+                height: 400px;
             }
         }
 
-        /* Анимации */
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 28px;
+            }
+            
+            .section-title {
+                font-size: 22px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            .item-name {
+                font-size: 24px;
+            }
+        }
+
+        /* Утилиты */
+        .gradient-text {
+            background: linear-gradient(45deg, var(--primary-color), var(--gold-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-effect {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
 
-        .pulse {
-            animation: pulse 1.5s infinite;
+        .shake {
+            animation: shake 0.5s;
         }
 
-        @keyframes shine {
-            0% { background-position: -100px; }
-            100% { background-position: 200px; }
-        }
-
-        .shiny-item {
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            background-size: 200px 100%;
-            animation: shine 2s infinite;
-        }
-
-        @keyframes dropIn {
-            0% { transform: translateY(-20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-
-        .drop-animation {
-            animation: dropIn 0.5s ease;
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
     </style>
 </head>
@@ -1063,16 +1509,15 @@
     <header>
         <div class="container header-content">
             <div class="logo">
-                <i class="fas fa-box-open"></i>
+                <i class="fas fa-gem"></i>
                 Case<span>Wins</span>
             </div>
             
             <nav>
                 <ul>
                     <li><a href="#" class="active"><i class="fas fa-home"></i> Главная</a></li>
-                    <li><a href="#" id="cases-tab"><i class="fas fa-gem"></i> Кейсы</a></li>
-                    <li><a href="#"><i class="fas fa-trophy"></i> Топ игроков</a></li>
-                    <li><a href="#"><i class="fas fa-question-circle"></i> Помощь</a></li>
+                    <li><a href="#" id="cases-tab"><i class="fas fa-box-open"></i> Кейсы</a></li>
+                    <li><a href="#" id="help-tab"><i class="fas fa-question-circle"></i> Помощь</a></li>
                 </ul>
             </nav>
             
@@ -1089,26 +1534,52 @@
         </div>
     </header>
 
+    <!-- Чат поддержки -->
+    <div class="support-chat" id="support-chat">
+        <div class="chat-header">
+            <h3><i class="fas fa-headset"></i> Поддержка CaseWins</h3>
+            <button class="chat-close" id="chat-close">&times;</button>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <div class="chat-message support">
+                <strong>Поддержка:</strong> Здравствуйте! Чем могу помочь?
+            </div>
+            <div class="chat-message support">
+                <strong>Поддержка:</strong> Опишите вашу проблему, и мы постараемся помочь в ближайшее время.
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chat-username" placeholder="Ваш логин" value="Гость">
+            <input type="text" id="chat-message" placeholder="Введите ваш вопрос...">
+            <button id="chat-send">Отправить</button>
+        </div>
+    </div>
+
     <!-- Основной контент -->
     <main class="container">
         <!-- Боковая панель с историей выпадений -->
         <aside class="drops-sidebar">
             <h3 class="drops-title">
-                <i class="fas fa-history"></i> Последние выпадения
+                <i class="fas fa-bolt"></i> Последние выпадения
             </h3>
-            <div class="drops-list" id="drops-list">
-                <!-- История выпадений будет добавляться динамически -->
+            <div class="drops-list">
+                <div class="drops-container" id="drops-container">
+                    <!-- История выпадений будет добавляться динамически -->
+                </div>
             </div>
         </aside>
         
         <!-- Основная секция -->
         <div class="main-content">
-            <h1 class="page-title">Открой <span>кейсы CS2</span> и выиграй <span>скины</span></h1>
+            <h1 class="page-title">Открой <span class="gradient-text">кейсы CS2</span> и выиграй <span class="gradient-text">скины</span></h1>
             
             <!-- Секция открытия кейса (скрыта по умолчанию) -->
             <section class="case-opening-section" id="case-opening-section">
                 <div class="opening-header">
-                    <div class="opening-title" id="opening-case-name">Кейс CS2 "Prisma"</div>
+                    <div class="opening-title">
+                        <i class="fas fa-box-open"></i>
+                        <span id="opening-case-name">Кейс CS2 "Prisma"</span>
+                    </div>
                     <button class="close-opening" id="close-opening">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1134,39 +1605,61 @@
             <!-- Секция выбора кейсов -->
             <section class="case-selection" id="case-selection">
                 <h2 class="section-title">
-                    <i class="fas fa-box"></i> Доступные кейсы
+                    <i class="fas fa-gem"></i> Доступные кейсы
                 </h2>
                 
                 <div class="cases-grid">
                     <!-- Кейс 1 -->
                     <div class="case-card" data-case="1">
                         <div class="case-image">
-                            <img src="https://cdn.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-3lpSOm_7mJ4Tdl3lW7fp9i_vG8IXKhBqw8xU5aj_3ItOQegE2NA3Q-lO_xO--0cO6vJ6bz3sw7X5l-z-DyUPZFI9F-w/512fx512f" alt="Кейс Prisma">
+                            <img src="https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-3lpSOm_7mJ4Tdl3lW7fp9i_vG8IXKhBqw8xU5aj_3ItOQegE2NA3Q-lO_xO--0cO6vJ6bz3sw7X5l-z-DyUPZFI9F-w/512fx512f" alt="Кейс Prisma">
                         </div>
                         <div class="case-info">
                             <div class="case-name">Кейс CS2 "Prisma"</div>
-                            <div class="case-price"><i class="fas fa-coins"></i> 2,500</div>
+                            <div class="case-price">
+                                <i class="fas fa-coins"></i> 
+                                <span class="case-price-value">2,500</span>
+                            </div>
                             <div class="case-items">
                                 <span>24 предмета</span>
-                                <span>Шанс на легендарку: 2%</span>
+                                <span>Легендарка: 2%</span>
                             </div>
-                            <button class="open-case-btn" data-case="1">Открыть кейс</button>
+                            <div class="open-case-section">
+                                <button class="open-case-btn" data-case="1" disabled>
+                                    <i class="fas fa-lock"></i> Войдите для открытия
+                                </button>
+                                <div class="case-stats">
+                                    <div class="stat"><i class="fas fa-box-open"></i> 24 предмета</div>
+                                    <div class="stat"><i class="fas fa-crown"></i> 2% шанс</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Кейс 2 -->
                     <div class="case-card" data-case="2">
                         <div class="case-image">
-                            <img src="https://cdn.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09C3l4-fnvD8J4Tdl3lW7cBOhujT8omj3gHg-0I5ZW_hJteLM1hpM1vR81e2xr-60cO6tJmcy3Rl63I3-z-DyUPZvU6sKQ/512fx512f" alt="Кейс Operation">
+                            <img src="https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09C3l4-fnvD8J4Tdl3lW7cBOhujT8omj3gHg-0I5ZW_hJteLM1hpM1vR81e2xr-60cO6tJmcy3Rl63I3-z-DyUPZvU6sKQ/512fx512f" alt="Кейс Operation">
                         </div>
                         <div class="case-info">
                             <div class="case-name">Кейс CS2 "Operation"</div>
-                            <div class="case-price"><i class="fas fa-coins"></i> 3,200</div>
+                            <div class="case-price">
+                                <i class="fas fa-coins"></i> 
+                                <span class="case-price-value">3,200</span>
+                            </div>
                             <div class="case-items">
                                 <span>18 предметов</span>
-                                <span>Шанс на легендарку: 3%</span>
+                                <span>Легендарка: 3%</span>
                             </div>
-                            <button class="open-case-btn" data-case="2">Открыть кейс</button>
+                            <div class="open-case-section">
+                                <button class="open-case-btn" data-case="2" disabled>
+                                    <i class="fas fa-lock"></i> Войдите для открытия
+                                </button>
+                                <div class="case-stats">
+                                    <div class="stat"><i class="fas fa-box-open"></i> 18 предметов</div>
+                                    <div class="stat"><i class="fas fa-crown"></i> 3% шанс</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1178,15 +1671,15 @@
     <div class="modal" id="result-modal">
         <div class="modal-content">
             <div class="modal-header">
-                Поздравляем!
+                <span class="gradient-text">Поздравляем!</span>
                 <button class="close-modal-btn" id="close-result-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Вы открыли кейс и получаете:</p>
+                <p style="text-align: center; font-size: 18px; margin-bottom: 20px;">Вы открыли кейс и получаете:</p>
                 
                 <div class="won-item">
                     <div class="item-image">
-                        <img id="won-item-img" src="https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" alt="Выигранный предмет">
+                        <img id="won-item-img" src="https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" alt="Выигранный предмет">
                     </div>
                     <div class="item-name" id="won-item-name">AK-47 | Красная линия</div>
                     <div class="item-price" id="won-item-price">Цена: 400 <i class="fas fa-coins"></i></div>
@@ -1194,8 +1687,12 @@
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="modal-btn close-modal" id="close-modal-btn">Закрыть</button>
-                    <button class="modal-btn open-again" id="open-again-btn">Открыть еще кейс</button>
+                    <button class="modal-btn close-modal" id="close-modal-btn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                    <button class="modal-btn open-again" id="open-again-btn">
+                        <i class="fas fa-redo"></i> Открыть еще
+                    </button>
                 </div>
             </div>
         </div>
@@ -1205,17 +1702,17 @@
     <div class="modal" id="admin-modal">
         <div class="admin-panel">
             <div class="modal-header">
-                Админ панель
+                <span class="gradient-text">Админ панель</span>
                 <button class="close-modal-btn" id="close-admin-modal">&times;</button>
             </div>
             <div class="admin-form">
                 <div class="form-group">
-                    <label for="admin-password">Пароль</label>
+                    <label for="admin-password">Пароль администратора</label>
                     <input type="password" id="admin-password" placeholder="Введите пароль">
                 </div>
                 
                 <div id="admin-content" style="display: none;">
-                    <h3 style="margin-bottom: 20px; color: var(--primary-color);">Настройки системы</h3>
+                    <h3 style="margin-bottom: 30px; text-align: center; color: var(--primary-color);">Настройки системы</h3>
                     
                     <div class="form-group">
                         <label for="admin-balance">Баланс пользователя</label>
@@ -1234,17 +1731,26 @@
                     
                     <div class="form-group">
                         <label for="admin-case1-chance">Шанс на легендарку для Кейса 1 (%)</label>
-                        <input type="number" id="admin-case1-chance" min="0" max="100" value="2">
+                        <input type="number" id="admin-case1-chance" min="0" max="100" value="2" step="0.1">
                     </div>
                     
                     <div class="form-group">
                         <label for="admin-case2-chance">Шанс на легендарку для Кейса 2 (%)</label>
-                        <input type="number" id="admin-case2-chance" min="0" max="100" value="3">
+                        <input type="number" id="admin-case2-chance" min="0" max="100" value="3" step="0.1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-support-messages">Сообщения поддержки</label>
+                        <textarea id="admin-support-messages" rows="5" placeholder="Новые сообщения появятся здесь..." readonly></textarea>
                     </div>
                     
                     <div class="admin-actions">
-                        <button class="admin-btn-submit" id="admin-save-btn">Сохранить</button>
-                        <button class="admin-btn-cancel" id="admin-cancel-btn">Отмена</button>
+                        <button class="admin-btn-submit" id="admin-save-btn">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                        <button class="admin-btn-cancel" id="admin-cancel-btn">
+                            <i class="fas fa-times"></i> Отмена
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1274,7 +1780,13 @@
                     <input type="password" id="login-password" placeholder="Введите пароль">
                 </div>
                 
-                <button class="admin-btn-submit" id="login-btn" style="width: 100%;">Войти</button>
+                <button class="admin-btn-submit" id="login-btn" style="width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                
+                <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
+                    Или продолжайте как <a href="#" id="continue-guest" style="color: var(--primary-color);">Гость</a>
+                </div>
             </div>
             
             <!-- Форма регистрации -->
@@ -1284,12 +1796,12 @@
                 
                 <div class="form-group">
                     <label for="register-username">Логин</label>
-                    <input type="text" id="register-username" placeholder="Придумайте логин">
+                    <input type="text" id="register-username" placeholder="Придумайте логин (мин. 3 символа)">
                 </div>
                 
                 <div class="form-group">
                     <label for="register-password">Пароль</label>
-                    <input type="password" id="register-password" placeholder="Придумайте пароль">
+                    <input type="password" id="register-password" placeholder="Придумайте пароль (мин. 6 символов)">
                 </div>
                 
                 <div class="form-group">
@@ -1297,7 +1809,13 @@
                     <input type="password" id="register-confirm" placeholder="Повторите пароль">
                 </div>
                 
-                <button class="admin-btn-submit" id="register-btn" style="width: 100%;">Зарегистрироваться</button>
+                <button class="admin-btn-submit" id="register-btn" style="width: 100%;">
+                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                </button>
+                
+                <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
+                    Уже есть аккаунт? <a href="#" id="switch-to-login" style="color: var(--primary-color);">Войти</a>
+                </div>
             </div>
         </div>
     </div>
@@ -1306,6 +1824,7 @@
     <div class="modal" id="profile-modal">
         <div class="profile-modal">
             <div class="profile-header">
+                <button class="close-modal-btn" id="close-profile-modal" style="position: absolute; right: 20px; top: 20px;">&times;</button>
                 <div class="profile-avatar">
                     <img id="profile-avatar-img" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Аватар">
                 </div>
@@ -1314,28 +1833,30 @@
             <div class="profile-body">
                 <div class="profile-info">
                     <div class="profile-stat">
-                        <span>Баланс:</span>
+                        <span><i class="fas fa-coins"></i> Баланс:</span>
                         <span class="profile-stat-value" id="profile-balance">0</span>
                     </div>
                     <div class="profile-stat">
-                        <span>Открыто кейсов:</span>
+                        <span><i class="fas fa-box-open"></i> Открыто кейсов:</span>
                         <span class="profile-stat-value" id="profile-cases">0</span>
                     </div>
                     <div class="profile-stat">
-                        <span>Общая стоимость:</span>
+                        <span><i class="fas fa-chart-line"></i> Общая стоимость:</span>
                         <span class="profile-stat-value" id="profile-total">0</span>
                     </div>
                     <div class="profile-stat">
-                        <span>Лучший предмет:</span>
+                        <span><i class="fas fa-crown"></i> Лучший предмет:</span>
                         <span class="profile-stat-value" id="profile-best">Нет</span>
                     </div>
                     <div class="profile-stat">
-                        <span>Аккаунт создан:</span>
+                        <span><i class="fas fa-calendar"></i> Аккаунт создан:</span>
                         <span class="profile-stat-value" id="profile-created">-</span>
                     </div>
                 </div>
                 
-                <button class="logout-btn" id="logout-btn">Выйти</button>
+                <button class="logout-btn" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Выйти из аккаунта
+                </button>
             </div>
         </div>
     </div>
@@ -1344,19 +1865,20 @@
     <footer>
         <div class="container footer-content">
             <div class="footer-logo">
-                <i class="fas fa-box-open"></i>
+                <i class="fas fa-gem"></i>
                 Case<span>Wins</span>
             </div>
             
             <div class="footer-links">
-                <a href="#">Пользовательское соглашение</a>
-                <a href="#">Политика конфиденциальности</a>
-                <a href="#">Поддержка</a>
-                <a href="#">Контакты</a>
+                <a href="#"><i class="fas fa-file-contract"></i> Пользовательское соглашение</a>
+                <a href="#"><i class="fas fa-shield-alt"></i> Политика конфиденциальности</a>
+                <a href="#" id="footer-help"><i class="fas fa-question-circle"></i> Поддержка</a>
+                <a href="#"><i class="fas fa-envelope"></i> Контакты</a>
             </div>
             
             <div class="copyright">
                 © 2023 CaseWins. Все права защищены. Сайт предназначен для развлекательных целей.
+                CS:GO и Counter-Strike: Global Offensive являются товарными знаками корпорации Valve.
             </div>
         </div>
     </footer>
@@ -1368,52 +1890,52 @@
             defaultBalance: 10000
         };
 
-        // Данные о кейсах CS2
+        // Данные о кейсах CS2 с реальными ссылками Steam
         const cs2Items = {
             // Обычные (common)
             common: [
-                { name: "Glock-18 | Кость", value: 60, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
-                { name: "USP-S | Кость", value: 70, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
-                { name: "P250 | Песочная дюна", value: 50, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhz2v_Nfz5H_uOxh7-Gw_alIITdn2xZ18l4j_v--Y3nj1H6_kBtYzv7J4WUcQY3ZQ3S8wO-xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
-                { name: "MAC-10 | Кость", value: 55, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
-                { name: "UMP-45 | Кость", value: 65, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" }
+                { name: "Glock-18 | Кость", value: 60, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+                { name: "USP-S | Кость", value: 70, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+                { name: "P250 | Песочная дюна", value: 50, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhz2v_Nfz5H_uOxh7-Gw_alIITdn2xZ18l4j_v--Y3nj1H6_kBtYzv7J4WUcQY3ZQ3S8wO-xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+                { name: "MAC-10 | Кость", value: 55, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" },
+                { name: "UMP-45 | Кость", value: 65, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejh33PLFJQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3Yg3S81e2xr-60cO6tJnBn3I2pHgq5SGd-z3ln1KSGQY9Pw/360fx360f" }
             ],
             
             // Необычные (uncommon)
             uncommon: [
-                { name: "M4A1-S | Кровавый тигр", value: 300, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "AK-47 | Красная линия", value: 400, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "AWP | Электрический hive", value: 500, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "Desert Eagle | Коричневая змея", value: 250, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
+                { name: "M4A1-S | Кровавый тигр", value: 300, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "AK-47 | Красная линия", value: 400, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "AWP | Электрический hive", value: 500, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "Desert Eagle | Коричневая змея", value: 250, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
             ],
             
             // Редкие (rare)
             rare: [
-                { name: "M4A4 | Змеиный укус", value: 800, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "AK-47 | Вулкан", value: 1200, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "Desert Eagle | Прямо из ада", value: 1000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "AWP | Красная линия", value: 1500, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
+                { name: "M4A4 | Змеиный укус", value: 800, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "AK-47 | Вулкан", value: 1200, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "Desert Eagle | Прямо из ада", value: 1000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "AWP | Красная линия", value: 1500, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
             ],
             
             // Мифические (mythical)
             mythical: [
-                { name: "AWP | Азимов", value: 2500, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "M4A1-S | Цифровой китель", value: 2000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "AK-47 | Азимов", value: 2800, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" }
+                { name: "AWP | Азимов", value: 2500, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "M4A1-S | Цифровой китель", value: 2000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "AK-47 | Азимов", value: 2800, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" }
             ],
             
             // Легендарные (legendary)
             legendary: [
-                { name: "Нож | Слайдер", value: 5000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "Перчатки | Спектр", value: 6000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "Нож | Байонет", value: 7000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
+                { name: "Нож | Слайдер", value: 5000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "Перчатки | Спектр", value: 6000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "Нож | Байонет", value: 7000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
             ],
             
             // Древние (ancient)
             ancient: [
-                { name: "AK-47 | Огненный змей", value: 8000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
-                { name: "AWP | Дракон Лор", value: 10000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
-                { name: "Нож | Сапфир", value: 12000, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
+                { name: "AK-47 | Огненный змей", value: 8000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17PLfYQJD_9W7m4-0hPL5DLfQkm5u5Mx2gv2--Y3nj1H6_kBtYzv7J4WUcQY3ZV_B5lO_xr-60cO6tJnBn3I2pHgq5SGd-wv330-SVwY9Pw/360fx360f" },
+                { name: "AWP | Дракон Лор", value: 10000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" },
+                { name: "Нож | Сапфир", value: 12000, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f" }
             ]
         };
 
@@ -1468,7 +1990,8 @@
             selectedCase: null,
             isSpinning: false,
             spinResult: null,
-            recentDrops: []
+            recentDrops: [],
+            supportMessages: []
         };
 
         // DOM элементы
@@ -1486,6 +2009,16 @@
         const itemsPreview = document.getElementById('items-preview');
         const caseSelection = document.getElementById('case-selection');
         const casesTab = document.getElementById('cases-tab');
+        const helpTab = document.getElementById('help-tab');
+        const footerHelp = document.getElementById('footer-help');
+        
+        // Чат поддержки
+        const supportChat = document.getElementById('support-chat');
+        const chatClose = document.getElementById('chat-close');
+        const chatBody = document.getElementById('chat-body');
+        const chatUsername = document.getElementById('chat-username');
+        const chatMessage = document.getElementById('chat-message');
+        const chatSend = document.getElementById('chat-send');
         
         // Модальные окна
         const authModal = document.getElementById('auth-modal');
@@ -1495,6 +2028,8 @@
         const registerForm = document.getElementById('register-form');
         const loginBtn = document.getElementById('login-btn');
         const registerBtn = document.getElementById('register-btn');
+        const continueGuest = document.getElementById('continue-guest');
+        const switchToLogin = document.getElementById('switch-to-login');
         const loginError = document.getElementById('login-error');
         const registerError = document.getElementById('register-error');
         const loginUsername = document.getElementById('login-username');
@@ -1504,6 +2039,7 @@
         const registerConfirm = document.getElementById('register-confirm');
         
         const profileModal = document.getElementById('profile-modal');
+        const closeProfileModalBtn = document.getElementById('close-profile-modal');
         const profileName = document.getElementById('profile-name');
         const profileBalance = document.getElementById('profile-balance');
         const profileCases = document.getElementById('profile-cases');
@@ -1531,23 +2067,27 @@
         const adminCase2PriceInput = document.getElementById('admin-case2-price');
         const adminCase1ChanceInput = document.getElementById('admin-case1-chance');
         const adminCase2ChanceInput = document.getElementById('admin-case2-chance');
+        const adminSupportMessages = document.getElementById('admin-support-messages');
         const adminSaveBtn = document.getElementById('admin-save-btn');
         const adminCancelBtn = document.getElementById('admin-cancel-btn');
         
-        const dropsList = document.getElementById('drops-list');
+        const dropsContainer = document.getElementById('drops-container');
 
         // Инициализация
         function init() {
-            // Показываем окно авторизации при загрузке
-            setTimeout(() => {
-                authModal.style.display = 'flex';
-            }, 500);
+            // Начинаем в гостевом режиме
+            currentUser = null;
+            updateUserDisplay();
             
             // Загружаем историю выпадений
             loadRecentDrops();
+            startDropAnimation();
             
             // Инициализируем обработчики событий
             initEventListeners();
+            
+            // Обновляем кнопки открытия кейсов
+            updateOpenCaseButtons();
         }
 
         // Инициализация обработчиков событий
@@ -1555,15 +2095,6 @@
             // Выбор кейса
             caseCards.forEach(card => {
                 card.addEventListener('click', function() {
-                    const caseId = parseInt(this.dataset.case);
-                    openCaseView(caseId);
-                });
-            });
-            
-            // Кнопки открытия кейсов
-            openCaseButtons.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
                     const caseId = parseInt(this.dataset.case);
                     openCaseView(caseId);
                 });
@@ -1584,6 +2115,29 @@
                 caseOpeningSection.classList.remove('active');
                 caseSelection.style.display = 'block';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            
+            // Чат поддержки
+            helpTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                supportChat.classList.toggle('active');
+            });
+            
+            footerHelp.addEventListener('click', (e) => {
+                e.preventDefault();
+                supportChat.classList.toggle('active');
+            });
+            
+            chatClose.addEventListener('click', () => {
+                supportChat.classList.remove('active');
+            });
+            
+            chatSend.addEventListener('click', sendSupportMessage);
+            
+            chatMessage.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    sendSupportMessage();
+                }
             });
             
             // Админ панель
@@ -1610,6 +2164,10 @@
             
             // Профиль пользователя
             userAvatarBtn.addEventListener('click', showProfile);
+            
+            closeProfileModalBtn.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+            });
             
             closeModalBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
@@ -1650,6 +2208,16 @@
             loginBtn.addEventListener('click', login);
             registerBtn.addEventListener('click', register);
             
+            continueGuest.addEventListener('click', (e) => {
+                e.preventDefault();
+                authModal.style.display = 'none';
+            });
+            
+            switchToLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginTab.click();
+            });
+            
             // Авторизация по нажатию Enter
             loginUsername.addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') login();
@@ -1686,6 +2254,7 @@
             if (users[username] && users[username].password === password) {
                 currentUser = username;
                 updateUserDisplay();
+                updateOpenCaseButtons();
                 authModal.style.display = 'none';
                 loginUsername.value = '';
                 loginPassword.value = '';
@@ -1751,6 +2320,7 @@
             // Автоматически входим
             currentUser = username;
             updateUserDisplay();
+            updateOpenCaseButtons();
             authModal.style.display = 'none';
             registerUsername.value = '';
             registerPassword.value = '';
@@ -1765,15 +2335,18 @@
         function logout() {
             currentUser = null;
             profileModal.style.display = 'none';
-            authModal.style.display = 'flex';
+            updateUserDisplay();
+            updateOpenCaseButtons();
             adminBtn.classList.remove('visible');
-            userBalanceSpan.textContent = "0";
-            userAvatarBtn.querySelector('img').src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
         }
 
         // Обновление отображения пользователя
         function updateUserDisplay() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                userBalanceSpan.textContent = "0";
+                userAvatarBtn.querySelector('img').src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+                return;
+            }
             
             const user = users[currentUser];
             userBalanceSpan.textContent = user.balance.toLocaleString();
@@ -1805,9 +2378,27 @@
             userAvatarBtn.querySelector('img').src = avatarUrl;
         }
 
+        // Обновление кнопок открытия кейсов
+        function updateOpenCaseButtons() {
+            const isLoggedIn = currentUser !== null;
+            
+            openCaseButtons.forEach(btn => {
+                if (isLoggedIn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс`;
+                } else {
+                    btn.disabled = true;
+                    btn.innerHTML = `<i class="fas fa-lock"></i> Войдите для открытия`;
+                }
+            });
+            
+            spinBtn.disabled = !isLoggedIn;
+        }
+
         // Показать профиль
         function showProfile() {
             if (!currentUser) {
+                // Если не авторизован, показываем окно авторизации
                 authModal.style.display = 'flex';
                 return;
             }
@@ -1863,7 +2454,7 @@
                 const itemElement = document.createElement('div');
                 itemElement.className = 'scroll-item';
                 itemElement.innerHTML = `
-                    <img src="${item.img}" alt="${item.name}">
+                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f'">
                     <div class="scroll-item-name">${item.name}</div>
                     <div class="scroll-item-price">${item.value} <i class="fas fa-coins"></i></div>
                 `;
@@ -1913,7 +2504,7 @@
                 else if (item.value >= 300) rarity = 'uncommon';
                 
                 previewItem.innerHTML = `
-                    <img src="${item.img}" alt="${item.name}">
+                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhzw8XYaQJH9d-zkYS0m_7zNq_ummpD7cBOhujT8omj3gHg-0I5ZW-hI9WccgM_Y1nS-QC5xr-6gJO6vJydz3sw7SJw-z-DyROfVxI-YfsXtw/360fx360f'">
                     <div class="preview-name">${item.name}</div>
                     <div class="preview-price">${item.value} <i class="fas fa-coins"></i></div>
                 `;
@@ -1984,8 +2575,8 @@
             
             // Быстрая прокрутка с замедлением
             let currentPosition = 0;
-            const targetPosition = -targetIndex * 200; // 200px ширина предмета
-            const duration = 3000; // 3 секунды
+            const targetPosition = -targetIndex * 220; // 220px ширина предмета
+            const duration = 2500; // 2.5 секунды
             const startTime = Date.now();
             
             const animateScroll = () => {
@@ -2007,7 +2598,7 @@
                 
                 // Подсвечиваем центральный элемент в конце
                 if (progress > 0.9) {
-                    const centerIndex = Math.round(-currentPosition / 200) % totalItems;
+                    const centerIndex = Math.round(-currentPosition / 220) % totalItems;
                     if (centerIndex >= 0 && centerIndex < totalItems) {
                         scrollItems.forEach((item, i) => {
                             item.classList.toggle('active', i === centerIndex);
@@ -2118,32 +2709,36 @@
             ];
             
             initialDrops.forEach(drop => {
-                addDropToSidebar(drop.user, drop.item, drop.time);
+                gameState.recentDrops.push(drop);
             });
-            
-            gameState.recentDrops = initialDrops;
         }
 
-        // Добавление в историю выпадений
-        function addToRecentDrops(item) {
-            const drop = {
-                user: currentUser,
-                item: item,
-                time: "Только что"
-            };
+        // Запуск анимации выпадений
+        function startDropAnimation() {
+            let dropIndex = 0;
             
-            gameState.recentDrops.unshift(drop);
-            if (gameState.recentDrops.length > 20) {
-                gameState.recentDrops.pop();
+            function createDrop() {
+                if (dropIndex >= gameState.recentDrops.length) {
+                    dropIndex = 0;
+                }
+                
+                const drop = gameState.recentDrops[dropIndex];
+                addDropToSidebar(drop.user, drop.item, drop.time);
+                dropIndex++;
+                
+                // Случайный интервал между 20-50 секундами
+                const nextDropTime = 20000 + Math.random() * 30000;
+                setTimeout(createDrop, nextDropTime);
             }
             
-            addDropToSidebar(currentUser, item, "Только что");
+            // Начинаем с небольшой задержки
+            setTimeout(createDrop, 2000);
         }
 
         // Добавление выпадения в боковую панель
         function addDropToSidebar(username, item, time) {
             const dropItem = document.createElement('div');
-            dropItem.className = 'drop-item drop-animation';
+            dropItem.className = 'drop-item';
             
             // Определяем редкость для цвета границы
             let rarity = 'common';
@@ -2166,19 +2761,19 @@
             // Создаем аватар пользователя
             const avatarColor = getAvatarColor(username);
             const canvas = document.createElement('canvas');
-            canvas.width = 40;
-            canvas.height = 40;
+            canvas.width = 45;
+            canvas.height = 45;
             const ctx = canvas.getContext('2d');
             
             ctx.fillStyle = avatarColor;
-            ctx.fillRect(0, 0, 40, 40);
+            ctx.fillRect(0, 0, 45, 45);
             
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const initials = username.substring(0, 2).toUpperCase();
-            ctx.fillText(initials, 20, 20);
+            ctx.fillText(initials, 22.5, 22.5);
             
             const avatarUrl = canvas.toDataURL();
             
@@ -2187,18 +2782,110 @@
                     <img src="${avatarUrl}" alt="${username}">
                 </div>
                 <div class="drop-info">
-                    <div class="drop-user">${username} <span style="color: rgba(255,255,255,0.5); font-size: 10px;">${time}</span></div>
+                    <div class="drop-user">
+                        <span>${username}</span>
+                        <span>${time}</span>
+                    </div>
                     <div class="drop-item-name">${item.name}</div>
                     <div class="drop-value">${item.value} <i class="fas fa-coins"></i></div>
                 </div>
             `;
             
-            dropsList.insertBefore(dropItem, dropsList.firstChild);
+            // Случайная задержка для анимации
+            const delay = Math.random() * 5;
+            dropItem.style.animationDelay = `${delay}s`;
+            
+            dropsContainer.appendChild(dropItem);
             
             // Ограничиваем количество записей
-            if (dropsList.children.length > 10) {
-                dropsList.removeChild(dropsList.lastChild);
+            const drops = dropsContainer.querySelectorAll('.drop-item');
+            if (drops.length > 10) {
+                drops[0].remove();
             }
+        }
+
+        // Добавление в историю выпадений
+        function addToRecentDrops(item) {
+            const drop = {
+                user: currentUser,
+                item: item,
+                time: "Только что"
+            };
+            
+            gameState.recentDrops.unshift(drop);
+            if (gameState.recentDrops.length > 20) {
+                gameState.recentDrops.pop();
+            }
+        }
+
+        // Отправка сообщения в поддержку
+        function sendSupportMessage() {
+            const username = chatUsername.value.trim() || "Гость";
+            const message = chatMessage.value.trim();
+            
+            if (!message) {
+                alert('Введите ваш вопрос');
+                return;
+            }
+            
+            // Добавляем сообщение в чат
+            const messageElement = document.createElement('div');
+            messageElement.className = 'chat-message user';
+            messageElement.innerHTML = `<strong>${username}:</strong> ${message}`;
+            chatBody.appendChild(messageElement);
+            
+            // Сохраняем сообщение для админ-панели
+            const supportMessage = {
+                username: username,
+                message: message,
+                time: new Date().toLocaleTimeString()
+            };
+            
+            gameState.supportMessages.unshift(supportMessage);
+            if (gameState.supportMessages.length > 10) {
+                gameState.supportMessages.pop();
+            }
+            
+            // Обновляем админ-панель если открыта
+            updateAdminSupportMessages();
+            
+            // Очищаем поле ввода
+            chatMessage.value = '';
+            
+            // Автоответ поддержки
+            setTimeout(() => {
+                const responses = [
+                    "Спасибо за ваше сообщение! Мы рассмотрим ваш вопрос в ближайшее время.",
+                    "Ваш вопрос принят в обработку. Ожидайте ответа в течение 24 часов.",
+                    "Мы получили ваше сообщение. Наши специалисты уже работают над решением вашей проблемы.",
+                    "Благодарим за обращение! Мы свяжемся с вами в ближайшее время."
+                ];
+                
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                
+                const responseElement = document.createElement('div');
+                responseElement.className = 'chat-message support';
+                responseElement.innerHTML = `<strong>Поддержка:</strong> ${randomResponse}`;
+                chatBody.appendChild(responseElement);
+                
+                // Прокрутка вниз
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }, 1000);
+            
+            // Прокрутка вниз
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Обновление сообщений поддержки в админ-панели
+        function updateAdminSupportMessages() {
+            if (!adminSupportMessages) return;
+            
+            let messagesText = '';
+            gameState.supportMessages.forEach(msg => {
+                messagesText += `[${msg.time}] ${msg.username}: ${msg.message}\n`;
+            });
+            
+            adminSupportMessages.value = messagesText || "Нет новых сообщений";
         }
 
         // Получение цвета для аватара
@@ -2221,6 +2908,9 @@
                 adminCase2PriceInput.value = casesData[2].price;
                 adminCase1ChanceInput.value = casesData[1].legendaryChance;
                 adminCase2ChanceInput.value = casesData[2].legendaryChance;
+                
+                // Обновляем сообщения поддержки
+                updateAdminSupportMessages();
             } else {
                 alert('Неверный пароль!');
             }
@@ -2238,12 +2928,13 @@
             casesData[2].price = parseInt(adminCase2PriceInput.value);
             
             // Обновляем шансы для кейсов
-            casesData[1].legendaryChance = parseInt(adminCase1ChanceInput.value);
-            casesData[2].legendaryChance = parseInt(adminCase2ChanceInput.value);
+            casesData[1].legendaryChance = parseFloat(adminCase1ChanceInput.value);
+            casesData[2].legendaryChance = parseFloat(adminCase2ChanceInput.value);
             
             // Обновляем отображение цен на кейсах
-            document.querySelector('.case-card[data-case="1"] .case-price').innerHTML = `<i class="fas fa-coins"></i> ${casesData[1].price.toLocaleString()}`;
-            document.querySelector('.case-card[data-case="2"] .case-price').innerHTML = `<i class="fas fa-coins"></i> ${casesData[2].price.toLocaleString()}`;
+            document.querySelectorAll('.case-price-value').forEach((span, index) => {
+                span.textContent = casesData[index + 1].price.toLocaleString();
+            });
             
             // Обновляем отображение
             updateUserDisplay();
