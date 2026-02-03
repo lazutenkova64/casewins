@@ -2574,39 +2574,45 @@
             tab.classList.add('active');
         }
 
-        // Авторизация
-        function login() {
-            const username = loginUsername.value.trim();
-            const password = loginPassword.value;
-            
-            if (!username || !password) {
-                loginError.textContent = "Введите логин и пароль";
-                loginError.classList.add('active');
-                return;
-            }
-            
-            const user = db.getUser(username);
-            
-            if (user && user.password === password) {
-                currentUser = username;
-                
-                // Обновляем отображение
-                updateUserDisplay();
-                updateOpenCaseButtons();
-                authModal.style.display = 'none';
-                loginUsername.value = '';
-                loginPassword.value = '';
-                loginError.classList.remove('active');
-                
-                // Показываем админ-панель для администратора
-                if (user.isAdmin) {
-                    adminBtn.classList.add('visible');
-                }
-            } else {
-                loginError.textContent = "Неверный логин или пароль";
-                loginError.classList.add('active');
-            }
+       // Авторизация
+function login() {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    
+    if (!username || !password) {
+        loginError.textContent = "Введите логин и пароль";
+        loginError.style.display = 'block';
+        loginError.classList.add('active');
+        return;
+    }
+    
+    const user = db.getUser(username);
+    
+    if (user && user.password === password) {
+        currentUser = username;
+        
+        // Обновляем отображение
+        updateUserDisplay();
+        updateOpenCaseButtons();
+        authModal.style.display = 'none';
+        loginUsername.value = '';
+        loginPassword.value = '';
+        loginError.style.display = 'none';
+        loginError.classList.remove('active');
+        
+        // Показываем админ-панель для администратора
+        if (user.isAdmin) {
+            adminBtn.classList.add('visible');
         }
+        
+        // Показываем сообщение об успешном входе
+        alert('Вы успешно вошли в аккаунт!');
+    } else {
+        loginError.textContent = "Неверный логин или пароль";
+        loginError.style.display = 'block';
+        loginError.classList.add('active');
+    }
+}
 
         // Регистрация
         function register() {
@@ -3558,4 +3564,5 @@
     </script>
 </body>
 </html>
+
 
