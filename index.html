@@ -1242,6 +1242,59 @@
             display: flex;
         }
 
+        /* Окно авторизации - ИСПРАВЛЕНО */
+        .auth-modal {
+            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
+            width: 90%;
+            max-width: 450px;
+            border-radius: 25px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .auth-tab.active {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+        .auth-form {
+            padding: 40px;
+        }
+
+        .auth-form h3 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: var(--light-color);
+        }
+
+        .auth-error {
+            background: rgba(255, 70, 85, 0.2);
+            border: 1px solid var(--primary-color);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            display: none;
+            color: white;
+        }
+
         /* Чат поддержки */
         .support-chat {
             position: fixed;
@@ -1557,6 +1610,15 @@
             
             .drop-item {
                 padding: 10px;
+            }
+            
+            .auth-form {
+                padding: 25px;
+            }
+            
+            .auth-form h3 {
+                font-size: 20px;
+                margin-bottom: 20px;
             }
         }
 
@@ -1924,68 +1986,68 @@
         </div>
     </div>
     
-   <!-- Окно авторизации -->
-<div class="modal" id="auth-modal">
-    <div class="auth-modal">
-        <div class="auth-tabs">
-            <div class="auth-tab active" id="login-tab">Вход</div>
-            <div class="auth-tab" id="register-tab">Регистрация</div>
-        </div>
-        
-        <!-- Форма входа -->
-        <div class="auth-form" id="login-form">
-            <h3 style="margin-bottom: 30px;">Вход в аккаунт</h3>
-            <div class="auth-error" id="login-error" style="display: none;">Неверный логин или пароль</div>
-            
-            <div class="form-group">
-                <label for="login-username">Логин</label>
-                <input type="text" id="login-username" placeholder="Введите логин">
+    <!-- Окно авторизации - ИСПРАВЛЕНО -->
+    <div class="modal" id="auth-modal">
+        <div class="auth-modal">
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="login-tab">Вход</div>
+                <div class="auth-tab" id="register-tab">Регистрация</div>
             </div>
             
-            <div class="form-group">
-                <label for="login-password">Пароль</label>
-                <input type="password" id="login-password" placeholder="Введите пароль">
+            <!-- Форма входа -->
+            <div class="auth-form" id="login-form">
+                <h3>Вход в аккаунт</h3>
+                <div class="auth-error" id="login-error">Неверный логин или пароль</div>
+                
+                <div class="form-group">
+                    <label for="login-username">Логин</label>
+                    <input type="text" id="login-username" placeholder="Введите логин">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" placeholder="Введите пароль">
+                </div>
+                
+                <button class="admin-btn-submit" id="login-btn" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                
+                <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
+                    Или продолжайте как <a href="#" id="continue-guest" style="color: var(--primary-color);">Гость</a>
+                </div>
             </div>
             
-            <button class="admin-btn-submit" id="login-btn" style="width: 100%; margin-top: 20px;">
-                <i class="fas fa-sign-in-alt"></i> Войти
-            </button>
-            
-            <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
-                Или продолжайте как <a href="#" id="continue-guest" style="color: var(--primary-color);">Гость</a>
-            </div>
-        </div>
-        
-        <!-- Форма регистрации -->
-        <div class="auth-form" id="register-form" style="display: none;">
-            <h3 style="margin-bottom: 30px;">Регистрация аккаунта</h3>
-            <div class="auth-error" id="register-error" style="display: none;">Логин уже занят</div>
-            
-            <div class="form-group">
-                <label for="register-username">Логин</label>
-                <input type="text" id="register-username" placeholder="Придумайте логин (мин. 3 символа)">
-            </div>
-            
-            <div class="form-group">
-                <label for="register-password">Пароль</label>
-                <input type="password" id="register-password" placeholder="Придумайте пароль (мин. 6 символов)">
-            </div>
-            
-            <div class="form-group">
-                <label for="register-confirm">Подтвердите пароль</label>
-                <input type="password" id="register-confirm" placeholder="Повторите пароль">
-            </div>
-            
-            <button class="admin-btn-submit" id="register-btn" style="width: 100%; margin-top: 20px;">
-                <i class="fas fa-user-plus"></i> Зарегистрироваться
-            </button>
-            
-            <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
-                Уже есть аккаунт? <a href="#" id="switch-to-login" style="color: var(--primary-color);">Войти</a>
+            <!-- Форма регистрации -->
+            <div class="auth-form" id="register-form" style="display: none;">
+                <h3>Регистрация аккаунта</h3>
+                <div class="auth-error" id="register-error">Логин уже занят</div>
+                
+                <div class="form-group">
+                    <label for="register-username">Логин</label>
+                    <input type="text" id="register-username" placeholder="Придумайте логин (мин. 3 символа)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password">Пароль</label>
+                    <input type="password" id="register-password" placeholder="Придумайте пароль (мин. 6 символов)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-confirm">Подтвердите пароль</label>
+                    <input type="password" id="register-confirm" placeholder="Повторите пароль">
+                </div>
+                
+                <button class="admin-btn-submit" id="register-btn" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                </button>
+                
+                <div style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6);">
+                    Уже есть аккаунт? <a href="#" id="switch-to-login" style="color: var(--primary-color);">Войти</a>
+                </div>
             </div>
         </div>
     </div>
-</div>
     
     <!-- Футер -->
     <footer>
@@ -2506,28 +2568,24 @@
                 }
             });
             
-            // Авторизация
-loginTab.addEventListener('click', () => {
-    loginTab.classList.add('active');
-    registerTab.classList.remove('active');
-    loginForm.style.display = 'block';
-    registerForm.style.display = 'none';
-    loginError.style.display = 'none';
-    loginError.classList.remove('active');
-    registerError.style.display = 'none';
-    registerError.classList.remove('active');
-});
-
-registerTab.addEventListener('click', () => {
-    registerTab.classList.add('active');
-    loginTab.classList.remove('active');
-    registerForm.style.display = 'block';
-    loginForm.style.display = 'none';
-    loginError.style.display = 'none';
-    loginError.classList.remove('active');
-    registerError.style.display = 'none';
-    registerError.classList.remove('active');
-});
+            // Авторизация - ИСПРАВЛЕНО
+            loginTab.addEventListener('click', () => {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginError.style.display = 'none';
+                registerError.style.display = 'none';
+            });
+            
+            registerTab.addEventListener('click', () => {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.style.display = 'block';
+                loginForm.style.display = 'none';
+                loginError.style.display = 'none';
+                registerError.style.display = 'none';
+            });
             
             loginBtn.addEventListener('click', login);
             registerBtn.addEventListener('click', register);
@@ -2578,121 +2636,111 @@ registerTab.addEventListener('click', () => {
             tab.classList.add('active');
         }
 
-       // Авторизация
-function login() {
-    const username = loginUsername.value.trim();
-    const password = loginPassword.value;
-    
-    if (!username || !password) {
-        loginError.textContent = "Введите логин и пароль";
-        loginError.style.display = 'block';
-        loginError.classList.add('active');
-        return;
-    }
-    
-    const user = db.getUser(username);
-    
-    if (user && user.password === password) {
-        currentUser = username;
-        
-        // Обновляем отображение
-        updateUserDisplay();
-        updateOpenCaseButtons();
-        authModal.style.display = 'none';
-        loginUsername.value = '';
-        loginPassword.value = '';
-        loginError.style.display = 'none';
-        loginError.classList.remove('active');
-        
-        // Показываем админ-панель для администратора
-        if (user.isAdmin) {
-            adminBtn.classList.add('visible');
+        // Авторизация - ИСПРАВЛЕНО
+        function login() {
+            const username = loginUsername.value.trim();
+            const password = loginPassword.value;
+            
+            if (!username || !password) {
+                loginError.textContent = "Введите логин и пароль";
+                loginError.style.display = 'block';
+                return;
+            }
+            
+            const user = db.getUser(username);
+            
+            if (user && user.password === password) {
+                currentUser = username;
+                
+                // Обновляем отображение
+                updateUserDisplay();
+                updateOpenCaseButtons();
+                authModal.style.display = 'none';
+                loginUsername.value = '';
+                loginPassword.value = '';
+                loginError.style.display = 'none';
+                
+                // Показываем админ-панель для администратора
+                if (user.isAdmin) {
+                    adminBtn.classList.add('visible');
+                }
+                
+                // Показываем сообщение об успешном входе
+                alert('Вы успешно вошли в аккаунт!');
+            } else {
+                loginError.textContent = "Неверный логин или пароль";
+                loginError.style.display = 'block';
+            }
         }
-        
-        // Показываем сообщение об успешном входе
-        alert('Вы успешно вошли в аккаунт!');
-    } else {
-        loginError.textContent = "Неверный логин или пароль";
-        loginError.style.display = 'block';
-        loginError.classList.add('active');
-    }
-}
 
-        // Регистрация
-function register() {
-    const username = registerUsername.value.trim();
-    const password = registerPassword.value;
-    const confirm = registerConfirm.value;
-    
-    if (!username || !password || !confirm) {
-        registerError.textContent = "Заполните все поля";
-        registerError.style.display = 'block';
-        registerError.classList.add('active');
-        return;
-    }
-    
-    if (password !== confirm) {
-        registerError.textContent = "Пароли не совпадают";
-        registerError.style.display = 'block';
-        registerError.classList.add('active');
-        return;
-    }
-    
-    if (username.length < 3) {
-        registerError.textContent = "Логин должен быть не менее 3 символов";
-        registerError.style.display = 'block';
-        registerError.classList.add('active');
-        return;
-    }
-    
-    if (password.length < 6) {
-        registerError.textContent = "Пароль должен быть не менее 6 символов";
-        registerError.style.display = 'block';
-        registerError.classList.add('active');
-        return;
-    }
-    
-    if (db.getUser(username)) {
-        registerError.textContent = "Логин уже занят";
-        registerError.style.display = 'block';
-        registerError.classList.add('active');
-        return;
-    }
-    
-    // Создаем нового пользователя
-    const userData = {
-        password: password,
-        balance: systemSettings.defaultBalance,
-        casesOpened: 0,
-        totalValue: 0,
-        bestItem: "Нет",
-        createdAt: new Date().toLocaleDateString(),
-        isAdmin: false,
-        inventory: [],
-        supportTickets: []
-    };
-    
-    db.saveUser(username, userData);
-    
-    // Автоматически входим
-    currentUser = username;
-    
-    // Обновляем отображение
-    updateUserDisplay();
-    updateOpenCaseButtons();
-    authModal.style.display = 'none';
-    registerUsername.value = '';
-    registerPassword.value = '';
-    registerConfirm.value = '';
-    registerError.style.display = 'none';
-    registerError.classList.remove('active');
-    
-    // Показываем сообщение об успешной регистрации
-    alert('Аккаунт успешно создан! Вы вошли в систему.');
-    
-    // Переключаемся на вкладку входа
-    loginTab.click();
-}
+        // Регистрация - ИСПРАВЛЕНО
+        function register() {
+            const username = registerUsername.value.trim();
+            const password = registerPassword.value;
+            const confirm = registerConfirm.value;
+            
+            if (!username || !password || !confirm) {
+                registerError.textContent = "Заполните все поля";
+                registerError.style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirm) {
+                registerError.textContent = "Пароли не совпадают";
+                registerError.style.display = 'block';
+                return;
+            }
+            
+            if (username.length < 3) {
+                registerError.textContent = "Логин должен быть не менее 3 символов";
+                registerError.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                registerError.textContent = "Пароль должен быть не менее 6 символов";
+                registerError.style.display = 'block';
+                return;
+            }
+            
+            if (db.getUser(username)) {
+                registerError.textContent = "Логин уже занят";
+                registerError.style.display = 'block';
+                return;
+            }
+            
+            // Создаем нового пользователя
+            const userData = {
+                password: password,
+                balance: systemSettings.defaultBalance,
+                casesOpened: 0,
+                totalValue: 0,
+                bestItem: "Нет",
+                createdAt: new Date().toLocaleDateString(),
+                isAdmin: false,
+                inventory: [],
+                supportTickets: []
+            };
+            
+            db.saveUser(username, userData);
+            
+            // Автоматически входим
+            currentUser = username;
+            
+            // Обновляем отображение
+            updateUserDisplay();
+            updateOpenCaseButtons();
+            authModal.style.display = 'none';
+            registerUsername.value = '';
+            registerPassword.value = '';
+            registerConfirm.value = '';
+            registerError.style.display = 'none';
+            
+            // Показываем сообщение об успешной регистрации
+            alert('Аккаунт успешно создан! Вы вошли в систему.');
+            
+            // Переключаемся на вкладку входа
+            loginTab.click();
         }
 
         // Обновление отображения пользователя
@@ -3578,7 +3626,3 @@ function register() {
     </script>
 </body>
 </html>
-
-
-
-
