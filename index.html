@@ -226,6 +226,51 @@
             justify-content: center;
         }
 
+        /* Кнопка поддержки (плавающая) */
+        .support-float-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 900;
+            transition: var(--transition);
+            box-shadow: 0 8px 25px rgba(255, 70, 85, 0.4);
+            border: 2px solid white;
+        }
+
+        .support-float-btn:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 12px 30px rgba(255, 70, 85, 0.6);
+        }
+
+        .support-float-btn i {
+            font-size: 24px;
+        }
+
+        .support-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
         /* Основной контент */
         main {
             padding: 40px 0 80px;
@@ -638,6 +683,25 @@
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
         }
 
+        .mask-left, .mask-right {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100px;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .mask-left {
+            left: 0;
+            background: linear-gradient(90deg, rgba(15, 25, 35, 0.9), transparent);
+        }
+
+        .mask-right {
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(15, 25, 35, 0.9));
+        }
+
         .case-items-scroll {
             display: flex;
             gap: 0;
@@ -661,6 +725,16 @@
             transition: var(--transition);
             flex-shrink: 0;
             position: relative;
+            animation: appearFromRight 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateX(100px);
+        }
+
+        @keyframes appearFromRight {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .scroll-item.active {
@@ -711,6 +785,7 @@
             align-items: center;
             width: 100%;
             justify-content: center;
+            margin-top: 20px;
         }
 
         .spin-btn {
@@ -742,39 +817,6 @@
             cursor: not-allowed;
             transform: none;
             background: linear-gradient(45deg, #666, #888);
-        }
-
-        .center-spin-btn {
-            background: linear-gradient(45deg, #ff6b7a, #ff4655);
-            color: white;
-            border: none;
-            padding: 18px 50px;
-            font-size: 22px;
-            font-weight: 800;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: var(--transition);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 30px rgba(255, 70, 85, 0.4);
-        }
-
-        .center-spin-btn:hover:not(:disabled) {
-            transform: translate(-50%, -50%) scale(1.05);
-            box-shadow: 0 15px 35px rgba(255, 70, 85, 0.5);
-        }
-
-        .center-spin-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
         }
 
         .items-preview {
@@ -825,280 +867,6 @@
             display: flex;
             align-items: center;
             gap: 5px;
-        }
-
-        /* Страница профиля */
-        .profile-page {
-            padding: 40px 0;
-            display: none;
-        }
-
-        .profile-page.active {
-            display: block;
-        }
-
-        .profile-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-        }
-
-        .profile-back-btn {
-            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-        }
-
-        .profile-back-btn:hover {
-            transform: translateX(-5px);
-            box-shadow: 0 8px 20px rgba(255, 70, 85, 0.3);
-        }
-
-        .profile-content {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 40px;
-        }
-
-        .profile-sidebar {
-            background: var(--glass-bg);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
-        }
-
-        .profile-avatar-large {
-            width: 150px;
-            height: 150px;
-            border-radius: 20px;
-            overflow: hidden;
-            border: 3px solid var(--primary-color);
-            margin: 0 auto 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .profile-avatar-large img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .profile-sidebar .profile-name {
-            font-size: 24px;
-            font-weight: 800;
-            text-align: center;
-            margin-bottom: 30px;
-            color: var(--light-color);
-        }
-
-        .profile-sidebar .profile-info {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .profile-sidebar .profile-stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .profile-sidebar .profile-stat span:first-child {
-            font-weight: 600;
-            color: var(--light-color);
-        }
-
-        .profile-sidebar .profile-stat-value {
-            color: var(--gold-color);
-            font-weight: 700;
-        }
-
-        .profile-logout-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(45deg, #2a2f36, #3a3f46);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .profile-logout-btn:hover {
-            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
-            transform: translateY(-2px);
-        }
-
-        .profile-inventory {
-            background: var(--glass-bg);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
-        }
-
-        .inventory-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 20px;
-        }
-
-        .inventory-tab {
-            padding: 12px 24px;
-            background: rgba(0, 0, 0, 0.2);
-            border: none;
-            border-radius: 8px;
-            color: var(--light-color);
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 600;
-        }
-
-        .inventory-tab.active {
-            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
-            color: white;
-        }
-
-        .inventory-items {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            max-height: 600px;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .inventory-items::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .inventory-items::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 3px;
-        }
-
-        .inventory-items::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 3px;
-        }
-
-        .inventory-item {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            transition: var(--transition);
-            border: 1px solid transparent;
-            position: relative;
-        }
-
-        .inventory-item:hover {
-            border-color: var(--glass-border);
-            transform: translateY(-5px);
-        }
-
-        .inventory-item img {
-            width: 140px;
-            height: 105px;
-            object-fit: contain;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
-        }
-
-        .inventory-item-name {
-            font-size: 14px;
-            text-align: center;
-            font-weight: 600;
-            color: var(--light-color);
-        }
-
-        .inventory-item-price {
-            color: var(--gold-color);
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .inventory-item-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-            border: 1px solid #4caf50;
-        }
-
-        .status-sold {
-            background: rgba(158, 158, 158, 0.2);
-            color: #9e9e9e;
-            border: 1px solid #9e9e9e;
-        }
-
-        .inventory-item-actions {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-
-        .inventory-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .sell-btn {
-            background: linear-gradient(45deg, var(--success-color), #388e3c);
-            color: white;
-        }
-
-        .sell-btn:hover {
-            background: linear-gradient(45deg, #388e3c, var(--success-color));
-            transform: translateY(-2px);
-        }
-
-        .details-btn {
-            background: linear-gradient(45deg, #2196f3, #1976d2);
-            color: white;
-        }
-
-        .details-btn:hover {
-            background: linear-gradient(45deg, #1976d2, #2196f3);
-            transform: translateY(-2px);
         }
 
         /* Модальные окна */
@@ -1206,6 +974,11 @@
             background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
             transform: rotate(45deg);
             animation: shineEffect 3s infinite;
+        }
+
+        @keyframes shineEffect {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
         }
 
         .item-image img {
@@ -1469,67 +1242,10 @@
             display: flex;
         }
 
-        /* Окно авторизации */
-        .auth-modal {
-            background: linear-gradient(135deg, rgba(30, 35, 40, 0.95), rgba(15, 25, 35, 0.95));
-            width: 90%;
-            max-width: 450px;
-            border-radius: 25px;
-            overflow: hidden;
-            border: 1px solid var(--glass-border);
-        }
-
-        .auth-tabs {
-            display: flex;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .auth-tab {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .auth-tab.active {
-            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
-            color: white;
-        }
-
-        .auth-form {
-            padding: 40px;
-        }
-
-        .auth-form h3 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 24px;
-            color: var(--light-color);
-        }
-
-        .auth-error {
-            background: rgba(255, 70, 85, 0.2);
-            border: 1px solid var(--primary-color);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            text-align: center;
-            display: none;
-            color: white;
-        }
-
-        .auth-error.active {
-            display: block;
-        }
-
         /* Чат поддержки */
         .support-chat {
             position: fixed;
-            bottom: 30px;
+            bottom: 100px;
             right: 30px;
             width: 400px;
             height: 500px;
@@ -1706,7 +1422,7 @@
             max-width: 600px;
         }
 
-        /* Адаптивность */
+        /* Адаптивность для телефонов */
         @media (max-width: 1200px) {
             main {
                 flex-direction: column;
@@ -1716,34 +1432,34 @@
                 width: 100%;
                 order: 1;
             }
-            
-            .profile-content {
-                grid-template-columns: 1fr;
-            }
         }
 
         @media (max-width: 768px) {
             .header-content {
-                flex-direction: column;
-                gap: 20px;
+                flex-wrap: wrap;
+                gap: 15px;
             }
             
             nav ul {
                 gap: 10px;
                 flex-wrap: wrap;
                 justify-content: center;
+                order: 3;
+                width: 100%;
+                margin-top: 15px;
             }
             
             .page-title {
-                font-size: 36px;
+                font-size: 32px;
             }
             
             .cases-grid {
                 grid-template-columns: 1fr;
+                gap: 20px;
             }
             
             .case-opening-section {
-                padding: 25px;
+                padding: 20px;
             }
             
             .scroll-item {
@@ -1751,9 +1467,9 @@
                 height: 200px;
             }
             
-            .admin-btn {
-                top: 15px;
-                left: 15px;
+            .scroll-item img {
+                width: 120px;
+                height: 90px;
             }
             
             .spin-btn {
@@ -1764,8 +1480,20 @@
             .support-chat {
                 width: calc(100% - 40px);
                 right: 20px;
-                bottom: 20px;
+                bottom: 100px;
                 height: 400px;
+            }
+            
+            .support-float-btn {
+                bottom: 25px;
+                right: 25px;
+                width: 50px;
+                height: 50px;
+            }
+            
+            .admin-btn {
+                top: 15px;
+                left: 15px;
             }
             
             .modal-actions {
@@ -1776,6 +1504,15 @@
             .modal-btn {
                 width: 100%;
                 justify-content: center;
+            }
+            
+            .item-name {
+                font-size: 24px;
+            }
+            
+            .item-image {
+                width: 200px;
+                height: 150px;
             }
         }
 
@@ -1788,17 +1525,131 @@
                 font-size: 22px;
             }
             
+            .case-name {
+                font-size: 18px;
+            }
+            
+            .case-price {
+                font-size: 18px;
+            }
+            
             .modal-content {
                 width: 95%;
                 padding: 15px;
             }
             
             .item-name {
-                font-size: 24px;
+                font-size: 20px;
             }
             
-            .inventory-items {
-                grid-template-columns: 1fr;
+            .support-chat {
+                height: 350px;
+                bottom: 90px;
+            }
+            
+            .center-arrow {
+                font-size: 32px;
+            }
+            
+            .drops-sidebar {
+                padding: 15px;
+            }
+            
+            .drop-item {
+                padding: 10px;
+            }
+        }
+
+        /* Очень маленькие экраны */
+        @media (max-width: 360px) {
+            .logo {
+                font-size: 20px;
+            }
+            
+            .user-online {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            
+            .balance {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            nav a {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+            
+            .case-opening-section {
+                padding: 15px;
+            }
+            
+            .scroll-item {
+                width: 150px;
+                height: 170px;
+            }
+            
+            .scroll-item img {
+                width: 100px;
+                height: 75px;
+            }
+        }
+
+        /* Планшеты */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .cases-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .scroll-item {
+                width: 200px;
+            }
+        }
+
+        /* Большие мониторы */
+        @media (min-width: 1600px) {
+            .container {
+                max-width: 1600px;
+            }
+            
+            .cases-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .scroll-item {
+                width: 250px;
+            }
+        }
+
+        /* Портретный режим телефона */
+        @media (max-height: 600px) and (orientation: portrait) {
+            .case-opening-container {
+                height: 200px;
+            }
+            
+            .scroll-item {
+                height: 180px;
+            }
+            
+            .support-chat {
+                height: 300px;
+            }
+        }
+
+        /* Ландшафтный режим телефона */
+        @media (max-height: 400px) and (orientation: landscape) {
+            .case-opening-container {
+                height: 180px;
+            }
+            
+            .scroll-item {
+                height: 150px;
+            }
+            
+            .support-chat {
+                height: 250px;
+                bottom: 80px;
             }
         }
 
@@ -1839,6 +1690,17 @@
         .hidden {
             display: none !important;
         }
+        
+        .fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1847,6 +1709,12 @@
         <i class="fas fa-cog"></i>
         <div class="admin-badge" id="admin-badge" style="display: none;">!</div>
     </button>
+
+    <!-- Плавающая кнопка поддержки -->
+    <div class="support-float-btn" id="support-float-btn">
+        <i class="fas fa-headset"></i>
+        <div class="support-notification" id="support-notification" style="display: none;">1</div>
+    </div>
 
     <!-- Шапка -->
     <header>
@@ -1858,7 +1726,7 @@
             
             <div class="user-online">
                 <i class="fas fa-user"></i>
-                <span id="online-count">0</span> игроков онлайн
+                <span id="online-count">152</span> игроков онлайн
             </div>
             
             <nav>
@@ -1905,129 +1773,64 @@
 
     <!-- Основной контент -->
     <main class="container">
-        <!-- Страница профиля -->
-        <div class="profile-page" id="profile-page">
-            <div class="profile-header">
-                <button class="profile-back-btn" id="profile-back-btn">
-                    <i class="fas fa-arrow-left"></i> Назад
-                </button>
-                <div class="user-online">
-                    <i class="fas fa-user"></i>
-                    <span id="online-count-profile">0</span> игроков онлайн
-                </div>
+        <!-- Боковая панель с историей выпадений -->
+        <aside class="drops-sidebar">
+            <h3 class="drops-title">
+                <i class="fas fa-bolt"></i> Недавний дроп
+            </h3>
+            <div class="drops-list" id="drops-list">
+                <!-- История выпадений будет добавляться динамически -->
             </div>
+        </aside>
+        
+        <!-- Основная секция -->
+        <div class="main-content">
+            <h1 class="page-title">Открой <span class="gradient-text">кейсы CS2</span> и выиграй <span class="gradient-text">скины</span></h1>
             
-            <div class="profile-content">
-                <div class="profile-sidebar">
-                    <div class="profile-avatar-large">
-                        <img id="profile-avatar-large-img" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Аватар">
+            <!-- Секция открытия кейса (скрыта по умолчанию) -->
+            <section class="case-opening-section" id="case-opening-section">
+                <div class="opening-header">
+                    <div class="opening-title">
+                        <i class="fas fa-box-open"></i>
+                        <span id="opening-case-name">Кейс CS2</span>
                     </div>
-                    <div class="profile-name" id="profile-name">Гость</div>
-                    
-                    <div class="profile-info">
-                        <div class="profile-stat">
-                            <span><i class="fas fa-coins"></i> Баланс:</span>
-                            <span class="profile-stat-value" id="profile-balance">0</span>
-                        </div>
-                        <div class="profile-stat">
-                            <span><i class="fas fa-box-open"></i> Открыто кейсов:</span>
-                            <span class="profile-stat-value" id="profile-cases">0</span>
-                        </div>
-                        <div class="profile-stat">
-                            <span><i class="fas fa-chart-line"></i> Общая стоимость:</span>
-                            <span class="profile-stat-value" id="profile-total">0</span>
-                        </div>
-                        <div class="profile-stat">
-                            <span><i class="fas fa-crown"></i> Лучший предмет:</span>
-                            <span class="profile-stat-value" id="profile-best">Нет</span>
-                        </div>
-                        <div class="profile-stat">
-                            <span><i class="fas fa-calendar"></i> Аккаунт создан:</span>
-                            <span class="profile-stat-value" id="profile-created">-</span>
-                        </div>
-                    </div>
-                    
-                    <button class="profile-logout-btn" id="profile-logout-btn">
-                        <i class="fas fa-sign-out-alt"></i> Выйти из аккаунта
+                    <button class="close-opening" id="close-opening">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <div class="profile-inventory">
-                    <div class="inventory-tabs">
-                        <button class="inventory-tab active" data-tab="all">Все предметы</button>
-                        <button class="inventory-tab" data-tab="active">Активные</button>
-                        <button class="inventory-tab" data-tab="sold">Проданные</button>
+                <div class="case-opening-container">
+                    <div class="center-arrow">
+                        <i class="fas fa-caret-down"></i>
                     </div>
-                    
-                    <div class="inventory-items" id="inventory-items">
-                        <!-- Инвентарь будет загружаться динамически -->
+                    <div class="mask-left"></div>
+                    <div class="mask-right"></div>
+                    <div class="case-items-scroll" id="case-items-scroll">
+                        <!-- Предметы будут добавляться динамически -->
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Основная страница -->
-        <div class="main-page" id="main-page">
-            <!-- Боковая панель с историей выпадений -->
-            <aside class="drops-sidebar">
-                <h3 class="drops-title">
-                    <i class="fas fa-bolt"></i> Недавний дроп
-                </h3>
-                <div class="drops-list" id="drops-list">
-                    <!-- История выпадений будет добавляться динамически -->
+                
+                <div class="case-opening-controls">
+                    <button class="spin-btn" id="spin-btn">
+                        <i class="fas fa-play"></i> Открыть за <span id="spin-price">2,500</span>
+                    </button>
                 </div>
-            </aside>
+                
+                <div class="items-preview" id="items-preview">
+                    <!-- Предметы из кейса будут отображаться здесь -->
+                </div>
+            </section>
             
-            <!-- Основная секция -->
-            <div class="main-content">
-                <h1 class="page-title">Открой <span class="gradient-text">кейсы CS2</span> и выиграй <span class="gradient-text">скины</span></h1>
+            <!-- Секция выбора кейсов -->
+            <section class="case-selection" id="case-selection">
+                <h2 class="section-title">
+                    <i class="fas fa-gem"></i> Доступные кейсы
+                </h2>
                 
-                <!-- Секция открытия кейса (скрыта по умолчанию) -->
-                <section class="case-opening-section" id="case-opening-section">
-                    <div class="opening-header">
-                        <div class="opening-title">
-                            <i class="fas fa-box-open"></i>
-                            <span id="opening-case-name">Кейс CS2</span>
-                        </div>
-                        <button class="close-opening" id="close-opening">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="case-opening-container">
-                        <div class="center-arrow">
-                            <i class="fas fa-caret-down"></i>
-                        </div>
-                        <button class="center-spin-btn" id="center-spin-btn">
-                            <i class="fas fa-play"></i> Открыть кейс
-                        </button>
-                        <div class="case-items-scroll" id="case-items-scroll">
-                            <!-- Предметы будут добавляться динамически -->
-                        </div>
-                    </div>
-                    
-                    <div class="case-opening-controls">
-                        <button class="spin-btn" id="spin-btn">
-                            <i class="fas fa-play"></i> Открыть за <span id="spin-price">2,500</span>
-                        </button>
-                    </div>
-                    
-                    <div class="items-preview" id="items-preview">
-                        <!-- Предметы из кейса будут отображаться здесь -->
-                    </div>
-                </section>
-                
-                <!-- Секция выбора кейсов -->
-                <section class="case-selection" id="case-selection">
-                    <h2 class="section-title">
-                        <i class="fas fa-gem"></i> Доступные кейсы
-                    </h2>
-                    
-                    <div class="cases-grid">
-                        <!-- Кейсы будут добавляться динамически -->
-                    </div>
-                </section>
-            </div>
+                <div class="cases-grid">
+                    <!-- Кейсы будут добавляться динамически -->
+                </div>
+            </section>
         </div>
     </main>
     
@@ -2043,7 +1846,7 @@
                 
                 <div class="won-item">
                     <div class="item-image">
-                        <img id="won-item-img" src="" alt="Выигранный предмет">
+                        <img id="won-item-img" src="" alt="Выигранный предмет" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png'">
                     </div>
                     <div class="item-name" id="won-item-name"></div>
                     <div class="item-price" id="won-item-price"></div>
@@ -2195,7 +1998,7 @@
             <div class="footer-links">
                 <a href="#"><i class="fas fa-file-contract"></i> Пользовательское соглашение</a>
                 <a href="#"><i class="fas fa-shield-alt"></i> Политика конфиденциальности</a>
-                <a href="#" id="footer-help" class="active"><i class="fas fa-headset"></i> Поддержка</a>
+                <a href="#" id="footer-help"><i class="fas fa-headset"></i> Поддержка</a>
                 <a href="#"><i class="fas fa-envelope"></i> Контакты</a>
             </div>
             
@@ -2229,10 +2032,6 @@
                 
                 if (!localStorage.getItem('inventory')) {
                     localStorage.setItem('inventory', JSON.stringify({}));
-                }
-                
-                if (!localStorage.getItem('onlineUsers')) {
-                    localStorage.setItem('onlineUsers', JSON.stringify([]));
                 }
                 
                 if (!localStorage.getItem('adminMessages')) {
@@ -2353,34 +2152,6 @@
                 return items;
             }
             
-            // Онлайн пользователи
-            getOnlineUsers() {
-                return JSON.parse(localStorage.getItem('onlineUsers')) || [];
-            }
-            
-            saveOnlineUsers(users) {
-                localStorage.setItem('onlineUsers', JSON.stringify(users));
-            }
-            
-            addOnlineUser(username) {
-                const users = this.getOnlineUsers();
-                if (!users.includes(username)) {
-                    users.push(username);
-                    this.saveOnlineUsers(users);
-                }
-                return users;
-            }
-            
-            removeOnlineUser(username) {
-                const users = this.getOnlineUsers();
-                const index = users.indexOf(username);
-                if (index !== -1) {
-                    users.splice(index, 1);
-                    this.saveOnlineUsers(users);
-                }
-                return users;
-            }
-            
             // Сообщения администратора
             getAdminMessages() {
                 return JSON.parse(localStorage.getItem('adminMessages')) || [];
@@ -2396,6 +2167,14 @@
                 this.saveAdminMessages(messages);
                 return messages;
             }
+            
+            markAdminMessageAsRead(ticketId) {
+                const messages = this.getAdminMessages();
+                const updated = messages.map(msg => 
+                    msg.ticketId === ticketId ? { ...msg, isNew: false } : msg
+                );
+                this.saveAdminMessages(updated);
+            }
         }
 
         // Системные настройки
@@ -2404,52 +2183,52 @@
             defaultBalance: 10000
         };
 
-        // Данные о скинах (заменил на рисованные изображения)
+        // Данные о скинах (используем знак вопроса для изображений)
         const cs2Items = {
             // Синие скины (Армейское качество)
             common: [
-                { name: "Glock-18 | Армейский камуфляж", value: 60, img: "https://i.imgur.com/WqR7V3s.png" },
-                { name: "USP-S | Тактический серый", value: 70, img: "https://i.imgur.com/5T4Kq9X.png" },
-                { name: "P250 | Пустынный песок", value: 50, img: "https://i.imgur.com/7V2mR1Y.png" },
-                { name: "MAC-10 | Городской камуфляж", value: 55, img: "https://i.imgur.com/9jL8KzP.png" },
-                { name: "UMP-45 | Военный камуфляж", value: 65, img: "https://i.imgur.com/3M6nQ9F.png" }
+                { name: "Glock-18 | Армейский камуфляж", value: 60, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "USP-S | Тактический серый", value: 70, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "P250 | Пустынный песок", value: 50, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "MAC-10 | Городской камуфляж", value: 55, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "UMP-45 | Военный камуфляж", value: 65, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
             // Фиолетовые скины (Запрещенное качество)
             uncommon: [
-                { name: "M4A1-S | Синий тигр", value: 300, img: "https://i.imgur.com/X7L2w8Z.png" },
-                { name: "AK-47 | Синяя линия", value: 400, img: "https://i.imgur.com/Y8qR9V2.png" },
-                { name: "AWP | Электрический океан", value: 500, img: "https://i.imgur.com/K4jL5q8.png" },
-                { name: "Desert Eagle | Синяя змея", value: 250, img: "https://i.imgur.com/R3qW7V4.png" }
+                { name: "M4A1-S | Синий тигр", value: 300, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Синяя линия", value: 400, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Электрический океан", value: 500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Синяя змея", value: 250, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
             // Розовые скины (Засекреченное качество)
             rare: [
-                { name: "M4A4 | Розовый укус", value: 800, img: "https://i.imgur.com/N7qL5V9.png" },
-                { name: "AK-47 | Розовый вулкан", value: 1200, img: "https://i.imgur.com/P8qR3V1.png" },
-                { name: "Desert Eagle | Розовый кристалл", value: 1000, img: "https://i.imgur.com/Q2wL4V7.png" },
-                { name: "AWP | Розовая линия", value: 1500, img: "https://i.imgur.com/S3qL2V6.png" }
+                { name: "M4A4 | Розовый укус", value: 800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Розовый вулкан", value: 1200, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Desert Eagle | Розовый кристалл", value: 1000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Розовая линия", value: 1500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
             // Красные скины (Тайное качество)
             mythical: [
-                { name: "AWP | Красный дракон", value: 2500, img: "https://i.imgur.com/T4qL9V3.png" },
-                { name: "M4A1-S | Красный кристалл", value: 2000, img: "https://i.imgur.com/U5qL8V2.png" },
-                { name: "AK-47 | Красный вулкан", value: 2800, img: "https://i.imgur.com/V6qL7V1.png" }
+                { name: "AWP | Красный дракон", value: 2500, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "M4A1-S | Красный кристалл", value: 2000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AK-47 | Красный вулкан", value: 2800, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
             // Желтые скины (Ножевой кейс)
             legendary: [
-                { name: "Нож | Золотой бабочка", value: 5000, img: "https://i.imgur.com/W7qL6V9.png" },
-                { name: "Перчатки | Золотые когти", value: 6000, img: "https://i.imgur.com/X8qL5V8.png" },
-                { name: "Нож | Золотой карамбут", value: 7000, img: "https://i.imgur.com/Y9qL4V7.png" }
+                { name: "Нож | Золотой бабочка", value: 5000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Перчатки | Золотые когти", value: 6000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Золотой карамбут", value: 7000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ],
             
             // Особые скины
             ancient: [
-                { name: "AK-47 | Огненный дракон", value: 8000, img: "https://i.imgur.com/Z0qL3V6.png" },
-                { name: "AWP | Драконья слава", value: 10000, img: "https://i.imgur.com/A1qL2V5.png" },
-                { name: "Нож | Сапфировый клинок", value: 12000, img: "https://i.imgur.com/B2qL1V4.png" }
+                { name: "AK-47 | Огненный дракон", value: 8000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "AWP | Драконья слава", value: 10000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" },
+                { name: "Нож | Сапфировый клинок", value: 12000, img: "https://cdn-icons-png.flaticon.com/512/1828/1828665.png" }
             ]
         };
 
@@ -2499,25 +2278,22 @@
             isSpinning: false,
             spinResult: null,
             activeSupportTicket: null,
-            isProfileOpen: false
+            currentScrollItems: [],
+            animationInterval: null
         };
 
         // DOM элементы
         const adminBtn = document.getElementById('admin-btn');
         const adminBadge = document.getElementById('admin-badge');
+        const supportFloatBtn = document.getElementById('support-float-btn');
+        const supportNotification = document.getElementById('support-notification');
         const logo = document.getElementById('logo');
         const onlineCount = document.getElementById('online-count');
-        const onlineCountProfile = document.getElementById('online-count-profile');
         const userBalanceSpan = document.getElementById('user-balance');
         const userAvatarBtn = document.getElementById('user-avatar-btn');
-        const mainPage = document.getElementById('main-page');
-        const profilePage = document.getElementById('profile-page');
-        const profileBackBtn = document.getElementById('profile-back-btn');
-        const profileLogoutBtn = document.getElementById('profile-logout-btn');
         const caseCardsContainer = document.querySelector('.cases-grid');
         const caseOpeningSection = document.getElementById('case-opening-section');
         const closeOpeningBtn = document.getElementById('close-opening');
-        const centerSpinBtn = document.getElementById('center-spin-btn');
         const spinBtn = document.getElementById('spin-btn');
         const spinPriceSpan = document.getElementById('spin-price');
         const openingCaseName = document.getElementById('opening-case-name');
@@ -2581,15 +2357,6 @@
         
         const dropsList = document.getElementById('drops-list');
         const footerHelp = document.getElementById('footer-help');
-        const inventoryItems = document.getElementById('inventory-items');
-        const inventoryTabs = document.querySelectorAll('.inventory-tab');
-        const profileName = document.getElementById('profile-name');
-        const profileBalance = document.getElementById('profile-balance');
-        const profileCases = document.getElementById('profile-cases');
-        const profileTotal = document.getElementById('profile-total');
-        const profileBest = document.getElementById('profile-best');
-        const profileCreated = document.getElementById('profile-created');
-        const profileAvatarLargeImg = document.getElementById('profile-avatar-large-img');
 
         // Инициализация
         function init() {
@@ -2603,9 +2370,6 @@
             // Загружаем кейсы
             loadCases();
             
-            // Обновляем онлайн
-            updateOnlineCount();
-            
             // Обновляем бейдж админ панели
             updateAdminBadge();
             
@@ -2615,18 +2379,19 @@
             // Обновляем кнопки открытия кейсов
             updateOpenCaseButtons();
             
-            // Запускаем обновление онлайн каждые 30 секунд
-            setInterval(updateOnlineCount, 30000);
-            
             // Проверяем наличие неотвеченных сообщений поддержки каждую минуту
             setInterval(updateAdminBadge, 60000);
+            
+            // Запускаем анимацию появления предметов
+            startItemAnimation();
         }
 
         // Инициализация обработчиков событий
         function initEventListeners() {
             // Логотип
             logo.addEventListener('click', () => {
-                casesTab.click();
+                showMainPage();
+                setActiveTab(casesTab);
             });
             
             // Вкладки навигации
@@ -2657,37 +2422,33 @@
             });
             
             // Профиль
-            userAvatarBtn.addEventListener('click', showProfile);
-            profileBackBtn.addEventListener('click', () => {
-                profilePage.classList.remove('active');
-                mainPage.style.display = 'flex';
-            });
-            
-            profileLogoutBtn.addEventListener('click', logout);
-            
-            // Инвентарь
-            inventoryTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    inventoryTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    loadInventory(tab.dataset.tab);
-                });
+            userAvatarBtn.addEventListener('click', () => {
+                if (!currentUser) {
+                    authModal.style.display = 'flex';
+                }
             });
             
             // Закрытие окна открытия кейса
             closeOpeningBtn.addEventListener('click', () => {
                 caseOpeningSection.classList.remove('active');
                 caseSelection.style.display = 'block';
+                stopItemAnimation();
             });
             
-            // Кнопки прокрутки
-            centerSpinBtn.addEventListener('click', spinCase);
+            // Кнопка прокрутки
             spinBtn.addEventListener('click', spinCase);
             
-            // Чат поддержки
+            // Плавающая кнопка поддержки
+            supportFloatBtn.addEventListener('click', () => {
+                supportChat.classList.toggle('active');
+                // Сбрасываем уведомление при открытии чата
+                supportNotification.style.display = 'none';
+            });
+            
             footerHelp.addEventListener('click', (e) => {
                 e.preventDefault();
                 supportChat.classList.toggle('active');
+                supportNotification.style.display = 'none';
             });
             
             chatClose.addEventListener('click', () => {
@@ -2801,8 +2562,10 @@
 
         // Показать главную страницу
         function showMainPage() {
-            profilePage.classList.remove('active');
-            mainPage.style.display = 'flex';
+            caseOpeningSection.classList.remove('active');
+            caseSelection.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            stopItemAnimation();
         }
 
         // Установить активную вкладку
@@ -2826,10 +2589,6 @@
             
             if (user && user.password === password) {
                 currentUser = username;
-                
-                // Добавляем в онлайн
-                db.addOnlineUser(username);
-                updateOnlineCount();
                 
                 // Обновляем отображение
                 updateUserDisplay();
@@ -2902,8 +2661,6 @@
             
             // Автоматически входим
             currentUser = username;
-            db.addOnlineUser(username);
-            updateOnlineCount();
             
             // Обновляем отображение
             updateUserDisplay();
@@ -2916,21 +2673,6 @@
             
             // Переключаемся на вкладку входа
             loginTab.click();
-        }
-
-        // Выход из аккаунта
-        function logout() {
-            if (currentUser) {
-                db.removeOnlineUser(currentUser);
-                updateOnlineCount();
-            }
-            
-            currentUser = null;
-            profilePage.classList.remove('active');
-            mainPage.style.display = 'flex';
-            updateUserDisplay();
-            updateOpenCaseButtons();
-            adminBtn.classList.remove('visible');
         }
 
         // Обновление отображения пользователя
@@ -2980,11 +2722,9 @@
 
         // Обновление онлайн-счетчика
         function updateOnlineCount() {
-            const onlineUsers = db.getOnlineUsers();
-            const count = onlineUsers.length || Math.floor(Math.random() * 100) + 50; // Случайное число если нет данных
-            
+            // Генерируем случайное число игроков онлайн
+            const count = Math.floor(Math.random() * 100) + 152;
             onlineCount.textContent = count;
-            onlineCountProfile.textContent = count;
         }
 
         // Обновление кнопок открытия кейсов
@@ -3002,171 +2742,6 @@
             });
             
             spinBtn.disabled = !isLoggedIn;
-            centerSpinBtn.disabled = !isLoggedIn;
-        }
-
-        // Показать профиль
-        function showProfile() {
-            if (!currentUser) {
-                // Если не авторизован, показываем окно авторизации
-                authModal.style.display = 'flex';
-                return;
-            }
-            
-            const user = db.getUser(currentUser);
-            const inventory = db.getInventory(currentUser);
-            
-            profileName.textContent = currentUser;
-            profileBalance.textContent = user.balance.toLocaleString();
-            profileCases.textContent = user.casesOpened;
-            profileTotal.textContent = user.totalValue.toLocaleString();
-            profileBest.textContent = user.bestItem;
-            profileCreated.textContent = user.createdAt;
-            
-            // Обновляем аватар
-            updateAvatar(currentUser, profileAvatarLargeImg);
-            
-            // Загружаем инвентарь
-            loadInventory('all');
-            
-            // Показываем страницу профиля
-            profilePage.classList.add('active');
-            mainPage.style.display = 'none';
-            gameState.isProfileOpen = true;
-        }
-
-        // Загрузить инвентарь
-        function loadInventory(filter = 'all') {
-            if (!currentUser) return;
-            
-            const inventory = db.getInventory(currentUser);
-            inventoryItems.innerHTML = '';
-            
-            let filteredItems = inventory;
-            
-            if (filter === 'active') {
-                filteredItems = inventory.filter(item => item.status === 'active');
-            } else if (filter === 'sold') {
-                filteredItems = inventory.filter(item => item.status === 'sold');
-            }
-            
-            if (filteredItems.length === 0) {
-                inventoryItems.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5); grid-column: 1/-1;">
-                        <i class="fas fa-box-open" style="font-size: 48px; margin-bottom: 20px;"></i>
-                        <p>Инвентарь пуст</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            filteredItems.forEach(item => {
-                const itemElement = document.createElement('div');
-                itemElement.className = 'inventory-item';
-                
-                // Определяем редкость
-                const rarity = getRarityByValue(item.value);
-                const rarityName = getRarityName(rarity);
-                const rarityColor = getRarityColor(rarity);
-                
-                itemElement.style.borderColor = rarityColor;
-                
-                itemElement.innerHTML = `
-                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://i.imgur.com/WqR7V3s.png'">
-                    <div class="inventory-item-name">${item.name}</div>
-                    <div class="inventory-item-price">${item.value} <i class="fas fa-coins"></i></div>
-                    <div class="inventory-item-status ${item.status === 'active' ? 'status-active' : 'status-sold'}">
-                        ${item.status === 'active' ? 'Активен' : 'Продан'}
-                    </div>
-                    ${item.status === 'active' ? `
-                        <div class="inventory-item-actions">
-                            <button class="inventory-btn sell-btn" data-id="${item.id}">
-                                <i class="fas fa-coins"></i> Продать
-                            </button>
-                            <button class="inventory-btn details-btn" data-id="${item.id}">
-                                <i class="fas fa-info"></i> Детали
-                            </button>
-                        </div>
-                    ` : ''}
-                `;
-                
-                inventoryItems.appendChild(itemElement);
-            });
-            
-            // Добавляем обработчики для кнопок
-            document.querySelectorAll('.sell-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const itemId = parseInt(btn.dataset.id);
-                    sellInventoryItem(itemId);
-                });
-            });
-            
-            document.querySelectorAll('.details-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const itemId = parseInt(btn.dataset.id);
-                    showItemDetails(itemId);
-                });
-            });
-        }
-
-        // Продать предмет из инвентаря
-        function sellInventoryItem(itemId) {
-            if (!currentUser) return;
-            
-            const inventory = db.getInventory(currentUser);
-            const itemIndex = inventory.findIndex(item => item.id === itemId);
-            
-            if (itemIndex === -1 || inventory[itemIndex].status === 'sold') return;
-            
-            const item = inventory[itemIndex];
-            const user = db.getUser(currentUser);
-            
-            // Добавляем стоимость предмета к балансу
-            user.balance += item.value;
-            user.totalValue -= item.value;
-            
-            // Обновляем статус предмета
-            inventory[itemIndex].status = 'sold';
-            inventory[itemIndex].soldAt = new Date().toISOString();
-            
-            // Сохраняем изменения
-            db.saveUser(currentUser, user);
-            db.saveInventory(currentUser, inventory);
-            
-            // Обновляем отображение
-            updateUserDisplay();
-            loadInventory(document.querySelector('.inventory-tab.active').dataset.tab);
-            
-            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
-        }
-
-        // Показать детали предмета
-        function showItemDetails(itemId) {
-            if (!currentUser) return;
-            
-            const inventory = db.getInventory(currentUser);
-            const item = inventory.find(item => item.id === itemId);
-            
-            if (!item) return;
-            
-            const rarity = getRarityByValue(item.value);
-            const rarityName = getRarityName(rarity);
-            
-            wonItemImg.src = item.img;
-            wonItemName.textContent = item.name;
-            wonItemPrice.innerHTML = `Цена: ${item.value} <i class="fas fa-coins"></i>`;
-            wonItemRarity.textContent = rarityName;
-            wonItemRarity.className = 'item-rarity';
-            wonItemRarity.classList.add(`rarity-${rarity}`);
-            
-            // Показываем кнопку продажи только если предмет активен
-            sellItemBtn.style.display = item.status === 'active' ? 'flex' : 'none';
-            openAgainBtn.style.display = 'none';
-            closeModalBtn.style.display = 'flex';
-            
-            resultModal.style.display = 'flex';
         }
 
         // Загрузить кейсы
@@ -3180,9 +2755,13 @@
                 caseCard.dataset.case = caseId;
                 caseCard.style.borderColor = caseData.color;
                 
+                // Генерация случайного значка для кейса
+                const caseIcons = ['fa-gem', 'fa-cube', 'fa-box', 'fa-cube', 'fa-gift'];
+                const randomIcon = caseIcons[Math.floor(Math.random() * caseIcons.length)];
+                
                 caseCard.innerHTML = `
                     <div class="case-image" style="background: linear-gradient(135deg, ${caseData.color}20, #1e2328);">
-                        <img src="https://i.imgur.com/${caseId === '5' ? 'M9qL1V3' : 'N8qL2V2'}.png" alt="${caseData.name}">
+                        <i class="fas ${randomIcon}" style="font-size: 80px; color: ${caseData.color};"></i>
                     </div>
                     <div class="case-info">
                         <div class="case-name">${caseData.name}</div>
@@ -3227,6 +2806,9 @@
             gameState.selectedCase = caseId;
             const caseData = casesData[caseId];
             
+            // Останавливаем предыдущую анимацию
+            stopItemAnimation();
+            
             // Обновляем интерфейс
             openingCaseName.textContent = caseData.name;
             spinPriceSpan.textContent = caseData.price.toLocaleString();
@@ -3241,6 +2823,9 @@
             caseOpeningSection.classList.add('active');
             caseSelection.style.display = 'none';
             
+            // Запускаем анимацию появления предметов
+            startItemAnimation();
+            
             // Прокручиваем к началу
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -3248,29 +2833,95 @@
         // Инициализация прокрутки кейсов
         function initCaseScroll(caseData) {
             caseItemsScroll.innerHTML = '';
+            gameState.currentScrollItems = [];
             
-            // Создаем много дубликатов для эффекта бесконечной прокрутки
-            const items = [...caseData.items, ...caseData.items, ...caseData.items, ...caseData.items];
+            // Создаем начальный набор предметов
+            for (let i = 0; i < 10; i++) {
+                addRandomItemToScroll(caseData);
+            }
+        }
+
+        // Добавить случайный предмет в прокрутку
+        function addRandomItemToScroll(caseData) {
+            const items = caseData.items;
+            const randomItem = items[Math.floor(Math.random() * items.length)];
             
-            items.forEach((item, index) => {
-                const itemElement = document.createElement('div');
-                itemElement.className = 'scroll-item';
-                
-                // Определяем редкость
-                const rarity = getRarityByValue(item.value);
-                const rarityColor = getRarityColor(rarity);
-                
-                itemElement.style.borderColor = rarityColor;
-                
-                itemElement.innerHTML = `
-                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://i.imgur.com/WqR7V3s.png'">
-                    <div class="scroll-item-name">${item.name}</div>
-                    <div class="scroll-item-price">${item.value} <i class="fas fa-coins"></i></div>
-                `;
-                
-                itemElement.classList.add(`rarity-${rarity}`);
-                caseItemsScroll.appendChild(itemElement);
-            });
+            const itemElement = document.createElement('div');
+            itemElement.className = 'scroll-item';
+            
+            // Определяем редкость
+            const rarity = getRarityByValue(randomItem.value);
+            const rarityColor = getRarityColor(rarity);
+            
+            itemElement.style.borderColor = rarityColor;
+            
+            itemElement.innerHTML = `
+                <img src="${randomItem.img}" alt="${randomItem.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png'">
+                <div class="scroll-item-name">${randomItem.name}</div>
+                <div class="scroll-item-price">${randomItem.value} <i class="fas fa-coins"></i></div>
+            `;
+            
+            itemElement.classList.add(`rarity-${rarity}`);
+            itemElement.dataset.item = JSON.stringify(randomItem);
+            
+            caseItemsScroll.appendChild(itemElement);
+            gameState.currentScrollItems.push(itemElement);
+            
+            // Удаляем самый левый элемент, если их стало слишком много
+            if (gameState.currentScrollItems.length > 15) {
+                const oldestItem = gameState.currentScrollItems.shift();
+                oldestItem.classList.add('fade-out');
+                setTimeout(() => {
+                    if (oldestItem.parentNode) {
+                        oldestItem.parentNode.removeChild(oldestItem);
+                    }
+                }, 500);
+            }
+            
+            return itemElement;
+        }
+
+        // Запуск анимации появления предметов
+        function startItemAnimation() {
+            if (gameState.animationInterval) {
+                clearInterval(gameState.animationInterval);
+            }
+            
+            gameState.animationInterval = setInterval(() => {
+                if (gameState.selectedCase && !gameState.isSpinning) {
+                    const caseData = casesData[gameState.selectedCase];
+                    addRandomItemToScroll(caseData);
+                    
+                    // Плавно двигаем все предметы влево
+                    const items = caseItemsScroll.querySelectorAll('.scroll-item');
+                    items.forEach((item, index) => {
+                        const currentLeft = parseFloat(item.style.left || 0);
+                        item.style.left = (currentLeft - 2) + 'px';
+                        
+                        // Удаляем предметы, которые ушли слишком далеко влево
+                        if (currentLeft < -250) {
+                            item.classList.add('fade-out');
+                            setTimeout(() => {
+                                if (item.parentNode) {
+                                    item.parentNode.removeChild(item);
+                                    const itemIndex = gameState.currentScrollItems.indexOf(item);
+                                    if (itemIndex > -1) {
+                                        gameState.currentScrollItems.splice(itemIndex, 1);
+                                    }
+                                }
+                            }, 500);
+                        }
+                    });
+                }
+            }, 50);
+        }
+
+        // Остановка анимации
+        function stopItemAnimation() {
+            if (gameState.animationInterval) {
+                clearInterval(gameState.animationInterval);
+                gameState.animationInterval = null;
+            }
         }
 
         // Инициализация превью предметов
@@ -3303,7 +2954,7 @@
                 previewItem.style.borderColor = rarityColor;
                 
                 previewItem.innerHTML = `
-                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://i.imgur.com/WqR7V3s.png'">
+                    <img src="${item.img}" alt="${item.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png'">
                     <div class="preview-name">${item.name}</div>
                     <div class="preview-price">${item.value} <i class="fas fa-coins"></i></div>
                 `;
@@ -3332,6 +2983,9 @@
                 return;
             }
             
+            // Останавливаем анимацию
+            stopItemAnimation();
+            
             // Списываем деньги
             user.balance -= caseData.price;
             user.casesOpened++;
@@ -3339,72 +2993,42 @@
             // Начинаем прокрутку
             gameState.isSpinning = true;
             spinBtn.disabled = true;
-            centerSpinBtn.disabled = true;
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открываем...`;
-            centerSpinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открываем...`;
             
             // Получаем случайный предмет
-            const randomIndex = Math.floor(Math.random() * caseData.items.length);
-            const randomItem = caseData.items[randomIndex];
+            const randomItem = getRandomItem(caseData);
             gameState.spinResult = randomItem;
             
             // Определяем редкость
             const rarity = getRarityByValue(randomItem.value);
             
-            // Анимация прокрутки
-            const scrollItems = caseItemsScroll.querySelectorAll('.scroll-item');
-            const totalItems = scrollItems.length;
+            // Создаем предмет, который будет под стрелкой
+            const centerItem = addRandomItemToScroll(caseData);
+            centerItem.style.left = '50%';
+            centerItem.style.transform = 'translateX(-50%)';
+            centerItem.classList.add('active');
             
-            // Находим индекс случайного предмета (не в начале)
-            let targetIndex = 0;
-            for (let i = 0; i < totalItems; i++) {
-                if (scrollItems[i].querySelector('.scroll-item-name').textContent === randomItem.name) {
-                    // Берем второй экземпляр для более плавной анимации
-                    targetIndex = (i + caseData.items.length) % totalItems;
-                    break;
+            // Сбрасываем активный класс у других предметов
+            document.querySelectorAll('.scroll-item').forEach(item => {
+                if (item !== centerItem) {
+                    item.classList.remove('active');
                 }
-            }
-            
-            // Сбрасываем активный класс
-            scrollItems.forEach(item => item.classList.remove('active'));
+            });
             
             // Быстрая прокрутка с замедлением
-            let currentPosition = 0;
-            const targetPosition = -targetIndex * 220; // 220px ширина предмета
-            const duration = 3000; // 3 секунды
-            const startTime = Date.now();
+            let scrollPosition = 0;
+            let speed = 30;
+            let targetPosition = 0;
+            let deceleration = 0.95;
             
-            const animateScroll = () => {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+            const animateSpin = () => {
+                // Уменьшаем скорость со временем
+                speed *= deceleration;
+                scrollPosition += speed;
                 
-                // Эффект замедления в конце
-                let easing;
-                if (progress < 0.7) {
-                    // Быстрая прокрутка в начале
-                    easing = progress * 1.3;
-                } else {
-                    // Замедление в конце
-                    easing = 0.91 + (progress - 0.7) * 0.3;
-                }
-                
-                currentPosition = targetPosition * easing;
-                caseItemsScroll.style.transform = `translateX(${currentPosition}px)`;
-                
-                // Подсвечиваем центральный элемент в конце
-                if (progress > 0.85) {
-                    const centerIndex = Math.round(-currentPosition / 220) % totalItems;
-                    if (centerIndex >= 0 && centerIndex < totalItems) {
-                        scrollItems.forEach((item, i) => {
-                            item.classList.toggle('active', i === centerIndex);
-                        });
-                    }
-                }
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateScroll);
-                } else {
-                    // Завершаем анимацию
+                // Останавливаемся, когда скорость становится очень маленькой
+                if (speed < 0.5) {
+                    // Устанавливаем предмет под стрелкой как выигранный
                     setTimeout(() => {
                         // Добавляем предмет в инвентарь
                         db.addToInventory(currentUser, randomItem);
@@ -3438,14 +3062,43 @@
                         // Сбрасываем состояние
                         gameState.isSpinning = false;
                         spinBtn.disabled = false;
-                        centerSpinBtn.disabled = false;
                         spinBtn.innerHTML = `<i class="fas fa-play"></i> Открыть за <span id="spin-price">${caseData.price.toLocaleString()}</span>`;
-                        centerSpinBtn.innerHTML = `<i class="fas fa-play"></i> Открыть кейс`;
+                        
+                        // Запускаем анимацию заново
+                        startItemAnimation();
                     }, 500);
+                    
+                    return;
                 }
+                
+                // Двигаем все предметы
+                const items = caseItemsScroll.querySelectorAll('.scroll-item');
+                items.forEach(item => {
+                    const currentLeft = parseFloat(item.style.left || 0);
+                    item.style.left = (currentLeft - speed) + 'px';
+                    
+                    // Проверяем, находится ли предмет под стрелкой
+                    const rect = item.getBoundingClientRect();
+                    const containerRect = caseItemsScroll.parentElement.getBoundingClientRect();
+                    const centerX = containerRect.left + containerRect.width / 2;
+                    
+                    if (rect.left <= centerX && rect.right >= centerX) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+                
+                requestAnimationFrame(animateSpin);
             };
             
-            requestAnimationFrame(animateScroll);
+            animateSpin();
+        }
+
+        // Получить случайный предмет
+        function getRandomItem(caseData) {
+            const items = caseData.items;
+            return items[Math.floor(Math.random() * items.length)];
         }
 
         // Показать модальное окно с результатом
@@ -3495,21 +3148,28 @@
             
             if (drops.length === 0) {
                 // Примерные начальные данные
-                const initialDrops = [
-                    { user: "ProPlayer", item: cs2Items.ancient[0], time: "2 мин назад", timestamp: Date.now() - 120000 },
-                    { user: "LuckyGuy", item: cs2Items.legendary[1], time: "5 мин назад", timestamp: Date.now() - 300000 },
-                    { user: "CS2Fan", item: cs2Items.mythical[0], time: "10 мин назад", timestamp: Date.now() - 600000 },
-                    { user: "Trader", item: cs2Items.rare[2], time: "15 мин назад", timestamp: Date.now() - 900000 },
-                    { user: "Newbie", item: cs2Items.uncommon[1], time: "20 мин назад", timestamp: Date.now() - 1200000 }
+                const usernames = ['ProPlayer', 'LuckyGuy', 'CS2Fan', 'Trader', 'Newbie', 'Veteran', 'Gambler'];
+                const items = [
+                    ...cs2Items.common.slice(0, 2),
+                    ...cs2Items.uncommon.slice(0, 2),
+                    ...cs2Items.rare.slice(0, 1),
+                    ...cs2Items.mythical.slice(0, 1),
+                    ...cs2Items.legendary.slice(0, 1)
                 ];
                 
-                initialDrops.forEach(drop => {
-                    db.addRecentDrop(drop);
-                });
+                const times = ['2 мин назад', '5 мин назад', '10 мин назад', '15 мин назад', '20 мин назад'];
                 
-                // Показываем начальные данные
-                const updatedDrops = db.getRecentDrops();
-                updatedDrops.forEach(drop => addDropToSidebar(drop));
+                for (let i = 0; i < 5; i++) {
+                    const drop = {
+                        user: usernames[i % usernames.length],
+                        item: items[i % items.length],
+                        time: times[i],
+                        timestamp: Date.now() - (i * 300000)
+                    };
+                    
+                    db.addRecentDrop(drop);
+                    addDropToSidebar(drop);
+                }
             } else {
                 drops.forEach(drop => addDropToSidebar(drop));
             }
@@ -3614,6 +3274,9 @@
             
             // Обновляем бейдж админ панели
             updateAdminBadge();
+            
+            // Показываем уведомление на плавающей кнопке
+            supportNotification.style.display = 'flex';
             
             // Очищаем поле ввода
             chatMessage.value = '';
@@ -3814,24 +3477,7 @@
             // Обновляем бейдж
             updateAdminBadge();
             
-            alert('Тикет помечен как решенный. Чат будет автоматически очищен через 10 минут.');
-            
-            // Автоматически очищаем чат через 10 минут
-            setTimeout(() => {
-                if (currentUser === gameState.activeSupportTicket.username) {
-                    const chatContainer = document.getElementById('chat-body');
-                    if (chatContainer) {
-                        chatContainer.innerHTML = `
-                            <div class="chat-message support">
-                                <strong>Поддержка:</strong> Здравствуйте! Чем могу помочь?
-                            </div>
-                            <div class="chat-message support">
-                                <strong>Поддержка:</strong> Опишите вашу проблему, и мы постараемся помочь в ближайшее время.
-                            </div>
-                        `;
-                    }
-                }
-            }, 600000); // 10 минут
+            alert('Тикет помечен как решенный.');
         }
 
         // Оставить чат открытым
@@ -3844,7 +3490,6 @@
 
         // Сохранение настроек админ-панели
         function saveAdminSettings() {
-            // Здесь можно добавить сохранение других настроек
             alert('Настройки успешно сохранены!');
         }
 
@@ -3899,13 +3544,17 @@
         // Запуск инициализации после загрузки страницы
         document.addEventListener('DOMContentLoaded', init);
         
-        // Обработка видимости страницы (для исправления наложения дропов)
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && dropsList) {
-                // Перезагружаем дропы при возвращении на вкладку
-                loadRecentDrops();
-            }
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            // Обновляем онлайн при изменении размера (для демонстрации)
+            updateOnlineCount();
         });
+        
+        // Обновляем онлайн каждые 30 секунд
+        setInterval(updateOnlineCount, 30000);
+        
+        // Инициализируем онлайн при загрузке
+        updateOnlineCount();
     </script>
 </body>
 </html>
