@@ -2615,70 +2615,80 @@ function login() {
 }
 
         // Регистрация
-        function register() {
-            const username = registerUsername.value.trim();
-            const password = registerPassword.value;
-            const confirm = registerConfirm.value;
-            
-            if (!username || !password || !confirm) {
-                registerError.textContent = "Заполните все поля";
-                registerError.classList.add('active');
-                return;
-            }
-            
-            if (password !== confirm) {
-                registerError.textContent = "Пароли не совпадают";
-                registerError.classList.add('active');
-                return;
-            }
-            
-            if (username.length < 3) {
-                registerError.textContent = "Логин должен быть не менее 3 символов";
-                registerError.classList.add('active');
-                return;
-            }
-            
-            if (password.length < 6) {
-                registerError.textContent = "Пароль должен быть не менее 6 символов";
-                registerError.classList.add('active');
-                return;
-            }
-            
-            if (db.getUser(username)) {
-                registerError.textContent = "Логин уже занят";
-                registerError.classList.add('active');
-                return;
-            }
-            
-            // Создаем нового пользователя
-            const userData = {
-                password: password,
-                balance: systemSettings.defaultBalance,
-                casesOpened: 0,
-                totalValue: 0,
-                bestItem: "Нет",
-                createdAt: new Date().toLocaleDateString(),
-                isAdmin: false,
-                inventory: [],
-                supportTickets: []
-            };
-            
-            db.saveUser(username, userData);
-            
-            // Автоматически входим
-            currentUser = username;
-            
-            // Обновляем отображение
-            updateUserDisplay();
-            updateOpenCaseButtons();
-            authModal.style.display = 'none';
-            registerUsername.value = '';
-            registerPassword.value = '';
-            registerConfirm.value = '';
-            registerError.classList.remove('active');
-            
-            // Переключаемся на вкладку входа
-            loginTab.click();
+function register() {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value;
+    const confirm = registerConfirm.value;
+    
+    if (!username || !password || !confirm) {
+        registerError.textContent = "Заполните все поля";
+        registerError.style.display = 'block';
+        registerError.classList.add('active');
+        return;
+    }
+    
+    if (password !== confirm) {
+        registerError.textContent = "Пароли не совпадают";
+        registerError.style.display = 'block';
+        registerError.classList.add('active');
+        return;
+    }
+    
+    if (username.length < 3) {
+        registerError.textContent = "Логин должен быть не менее 3 символов";
+        registerError.style.display = 'block';
+        registerError.classList.add('active');
+        return;
+    }
+    
+    if (password.length < 6) {
+        registerError.textContent = "Пароль должен быть не менее 6 символов";
+        registerError.style.display = 'block';
+        registerError.classList.add('active');
+        return;
+    }
+    
+    if (db.getUser(username)) {
+        registerError.textContent = "Логин уже занят";
+        registerError.style.display = 'block';
+        registerError.classList.add('active');
+        return;
+    }
+    
+    // Создаем нового пользователя
+    const userData = {
+        password: password,
+        balance: systemSettings.defaultBalance,
+        casesOpened: 0,
+        totalValue: 0,
+        bestItem: "Нет",
+        createdAt: new Date().toLocaleDateString(),
+        isAdmin: false,
+        inventory: [],
+        supportTickets: []
+    };
+    
+    db.saveUser(username, userData);
+    
+    // Автоматически входим
+    currentUser = username;
+    
+    // Обновляем отображение
+    updateUserDisplay();
+    updateOpenCaseButtons();
+    authModal.style.display = 'none';
+    registerUsername.value = '';
+    registerPassword.value = '';
+    registerConfirm.value = '';
+    registerError.style.display = 'none';
+    registerError.classList.remove('active');
+    
+    // Показываем сообщение об успешной регистрации
+    alert('Аккаунт успешно создан! Вы вошли в систему.');
+    
+    // Переключаемся на вкладку входа
+    loginTab.click();
+}
         }
 
         // Обновление отображения пользователя
@@ -3564,5 +3574,6 @@ function login() {
     </script>
 </body>
 </html>
+
 
 
