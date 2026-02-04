@@ -1310,9 +1310,9 @@
             overflow: hidden;
             border: 15px solid transparent;
             background: linear-gradient(45deg, var(--accent-color), var(--secondary-color)) padding-box,
-                        linear-gradient(45deg, var(--primary-color), var(--gold-color)) border-box;
+                        linear-gradient(45deg, #ff9800, #ff5722) border-box;
             box-shadow: 
-                0 0 30px rgba(255, 70, 85, 0.5),
+                0 0 30px rgba(255, 152, 0, 0.5),
                 inset 0 0 30px rgba(0, 0, 0, 0.5);
             transform-style: preserve-3d;
             perspective: 1000px;
@@ -1346,18 +1346,6 @@
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             transition: transform 0.1s linear;
             transform-origin: 50% 100%;
-        }
-
-        .wheel-arrow-new::after {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background: var(--gold-color);
-            border-radius: 50%;
-            z-index: 21;
         }
 
         .wheel-percentages {
@@ -2887,6 +2875,88 @@
             border-radius: 5px;
             transition: width 0.3s ease;
         }
+
+        /* НОВЫЕ СТИЛИ ДЛЯ АПГРЕЙДА - МОДЕРНИЗИРОВАННАЯ СТРЕЛКА */
+        .wheel-arrow-upgraded {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            width: 40px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .arrow-3d {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 40px solid;
+            border-image: linear-gradient(45deg, #ff9800, #ff5722, #ff9800) 1;
+            position: relative;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.7));
+            transform-origin: 50% 100%;
+            transition: transform 0.1s linear;
+        }
+
+        .arrow-3d::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -12px;
+            width: 24px;
+            height: 40px;
+            background: linear-gradient(45deg, #ff9800, #ff5722);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 2;
+        }
+
+        .arrow-3d::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #ffd700, #ff9800);
+            border-radius: 50%;
+            z-index: 3;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Контейнер для нескольких лент */
+        .multiple-scrolls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            padding: 10px 0;
+        }
+
+        .single-scroll-container {
+            position: relative;
+            height: calc((100% - 20px * (var(--case-count) - 1)) / var(--case-count));
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .single-scroll-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            color: var(--primary-color);
+            font-size: 32px;
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
+            text-shadow: 0 0 15px rgba(255, 70, 85, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -3004,15 +3074,14 @@
                         <span>Нажмите "Открыть кейс" для начала</span>
                     </div>
                     
-                    <!-- Полоска посередине -->
-                    <div class="center-line" id="center-line" style="display: none;"></div>
+                    <!-- Контейнер для нескольких лент -->
+                    <div class="multiple-scrolls-container" id="multiple-scrolls-container" style="display: none;">
+                        <!-- Несколько лент будет добавляться динамически -->
+                    </div>
                     
-                    <!-- Лента с предметами (скрыта до открытия) -->
+                    <!-- Маски для градиента -->
                     <div class="mask-left" id="mask-left" style="display: none;"></div>
                     <div class="mask-right" id="mask-right" style="display: none;"></div>
-                    <div class="case-items-scroll" id="case-items-scroll" style="display: none;">
-                        <!-- Предметы будут добавляться динамически -->
-                    </div>
                 </div>
                 
                 <div class="case-opening-controls">
@@ -3143,7 +3212,9 @@
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
                                     <div class="wheel-zones" id="wheel-zones"></div>
                                 </div>
-                                <div class="wheel-arrow-new" id="wheel-arrow-new"></div>
+                                <div class="wheel-arrow-upgraded" id="wheel-arrow-upgraded">
+                                    <div class="arrow-3d" id="arrow-3d"></div>
+                                </div>
                                 <div class="percent-display" id="percent-display">
                                     <div class="percent-value" id="percent-value">0%</div>
                                     <div class="percent-label">Шанс</div>
@@ -3870,7 +3941,8 @@
             caseResults: [],
             contractResult: null,
             isSpinningAnimation: false,
-            wheelRotation: 0
+            wheelRotation: 0,
+            scrollContainers: []
         };
 
         // DOM элементы
@@ -3888,7 +3960,6 @@
         const spinBtn = document.getElementById('spin-btn');
         const spinPriceSpan = document.getElementById('spin-price');
         const openingCaseName = document.getElementById('opening-case-name');
-        const caseItemsScroll = document.getElementById('case-items-scroll');
         const itemsPreview = document.getElementById('items-preview');
         const caseSelection = document.getElementById('case-selection');
         const mainTab = document.getElementById('main-tab');
@@ -3902,6 +3973,7 @@
         const currentCaseNumber = document.getElementById('current-case-number');
         const totalCaseNumber = document.getElementById('total-case-number');
         const caseBatchProgressFill = document.getElementById('case-batch-progress-fill');
+        const multipleScrollsContainer = document.getElementById('multiple-scrolls-container');
         
         // Секции
         const profileSection = document.getElementById('profile-section');
@@ -3937,7 +4009,8 @@
         const upgradeSelectedItem = document.getElementById('upgrade-selected-item');
         const upgradeResultItem = document.getElementById('upgrade-result-item');
         const upgradeWheel = document.getElementById('upgrade-wheel');
-        const wheelArrowNew = document.getElementById('wheel-arrow-new');
+        const wheelArrowUpgraded = document.getElementById('wheel-arrow-upgraded');
+        const arrow3d = document.getElementById('arrow-3d');
         const wheelSuccessSector = document.getElementById('wheel-success-sector');
         const upgradeStatus = document.getElementById('upgrade-status');
         const chanceSelector = document.getElementById('chance-selector');
@@ -4221,12 +4294,14 @@
             // Модальное окно результата
             closeModalBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
+                resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
             });
             
             closeResultModalBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
+                resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
             });
@@ -4899,14 +4974,14 @@
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
-                    wheelArrowNew.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                    arrow3d.style.transform = `rotate(${rotation}deg)`;
                     requestAnimationFrame(animateSpin);
                 } else {
                     // Завершение анимации
                     const finalRotation = rotation % 360;
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
-                    wheelArrowNew.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
+                    arrow3d.style.transform = `rotate(${finalRotation}deg)`;
                     
                     // Задержка перед показом результата
                     setTimeout(() => {
@@ -5268,6 +5343,70 @@
             gameState.contractResult = null;
         }
 
+        // Инициализация нескольких лент
+        function initMultipleScrolls(caseData) {
+            multipleScrollsContainer.innerHTML = '';
+            gameState.scrollContainers = [];
+            
+            // Устанавливаем количество контейнеров
+            multipleScrollsContainer.style.setProperty('--case-count', gameState.caseQuantity);
+            
+            for (let i = 0; i < gameState.caseQuantity; i++) {
+                const scrollContainer = document.createElement('div');
+                scrollContainer.className = 'single-scroll-container';
+                scrollContainer.dataset.scrollIndex = i;
+                
+                // Добавляем стрелку по центру
+                const arrow = document.createElement('div');
+                arrow.className = 'single-scroll-arrow';
+                arrow.innerHTML = '<i class="fas fa-caret-down"></i>';
+                scrollContainer.appendChild(arrow);
+                
+                // Создаем ленту с предметами
+                const scroll = document.createElement('div');
+                scroll.className = 'case-items-scroll';
+                scroll.dataset.scrollIndex = i;
+                
+                // Создаем 40 предметов для плавной прокрутки
+                for (let j = 0; j < 40; j++) {
+                    addRandomItemToScroll(caseData, scroll, j, i);
+                }
+                
+                scrollContainer.appendChild(scroll);
+                multipleScrollsContainer.appendChild(scrollContainer);
+                gameState.scrollContainers.push(scroll);
+            }
+        }
+
+        // Добавление случайного предмета в ленту
+        function addRandomItemToScroll(caseData, scrollElement, index, scrollIndex) {
+            const items = caseData.items;
+            const randomItem = items[Math.floor(Math.random() * items.length)];
+            
+            const itemElement = document.createElement('div');
+            itemElement.className = 'scroll-item';
+            itemElement.style.setProperty('--index', index);
+            itemElement.dataset.scrollIndex = scrollIndex;
+            
+            const rarity = randomItem.rarity;
+            const rarityColor = getRarityColor(rarity);
+            
+            itemElement.style.borderColor = rarityColor;
+            
+            itemElement.innerHTML = `
+                <div class="item-img item-${rarity}"></div>
+                <div class="scroll-item-name">${randomItem.name}</div>
+                <div class="scroll-item-price">${randomItem.value} <i class="fas fa-coins"></i></div>
+            `;
+            
+            itemElement.classList.add(`rarity-${rarity}`);
+            itemElement.dataset.item = JSON.stringify(randomItem);
+            
+            scrollElement.appendChild(itemElement);
+            
+            return itemElement;
+        }
+
         // Обработка открытия кейса
         function startCaseOpening() {
             if (!currentUser) {
@@ -5309,15 +5448,14 @@
             caseBatchProgressFill.style.width = '0%';
             caseBatchInfo.style.display = 'block';
             
-            // Показываем ленту с предметами
+            // Показываем ленты с предметами
             caseOpeningStart.style.display = 'none';
-            centerLine.style.display = 'block';
             maskLeft.style.display = 'block';
             maskRight.style.display = 'block';
-            caseItemsScroll.style.display = 'flex';
+            multipleScrollsContainer.style.display = 'flex';
             
-            // Инициализируем ленту
-            initCaseScroll(caseData);
+            // Инициализируем ленты
+            initMultipleScrolls(caseData);
             
             // Начинаем открывать кейсы по одному
             openNextCase();
@@ -5326,10 +5464,9 @@
         // Сброс вида открытия кейса
         function resetCaseOpeningView() {
             caseOpeningStart.style.display = 'flex';
-            centerLine.style.display = 'none';
             maskLeft.style.display = 'none';
             maskRight.style.display = 'none';
-            caseItemsScroll.style.display = 'none';
+            multipleScrollsContainer.style.display = 'none';
             
             stopItemAnimation();
             if (gameState.animationInterval) {
@@ -5340,50 +5477,11 @@
             gameState.isSpinning = false;
             gameState.currentCaseOpening = 0;
             gameState.caseResults = [];
-        }
-
-        // Инициализация ленты с предметами
-        function initCaseScroll(caseData) {
-            caseItemsScroll.innerHTML = '';
-            gameState.currentScrollItems = [];
-            
-            // Создаем 40 предметов для плавной прокрутки
-            for (let i = 0; i < 40; i++) {
-                addRandomItemToScroll(caseData, i);
-            }
-        }
-
-        // Добавление случайного предмета в ленту
-        function addRandomItemToScroll(caseData, index) {
-            const items = caseData.items;
-            const randomItem = items[Math.floor(Math.random() * items.length)];
-            
-            const itemElement = document.createElement('div');
-            itemElement.className = 'scroll-item';
-            itemElement.style.setProperty('--index', index);
-            
-            const rarity = randomItem.rarity;
-            const rarityColor = getRarityColor(rarity);
-            
-            itemElement.style.borderColor = rarityColor;
-            
-            itemElement.innerHTML = `
-                <div class="item-img item-${rarity}"></div>
-                <div class="scroll-item-name">${randomItem.name}</div>
-                <div class="scroll-item-price">${randomItem.value} <i class="fas fa-coins"></i></div>
-            `;
-            
-            itemElement.classList.add(`rarity-${rarity}`);
-            itemElement.dataset.item = JSON.stringify(randomItem);
-            
-            caseItemsScroll.appendChild(itemElement);
-            gameState.currentScrollItems.push(itemElement);
-            
-            return itemElement;
+            gameState.scrollContainers = [];
         }
 
         // Запуск анимации прокрутки кейса
-        function spinCase() {
+        function spinCase(scrollIndex) {
             if (gameState.isSpinningAnimation) return;
             
             gameState.isSpinningAnimation = true;
@@ -5395,24 +5493,26 @@
             let deceleration = 0.97;
             let targetPosition = Math.random() * 20000 + 10000; // Случайная позиция для остановки
             
+            const currentScroll = gameState.scrollContainers[scrollIndex];
+            
             const animate = () => {
                 speed *= deceleration;
                 scrollPosition += speed;
                 
-                caseItemsScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                currentScroll.style.transform = `translateX(-${scrollPosition}px)`;
                 
                 if (speed < 0.5) {
                     // Анимация завершена
                     gameState.isSpinningAnimation = false;
                     
-                    // Подсвечиваем предмет под полоской
-                    const scrollItems = document.querySelectorAll('.scroll-item');
+                    // Находим предмет под стрелкой
+                    const scrollItems = currentScroll.querySelectorAll('.scroll-item');
                     let centerItem = null;
                     let minDistance = Infinity;
                     
                     scrollItems.forEach((item, index) => {
                         const rect = item.getBoundingClientRect();
-                        const containerRect = caseOpeningContainer.getBoundingClientRect();
+                        const containerRect = currentScroll.parentElement.getBoundingClientRect();
                         const itemCenter = rect.left + rect.width / 2;
                         const containerCenter = containerRect.left + containerRect.width / 2;
                         const distance = Math.abs(itemCenter - containerCenter);
@@ -5467,8 +5567,8 @@
             const progressPercentage = ((gameState.currentCaseOpening + 1) / gameState.caseQuantity) * 100;
             caseBatchProgressFill.style.width = `${progressPercentage}%`;
             
-            // Запускаем анимацию прокрутки
-            spinCase();
+            // Запускаем анимацию прокрутки для текущего кейса
+            spinCase(gameState.currentCaseOpening);
         }
 
         // Показать результат открытия кейса
@@ -5511,9 +5611,14 @@
             // Если есть еще кейсы, готовим следующий
             if (gameState.currentCaseOpening < gameState.caseQuantity) {
                 setTimeout(() => {
-                    // Сбрасываем ленту для следующего кейса
+                    // Перезапускаем ленту для следующего кейса
                     const caseData = casesData[gameState.selectedCase];
-                    initCaseScroll(caseData);
+                    const currentScroll = gameState.scrollContainers[gameState.currentCaseOpening];
+                    currentScroll.innerHTML = '';
+                    
+                    for (let j = 0; j < 40; j++) {
+                        addRandomItemToScroll(caseData, currentScroll, j, gameState.currentCaseOpening);
+                    }
                     
                     // Запускаем следующий кейс
                     openNextCase();
@@ -5580,6 +5685,7 @@
                     openNextCase();
                 }, 500);
             } else {
+                resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
             }
