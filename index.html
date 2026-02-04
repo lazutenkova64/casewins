@@ -1297,8 +1297,8 @@
         /* УЛУЧШЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА */
         .upgrade-wheel-container {
             position: relative;
-            width: 350px;
-            height: 350px;
+            width: 400px;
+            height: 400px;
             margin: 20px 0;
         }
 
@@ -1307,7 +1307,7 @@
             height: 100%;
             border-radius: 50%;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             border: 15px solid transparent;
             background: linear-gradient(45deg, var(--accent-color), var(--secondary-color)) padding-box,
                         linear-gradient(45deg, #ff9800, #ff5722) border-box;
@@ -1331,21 +1331,39 @@
             border-radius: 50%;
         }
 
-        /* УЛУЧШЕННАЯ СТРЕЛКА */
-        .wheel-arrow-new {
+        /* НОВАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ДВИЖЕТСЯ ПО КОНТУРУ */
+        .wheel-arrow-moving {
             position: absolute;
             top: -25px;
             left: 50%;
-            transform: translateX(-50%) rotate(0deg);
+            width: 40px;
+            height: 40px;
+            transform-origin: center 225px;
+            z-index: 20;
+            transition: transform 0.1s linear;
+        }
+
+        .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-bottom: 50px solid var(--primary-color);
-            z-index: 20;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid var(--primary-color);
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
-            transition: transform 0.1s linear;
-            transform-origin: 50% 100%;
+            position: relative;
+        }
+
+        .arrow-inner::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #ffd700, #ff9800);
+            border-radius: 50%;
+            z-index: 3;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
         }
 
         .wheel-percentages {
@@ -1389,31 +1407,9 @@
             letter-spacing: 1px;
         }
 
-        /* Новые элементы для отображения зон */
+        /* Удаляем зоны с текстом */
         .wheel-zones {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-        }
-
-        .zone-text {
-            position: absolute;
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-            transform-origin: center;
-        }
-
-        .zone-win {
-            color: #4CAF50;
-        }
-
-        .zone-lose {
-            color: #f44336;
+            display: none;
         }
 
         .chance-selector {
@@ -2317,6 +2313,11 @@
             .contract-tradeup {
                 position: static;
             }
+            
+            .upgrade-wheel-container {
+                width: 350px;
+                height: 350px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -2416,13 +2417,21 @@
             }
             
             .upgrade-wheel-container {
-                width: 250px;
-                height: 250px;
+                width: 300px;
+                height: 300px;
             }
             
             .upgrade-selected-item,
             .upgrade-result-item {
                 width: 250px;
+            }
+            
+            .multiple-scrolls-container {
+                height: 500px;
+            }
+            
+            .single-scroll-container {
+                height: calc((500px - 20px * (var(--case-count) - 1)) / var(--case-count));
             }
         }
 
@@ -2483,8 +2492,8 @@
             }
             
             .upgrade-wheel-container {
-                width: 200px;
-                height: 200px;
+                width: 250px;
+                height: 250px;
             }
             
             .upgrade-selected-item,
@@ -2495,9 +2504,18 @@
             .contract-slots-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .scroll-item {
+                width: 150px;
+                height: 170px;
+            }
+            
+            .scroll-item img {
+                width: 100px;
+                height: 75px;
+            }
         }
 
-        /* Очень маленькие экраны */
         @media (max-width: 360px) {
             .logo {
                 font-size: 20px;
@@ -2523,21 +2541,25 @@
             }
             
             .scroll-item {
-                width: 150px;
-                height: 170px;
+                width: 130px;
+                height: 150px;
             }
             
             .scroll-item img {
-                width: 100px;
-                height: 75px;
+                width: 90px;
+                height: 70px;
             }
             
             .inventory-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .upgrade-wheel-container {
+                width: 200px;
+                height: 200px;
+            }
         }
 
-        /* Планшеты */
         @media (min-width: 769px) and (max-width: 1024px) {
             .cases-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -2552,7 +2574,6 @@
             }
         }
 
-        /* Большие мониторы */
         @media (min-width: 1600px) {
             .container {
                 max-width: 1600px;
@@ -2567,7 +2588,6 @@
             }
         }
 
-        /* Портретный режим телефона */
         @media (max-height: 600px) and (orientation: portrait) {
             .case-opening-container {
                 height: 200px;
@@ -2580,9 +2600,12 @@
             .support-chat {
                 height: 300px;
             }
+            
+            .multiple-scrolls-container {
+                height: 400px;
+            }
         }
 
-        /* Ландшафтный режим телефона */
         @media (max-height: 400px) and (orientation: landscape) {
             .case-opening-container {
                 height: 180px;
@@ -2595,6 +2618,10 @@
             .support-chat {
                 height: 250px;
                 bottom: 80px;
+            }
+            
+            .multiple-scrolls-container {
+                height: 300px;
             }
         }
 
@@ -2876,58 +2903,6 @@
             transition: width 0.3s ease;
         }
 
-        /* НОВЫЕ СТИЛИ ДЛЯ АПГРЕЙДА - МОДЕРНИЗИРОВАННАЯ СТРЕЛКА */
-        .wheel-arrow-upgraded {
-            position: absolute;
-            top: -35px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 25;
-            width: 40px;
-            height: 70px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
-
-        .arrow-3d {
-            width: 0;
-            height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-bottom: 40px solid;
-            border-image: linear-gradient(45deg, #ff9800, #ff5722, #ff9800) 1;
-            position: relative;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.7));
-            transform-origin: 50% 100%;
-            transition: transform 0.1s linear;
-        }
-
-        .arrow-3d::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            left: -12px;
-            width: 24px;
-            height: 40px;
-            background: linear-gradient(45deg, #ff9800, #ff5722);
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            z-index: 2;
-        }
-
-        .arrow-3d::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(45deg, #ffd700, #ff9800);
-            border-radius: 50%;
-            z-index: 3;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
         /* Контейнер для нескольких лент */
         .multiple-scrolls-container {
             display: flex;
@@ -2936,6 +2911,7 @@
             width: 100%;
             height: 100%;
             padding: 10px 0;
+            overflow: hidden;
         }
 
         .single-scroll-container {
@@ -2956,6 +2932,48 @@
             font-size: 32px;
             filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
             text-shadow: 0 0 15px rgba(255, 70, 85, 0.8);
+        }
+        
+        /* Стили для результатов батча */
+        .batch-results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+        
+        .batch-result-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid transparent;
+        }
+        
+        .batch-result-item-value {
+            color: var(--gold-color);
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .batch-total-value {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold-color);
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -3210,10 +3228,9 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <div class="wheel-zones" id="wheel-zones"></div>
                                 </div>
-                                <div class="wheel-arrow-upgraded" id="wheel-arrow-upgraded">
-                                    <div class="arrow-3d" id="arrow-3d"></div>
+                                <div class="wheel-arrow-moving" id="wheel-arrow-moving">
+                                    <div class="arrow-inner"></div>
                                 </div>
                                 <div class="percent-display" id="percent-display">
                                     <div class="percent-value" id="percent-value">0%</div>
@@ -3319,7 +3336,7 @@
         </div>
     </main>
     
-    <!-- Модальное окно с результатом -->
+    <!-- Модальное окно с результатом (для одного кейса) -->
     <div class="modal" id="result-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -3346,6 +3363,39 @@
                         <i class="fas fa-redo"></i> Открыть еще
                     </button>
                     <button class="modal-btn close-modal" id="close-modal-btn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно с результатами батча (для нескольких кейсов) -->
+    <div class="modal" id="batch-result-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="gradient-text">Результаты открытия кейсов</span>
+                <button class="close-modal-btn" id="close-batch-result-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: center; font-size: 18px; margin-bottom: 20px;">Вы открыли <span id="batch-count">1</span> кейс(ов):</p>
+                
+                <div class="batch-results-container" id="batch-results-container">
+                    <!-- Результаты будут добавляться динамически -->
+                </div>
+                
+                <div class="batch-total-value" id="batch-total-value">
+                    Общая стоимость: <span id="batch-total-amount">0</span> <i class="fas fa-coins"></i>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="modal-btn sell-modal-btn" id="sell-batch-all-btn">
+                        <i class="fas fa-coins"></i> Продать все
+                    </button>
+                    <button class="modal-btn open-again" id="open-batch-again-btn">
+                        <i class="fas fa-redo"></i> Открыть еще
+                    </button>
+                    <button class="modal-btn close-modal" id="close-batch-modal-btn">
                         <i class="fas fa-times"></i> Закрыть
                     </button>
                 </div>
@@ -3942,7 +3992,8 @@
             contractResult: null,
             isSpinningAnimation: false,
             wheelRotation: 0,
-            scrollContainers: []
+            scrollContainers: [],
+            batchResults: []
         };
 
         // DOM элементы
@@ -3968,7 +4019,6 @@
         const contractsTab = document.getElementById('contracts-tab');
         const profileTab = document.getElementById('profile-tab');
         const caseQuantitySelector = document.getElementById('case-quantity-selector');
-        const centerLine = document.getElementById('center-line');
         const caseBatchInfo = document.getElementById('case-batch-info');
         const currentCaseNumber = document.getElementById('current-case-number');
         const totalCaseNumber = document.getElementById('total-case-number');
@@ -4009,8 +4059,7 @@
         const upgradeSelectedItem = document.getElementById('upgrade-selected-item');
         const upgradeResultItem = document.getElementById('upgrade-result-item');
         const upgradeWheel = document.getElementById('upgrade-wheel');
-        const wheelArrowUpgraded = document.getElementById('wheel-arrow-upgraded');
-        const arrow3d = document.getElementById('arrow-3d');
+        const wheelArrowMoving = document.getElementById('wheel-arrow-moving');
         const wheelSuccessSector = document.getElementById('wheel-success-sector');
         const upgradeStatus = document.getElementById('upgrade-status');
         const chanceSelector = document.getElementById('chance-selector');
@@ -4018,7 +4067,6 @@
         const upgradeStartBtn = document.getElementById('upgrade-start-btn');
         const upgradeInventoryGrid = document.getElementById('upgrade-inventory-grid');
         const percentValue = document.getElementById('percent-value');
-        const wheelZones = document.getElementById('wheel-zones');
         
         // Контракты элементы
         const contractSlotsGrid = document.getElementById('contract-slots-grid');
@@ -4063,6 +4111,15 @@
         const wonItemPrice = document.getElementById('won-item-price');
         const wonItemRarity = document.getElementById('won-item-rarity');
         const resultMessage = document.getElementById('result-message');
+        
+        const batchResultModal = document.getElementById('batch-result-modal');
+        const closeBatchResultModal = document.getElementById('close-batch-result-modal');
+        const batchResultsContainer = document.getElementById('batch-results-container');
+        const batchCount = document.getElementById('batch-count');
+        const batchTotalValue = document.getElementById('batch-total-amount');
+        const sellBatchAllBtn = document.getElementById('sell-batch-all-btn');
+        const openBatchAgainBtn = document.getElementById('open-batch-again-btn');
+        const closeBatchModalBtn = document.getElementById('close-batch-modal-btn');
         
         const contractResultModal = document.getElementById('contract-result-modal');
         const closeContractResultModal = document.getElementById('close-contract-result-modal');
@@ -4310,6 +4367,32 @@
             
             openAgainBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
+                if (gameState.selectedCase) {
+                    openCaseView(gameState.selectedCase);
+                }
+                spinBtn.disabled = false;
+                updateSpinButtonPrice();
+            });
+            
+            // Модальное окно результатов батча
+            closeBatchResultModal.addEventListener('click', () => {
+                batchResultModal.style.display = 'none';
+                resetCaseOpeningView();
+                spinBtn.disabled = false;
+                updateSpinButtonPrice();
+            });
+            
+            closeBatchModalBtn.addEventListener('click', () => {
+                batchResultModal.style.display = 'none';
+                resetCaseOpeningView();
+                spinBtn.disabled = false;
+                updateSpinButtonPrice();
+            });
+            
+            sellBatchAllBtn.addEventListener('click', sellBatchAllItems);
+            
+            openBatchAgainBtn.addEventListener('click', () => {
+                batchResultModal.style.display = 'none';
                 if (gameState.selectedCase) {
                     openCaseView(gameState.selectedCase);
                 }
@@ -4909,36 +4992,16 @@
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
-                wheelZones.innerHTML = '';
+                wheelArrowMoving.style.display = 'none';
                 return;
             }
             
             const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
             wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
             
-            // Обновляем зоны на колесе
-            updateWheelZones();
-        }
-
-        // Обновление зон на колесе
-        function updateWheelZones() {
-            wheelZones.innerHTML = '';
-            
-            const chance = gameState.upgradeSelectedChance;
-            const successDegrees = (chance / 100) * 360;
-            
-            // Добавляем текстовые метки для зон
-            const successText = document.createElement('div');
-            successText.className = 'zone-text zone-win';
-            successText.textContent = 'ВЫИГРЫШ';
-            successText.style.transform = `rotate(${successDegrees / 2}deg) translate(0, -120px)`;
-            wheelZones.appendChild(successText);
-            
-            const loseText = document.createElement('div');
-            loseText.className = 'zone-text zone-lose';
-            loseText.textContent = 'ПРОИГРЫШ';
-            loseText.style.transform = `rotate(${successDegrees + (360 - successDegrees) / 2}deg) translate(0, -120px)`;
-            wheelZones.appendChild(loseText);
+            // Устанавливаем начальную позицию стрелки
+            wheelArrowMoving.style.display = 'block';
+            wheelArrowMoving.style.transform = `rotate(0deg)`;
         }
 
         // Запуск апгрейда
@@ -4969,19 +5032,19 @@
                 const progress = timestamp - startTime;
                 
                 if (progress < spinDuration) {
-                    // Плавное вращение стрелки
+                    // Плавное вращение стрелки по кругу
                     const t = progress / spinDuration;
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
-                    arrow3d.style.transform = `rotate(${rotation}deg)`;
+                    wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                     requestAnimationFrame(animateSpin);
                 } else {
                     // Завершение анимации
                     const finalRotation = rotation % 360;
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
-                    arrow3d.style.transform = `rotate(${finalRotation}deg)`;
+                    wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
                     
                     // Задержка перед показом результата
                     setTimeout(() => {
@@ -5280,20 +5343,36 @@
                 ];
                 
                 let winItem = allItems[Math.floor(Math.random() * allItems.length)];
-                winItem = { ...winItem, value: winValue };
+                winItem = { ...winItem, value: winValue, id: Date.now() + Math.random() };
+                
+                // Сохраняем результат контракта
+                gameState.contractResult = winItem;
+                
+                // УДАЛЯЕМ ИЗ БАЗЫ ДАННЫХ ПРЕДМЕТЫ КОНТРАКТА
+                const user = db.getUser(currentUser);
+                const inventory = db.getInventory(currentUser);
+                
+                // Фильтруем инвентарь, удаляя предметы контракта
+                const updatedInventory = inventory.filter(invItem => 
+                    !items.some(contractItem => contractItem.id === invItem.id)
+                );
                 
                 // Добавляем новый предмет
-                db.addToInventory(currentUser, winItem);
+                updatedInventory.push({
+                    ...winItem,
+                    id: Date.now() + Math.random(),
+                    status: 'active',
+                    obtainedAt: new Date().toISOString()
+                });
                 
-                const user = db.getUser(currentUser);
+                // Сохраняем обновленный инвентарь
+                db.saveInventory(currentUser, updatedInventory);
+                
                 user.totalValue += winValue;
                 if (winValue > getItemValue(user.bestItem)) {
                     user.bestItem = winItem.name;
                 }
                 db.saveUser(currentUser, user);
-                
-                // Сохраняем результат контракта
-                gameState.contractResult = winItem;
                 
                 // Показываем результат
                 showContractResultModal(winItem);
@@ -5334,13 +5413,22 @@
             const user = db.getUser(currentUser);
             const item = gameState.contractResult;
             
+            // УДАЛЯЕМ ПРЕДМЕТ ИЗ ИНВЕНТАРЯ
+            const inventory = db.getInventory(currentUser);
+            const updatedInventory = inventory.filter(invItem => invItem.id !== item.id);
+            db.saveInventory(currentUser, updatedInventory);
+            
             user.balance += item.value;
             db.saveUser(currentUser, user);
+            
             updateUserDisplay();
             contractResultModal.style.display = 'none';
             
             alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
             gameState.contractResult = null;
+            
+            // Обновляем инвентарь на странице профиля
+            loadInventoryPage();
         }
 
         // Инициализация нескольких лент
@@ -5374,7 +5462,7 @@
                 
                 scrollContainer.appendChild(scroll);
                 multipleScrollsContainer.appendChild(scrollContainer);
-                gameState.scrollContainers.push(scroll);
+                gameState.scrollContainers.push({ container: scrollContainer, scroll: scroll });
             }
         }
 
@@ -5432,6 +5520,7 @@
             gameState.isSpinning = true;
             gameState.currentCaseOpening = 0;
             gameState.caseResults = [];
+            gameState.batchResults = [];
             
             spinBtn.disabled = true;
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
@@ -5478,69 +5567,70 @@
             gameState.currentCaseOpening = 0;
             gameState.caseResults = [];
             gameState.scrollContainers = [];
+            gameState.batchResults = [];
+            
+            spinBtn.disabled = false;
+            updateSpinButtonPrice();
         }
 
         // Запуск анимации прокрутки кейса
         function spinCase(scrollIndex) {
-            if (gameState.isSpinningAnimation) return;
-            
-            gameState.isSpinningAnimation = true;
-            const currentCase = gameState.currentCaseOpening;
-            const randomItem = gameState.caseResults[currentCase];
-            
-            let scrollPosition = 0;
-            let speed = 50;
-            let deceleration = 0.97;
-            let targetPosition = Math.random() * 20000 + 10000; // Случайная позиция для остановки
-            
-            const currentScroll = gameState.scrollContainers[scrollIndex];
-            
-            const animate = () => {
-                speed *= deceleration;
-                scrollPosition += speed;
+            return new Promise((resolve) => {
+                const currentCase = gameState.currentCaseOpening;
+                const randomItem = gameState.caseResults[currentCase];
                 
-                currentScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                const scrollData = gameState.scrollContainers[scrollIndex];
+                const currentScroll = scrollData.scroll;
                 
-                if (speed < 0.5) {
-                    // Анимация завершена
-                    gameState.isSpinningAnimation = false;
+                let scrollPosition = 0;
+                let speed = 50;
+                let deceleration = 0.97;
+                let targetPosition = Math.random() * 20000 + 10000; // Случайная позиция для остановки
+                
+                const animate = () => {
+                    speed *= deceleration;
+                    scrollPosition += speed;
                     
-                    // Находим предмет под стрелкой
-                    const scrollItems = currentScroll.querySelectorAll('.scroll-item');
-                    let centerItem = null;
-                    let minDistance = Infinity;
+                    currentScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     
-                    scrollItems.forEach((item, index) => {
-                        const rect = item.getBoundingClientRect();
-                        const containerRect = currentScroll.parentElement.getBoundingClientRect();
-                        const itemCenter = rect.left + rect.width / 2;
-                        const containerCenter = containerRect.left + containerRect.width / 2;
-                        const distance = Math.abs(itemCenter - containerCenter);
+                    if (speed < 0.5) {
+                        // Анимация завершена
+                        // Находим предмет под стрелкой
+                        const scrollItems = currentScroll.querySelectorAll('.scroll-item');
+                        let centerItem = null;
+                        let minDistance = Infinity;
                         
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            centerItem = item;
+                        scrollItems.forEach((item, index) => {
+                            const rect = item.getBoundingClientRect();
+                            const containerRect = scrollData.container.getBoundingClientRect();
+                            const itemCenter = rect.left + rect.width / 2;
+                            const containerCenter = containerRect.left + containerRect.width / 2;
+                            const distance = Math.abs(itemCenter - containerCenter);
+                            
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                centerItem = item;
+                            }
+                        });
+                        
+                        if (centerItem) {
+                            centerItem.classList.add('active');
+                            
+                            setTimeout(() => {
+                                centerItem.classList.remove('active');
+                                resolve(randomItem);
+                            }, 1500);
+                        } else {
+                            resolve(randomItem);
                         }
-                    });
-                    
-                    if (centerItem) {
-                        centerItem.classList.add('active');
-                        
-                        setTimeout(() => {
-                            centerItem.classList.remove('active');
-                            // Показываем результат текущего кейса
-                            showCaseResult(randomItem, currentCase + 1);
-                        }, 2000);
-                    } else {
-                        showCaseResult(randomItem, currentCase + 1);
+                        return;
                     }
-                    return;
-                }
+                    
+                    requestAnimationFrame(animate);
+                };
                 
-                requestAnimationFrame(animate);
-            };
-            
-            animate();
+                animate();
+            });
         }
 
         // Открыть следующий кейс
@@ -5552,10 +5642,13 @@
                 updateSpinButtonPrice();
                 caseBatchInfo.style.display = 'none';
                 
-                // После открытия всех кейсов возвращаем начальный вид
+                // Показываем результаты батча
+                showBatchResults();
+                
+                // После показа результатов возвращаем начальный вид
                 setTimeout(() => {
                     resetCaseOpeningView();
-                }, 2000);
+                }, 1000);
                 return;
             }
             
@@ -5568,15 +5661,21 @@
             caseBatchProgressFill.style.width = `${progressPercentage}%`;
             
             // Запускаем анимацию прокрутки для текущего кейса
-            spinCase(gameState.currentCaseOpening);
+            spinCase(gameState.currentCaseOpening).then((item) => {
+                processCaseResult(item);
+            });
         }
 
-        // Показать результат открытия кейса
-        function showCaseResult(item, caseNumber) {
+        // Обработка результата открытия кейса
+        function processCaseResult(item) {
             const user = db.getUser(currentUser);
             
             // Добавляем предмет в инвентарь
-            db.addToInventory(currentUser, item);
+            const addedItem = db.addToInventory(currentUser, item);
+            const newItem = addedItem[addedItem.length - 1];
+            
+            // Сохраняем результат для отображения
+            gameState.batchResults.push(newItem);
             
             // Обновляем статистику пользователя
             user.totalValue += item.value;
@@ -5599,13 +5698,6 @@
             // Обновляем счетчик открытых кейсов
             gameState.currentCaseOpening++;
             
-            // Показываем результат текущего кейса
-            if (gameState.caseQuantity === 1) {
-                showResultModal(item, item.rarity);
-            } else {
-                showBatchResultModal(item, item.rarity, caseNumber);
-            }
-            
             updateUserDisplay();
             
             // Если есть еще кейсы, готовим следующий
@@ -5613,16 +5705,33 @@
                 setTimeout(() => {
                     // Перезапускаем ленту для следующего кейса
                     const caseData = casesData[gameState.selectedCase];
-                    const currentScroll = gameState.scrollContainers[gameState.currentCaseOpening];
-                    currentScroll.innerHTML = '';
+                    const scrollData = gameState.scrollContainers[gameState.currentCaseOpening];
+                    scrollData.scroll.innerHTML = '';
                     
                     for (let j = 0; j < 40; j++) {
-                        addRandomItemToScroll(caseData, currentScroll, j, gameState.currentCaseOpening);
+                        addRandomItemToScroll(caseData, scrollData.scroll, j, gameState.currentCaseOpening);
                     }
                     
                     // Запускаем следующий кейс
                     openNextCase();
-                }, 3000);
+                }, 1000);
+            } else {
+                // Все кейсы открыты, показываем результаты
+                setTimeout(() => {
+                    showBatchResults();
+                }, 1000);
+            }
+        }
+
+        // Показать результаты батча
+        function showBatchResults() {
+            if (gameState.caseQuantity === 1) {
+                // Для одного кейса показываем обычное модальное окно
+                const item = gameState.batchResults[0];
+                showResultModal(item, item.rarity);
+            } else {
+                // Для нескольких кейсов показываем специальное модальное окно
+                showBatchResultModal();
             }
         }
 
@@ -5639,17 +5748,92 @@
             resultModal.style.display = 'flex';
         }
 
-        // Показать модальное окно с результатом батча
-        function showBatchResultModal(item, rarity, caseNumber) {
-            wonItemImg.className = `item-img item-${rarity}`;
-            wonItemName.textContent = item.name;
-            wonItemPrice.innerHTML = `Цена: ${item.value} <i class="fas fa-coins"></i>`;
-            wonItemRarity.textContent = getRarityName(rarity);
-            wonItemRarity.className = 'item-rarity';
-            wonItemRarity.classList.add(`rarity-${rarity}`);
-            resultMessage.textContent = `Вы открыли кейс ${caseNumber}/${gameState.caseQuantity} и получаете:`;
+        // Показать модальное окно с результатами батча
+        function showBatchResultModal() {
+            batchCount.textContent = gameState.caseQuantity;
+            batchResultsContainer.innerHTML = '';
             
-            resultModal.style.display = 'flex';
+            let totalValue = 0;
+            
+            gameState.batchResults.forEach((item, index) => {
+                totalValue += item.value;
+                
+                const resultElement = document.createElement('div');
+                resultElement.className = 'batch-result-item';
+                resultElement.style.borderColor = getRarityColor(item.rarity);
+                
+                resultElement.innerHTML = `
+                    <div class="item-img item-${item.rarity}"></div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="batch-result-item-value">${item.value} <i class="fas fa-coins"></i></div>
+                    <button class="item-btn sell-btn" data-item-id="${item.id}" style="padding: 8px 12px; font-size: 12px;">
+                        Продать
+                    </button>
+                `;
+                
+                // Добавляем обработчик для кнопки продажи
+                const sellBtn = resultElement.querySelector('.sell-btn');
+                sellBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sellBatchItem(item.id, index);
+                });
+                
+                batchResultsContainer.appendChild(resultElement);
+            });
+            
+            batchTotalValue.textContent = totalValue;
+            
+            batchResultModal.style.display = 'flex';
+        }
+
+        // Продать предмет из батча
+        function sellBatchItem(itemId, index) {
+            if (!currentUser) return;
+            
+            const item = gameState.batchResults[index];
+            if (!item) return;
+            
+            const user = db.getUser(currentUser);
+            
+            // Удаляем предмет из инвентаря
+            db.removeFromInventory(currentUser, itemId);
+            
+            user.balance += item.value;
+            db.saveUser(currentUser, user);
+            
+            // Удаляем предмет из отображения
+            gameState.batchResults.splice(index, 1);
+            
+            // Обновляем отображение
+            showBatchResultModal();
+            
+            updateUserDisplay();
+            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+        }
+
+        // Продать все предметы из батча
+        function sellBatchAllItems() {
+            if (!currentUser || gameState.batchResults.length === 0) return;
+            
+            const totalValue = gameState.batchResults.reduce((sum, item) => sum + item.value, 0);
+            
+            if (confirm(`Продать все предметы (${gameState.batchResults.length} шт.) за ${totalValue} монет?`)) {
+                const user = db.getUser(currentUser);
+                
+                // Удаляем все предметы из инвентаря
+                gameState.batchResults.forEach(item => {
+                    db.removeFromInventory(currentUser, item.id);
+                });
+                
+                user.balance += totalValue;
+                db.saveUser(currentUser, user);
+                
+                gameState.batchResults = [];
+                
+                batchResultModal.style.display = 'none';
+                updateUserDisplay();
+                alert(`Все предметы проданы за ${totalValue} монет!`);
+            }
         }
 
         // Продать выигранный предмет
