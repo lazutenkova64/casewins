@@ -671,12 +671,17 @@
             border: 2px solid var(--glass-border);
         }
 
-        .center-arrow {
+        /* ИСПРАВЛЕННЫЙ ЦЕНТРАЛЬНЫЙ ИНДИКАТОР - ТЕПЕРЬ СТРЕЛКА */
+        .center-indicator {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 10;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .center-arrow {
             color: var(--gold-color);
             font-size: 48px;
             filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
@@ -695,25 +700,35 @@
             box-shadow: 0 0 10px rgba(255, 70, 85, 0.7);
         }
 
+        /* ОБНОВЛЕННЫЕ МАСКИ - С ЭФФЕКТОМ 3D ГРАДИЕНТА */
         .mask-left, .mask-right {
             position: absolute;
             top: 0;
             bottom: 0;
-            width: 100px;
-            z-index: 5;
+            width: 120px;
+            z-index: 15;
             pointer-events: none;
         }
 
         .mask-left {
             left: 0;
-            background: linear-gradient(90deg, rgba(15, 25, 35, 0.9), transparent);
+            background: linear-gradient(90deg, 
+                rgba(15, 25, 35, 0.95) 0%,
+                rgba(15, 25, 35, 0.8) 30%,
+                rgba(15, 25, 35, 0.4) 70%,
+                transparent 100%);
         }
 
         .mask-right {
             right: 0;
-            background: linear-gradient(90deg, transparent, rgba(15, 25, 35, 0.9));
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                rgba(15, 25, 35, 0.4) 30%,
+                rgba(15, 25, 35, 0.8) 70%,
+                rgba(15, 25, 35, 0.95) 100%);
         }
 
+        /* ОБНОВЛЕННАЯ ЛЕНТА ПРОКРУТКИ - 7 ЭЛЕМЕНТОВ ВИДНО */
         .case-items-scroll {
             display: flex;
             gap: 0;
@@ -1241,7 +1256,7 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Апгрейд секция - НОВЫЙ ДИЗАЙН */
+        /* Апгрейд секция */
         .upgrade-section {
             display: none;
         }
@@ -1294,7 +1309,7 @@
             gap: 20px;
         }
 
-        /* УЛУЧШЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА */
+        /* ИСПРАВЛЕННЫЙ КРУГ АПГРЕЙДА - БЕЗ ЖЕЛТОГО КРУГА */
         .upgrade-wheel-container {
             position: relative;
             width: 400px;
@@ -1331,7 +1346,7 @@
             border-radius: 50%;
         }
 
-        /* НОВАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ДВИЖЕТСЯ ПО КОНТУРУ */
+        /* ИСПРАВЛЕННАЯ СТРЕЛКА - СМОТРИТ В ЦЕНТР КРУГА */
         .wheel-arrow-moving {
             position: absolute;
             top: -25px;
@@ -1348,24 +1363,12 @@
             height: 0;
             border-left: 15px solid transparent;
             border-right: 15px solid transparent;
-            border-bottom: 30px solid var(--primary-color);
+            border-top: 30px solid var(--primary-color); /* Изменено с border-bottom на border-top */
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
         }
 
-        .arrow-inner::before {
-            content: '';
-            position: absolute;
-            top: -30px;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(45deg, #ffd700, #ff9800);
-            border-radius: 50%;
-            z-index: 3;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
+        /* УДАЛЕН ЖЕЛТЫЙ КРУГ */
         .wheel-percentages {
             position: absolute;
             top: 0;
@@ -2903,23 +2906,24 @@
             transition: width 0.3s ease;
         }
 
-        /* Контейнер для нескольких лент */
+        /* КОНТЕЙНЕР ДЛЯ НЕСКОЛЬКИХ ЛЕНТ - ИСПРАВЛЕННЫЙ */
         .multiple-scrolls-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 30px; /* УВЕЛИЧЕН РАЗРЫВ МЕЖДУ ЛЕНТАМИ */
             width: 100%;
             height: 100%;
-            padding: 10px 0;
+            padding: 20px 0; /* УВЕЛИЧЕН PADDING */
             overflow: hidden;
         }
 
         .single-scroll-container {
             position: relative;
-            height: calc((100% - 20px * (var(--case-count) - 1)) / var(--case-count));
+            height: calc((100% - 30px * (var(--case-count) - 1)) / var(--case-count));
             overflow: hidden;
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            border: 2px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .single-scroll-arrow {
@@ -2974,6 +2978,14 @@
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
+        }
+        
+        /* ИСПРАВЛЕННЫЙ СТИЛЬ ДЛЯ ОТОБРАЖЕНИЯ ЦЕН В ПРОКРУТКЕ */
+        .price-display {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold-color);
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -3097,9 +3109,16 @@
                         <!-- Несколько лент будет добавляться динамически -->
                     </div>
                     
-                    <!-- Маски для градиента -->
+                    <!-- МАСКИ ДЛЯ 3D ЭФФЕКТА -->
                     <div class="mask-left" id="mask-left" style="display: none;"></div>
                     <div class="mask-right" id="mask-right" style="display: none;"></div>
+                    
+                    <!-- ЦЕНТРАЛЬНАЯ СТРЕЛКА -->
+                    <div class="center-indicator" id="center-indicator" style="display: none;">
+                        <div class="center-arrow">
+                            <i class="fas fa-caret-down"></i>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="case-opening-controls">
@@ -3993,7 +4012,8 @@
             isSpinningAnimation: false,
             wheelRotation: 0,
             scrollContainers: [],
-            batchResults: []
+            batchResults: [],
+            immediateItemsAdded: [] // Для отслеживания предметов, добавленных сразу
         };
 
         // DOM элементы
@@ -4024,6 +4044,7 @@
         const totalCaseNumber = document.getElementById('total-case-number');
         const caseBatchProgressFill = document.getElementById('case-batch-progress-fill');
         const multipleScrollsContainer = document.getElementById('multiple-scrolls-container');
+        const centerIndicator = document.getElementById('center-indicator');
         
         // Секции
         const profileSection = document.getElementById('profile-section');
@@ -4405,10 +4426,14 @@
                 contractResultModal.style.display = 'none';
             });
             
-            sellContractItemBtn.addEventListener('click', sellContractItem);
+            // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК: ПРОДАЖА ПРЕДМЕТА ИЗ КОНТРАКТА
+            sellContractItemBtn.addEventListener('click', () => {
+                sellContractItem(true); // true = удалить из инвентаря
+            });
             
             closeContractModalBtn.addEventListener('click', () => {
                 contractResultModal.style.display = 'none';
+                // При закрытии модалки предмет остается в инвентаре
             });
             
             // Авторизация
@@ -5348,26 +5373,10 @@
                 // Сохраняем результат контракта
                 gameState.contractResult = winItem;
                 
-                // УДАЛЯЕМ ИЗ БАЗЫ ДАННЫХ ПРЕДМЕТЫ КОНТРАКТА
+                // ДОБАВЛЯЕМ В ИНВЕНТАРЬ НЕМЕДЛЕННО
+                db.addToInventory(currentUser, winItem);
+                
                 const user = db.getUser(currentUser);
-                const inventory = db.getInventory(currentUser);
-                
-                // Фильтруем инвентарь, удаляя предметы контракта
-                const updatedInventory = inventory.filter(invItem => 
-                    !items.some(contractItem => contractItem.id === invItem.id)
-                );
-                
-                // Добавляем новый предмет
-                updatedInventory.push({
-                    ...winItem,
-                    id: Date.now() + Math.random(),
-                    status: 'active',
-                    obtainedAt: new Date().toISOString()
-                });
-                
-                // Сохраняем обновленный инвентарь
-                db.saveInventory(currentUser, updatedInventory);
-                
                 user.totalValue += winValue;
                 if (winValue > getItemValue(user.bestItem)) {
                     user.bestItem = winItem.name;
@@ -5406,17 +5415,17 @@
             contractResultModal.style.display = 'flex';
         }
 
-        // Продать предмет из контракта
-        function sellContractItem() {
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Продать предмет из контракта
+        function sellContractItem(removeFromInventory = true) {
             if (!currentUser || !gameState.contractResult) return;
             
             const user = db.getUser(currentUser);
             const item = gameState.contractResult;
             
-            // УДАЛЯЕМ ПРЕДМЕТ ИЗ ИНВЕНТАРЯ
-            const inventory = db.getInventory(currentUser);
-            const updatedInventory = inventory.filter(invItem => invItem.id !== item.id);
-            db.saveInventory(currentUser, updatedInventory);
+            if (removeFromInventory) {
+                // УДАЛЯЕМ ПРЕДМЕТ ИЗ ИНВЕНТАРЯ
+                db.removeFromInventory(currentUser, item.id);
+            }
             
             user.balance += item.value;
             db.saveUser(currentUser, user);
@@ -5424,7 +5433,10 @@
             updateUserDisplay();
             contractResultModal.style.display = 'none';
             
-            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+            if (removeFromInventory) {
+                alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+            }
+            
             gameState.contractResult = null;
             
             // Обновляем инвентарь на странице профиля
@@ -5495,7 +5507,7 @@
             return itemElement;
         }
 
-        // Обработка открытия кейса
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Обработка открытия кейса
         function startCaseOpening() {
             if (!currentUser) {
                 authModal.style.display = 'flex';
@@ -5512,15 +5524,17 @@
                 return;
             }
             
-            // Списываем деньги за все кейсы
+            // Списываем деньги за все кейсы СРАЗУ
             user.balance -= totalPrice;
             user.casesOpened += gameState.caseQuantity;
             db.saveUser(currentUser, user);
+            updateUserDisplay();
             
             gameState.isSpinning = true;
             gameState.currentCaseOpening = 0;
             gameState.caseResults = [];
             gameState.batchResults = [];
+            gameState.immediateItemsAdded = [];
             
             spinBtn.disabled = true;
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
@@ -5529,7 +5543,20 @@
             for (let i = 0; i < gameState.caseQuantity; i++) {
                 const randomItem = getRandomItem(caseData);
                 gameState.caseResults.push(randomItem);
+                
+                // ДОБАВЛЯЕМ ПРЕДМЕТЫ В ИНВЕНТАРЬ НЕМЕДЛЕННО
+                const addedItem = db.addToInventory(currentUser, randomItem);
+                const newItem = addedItem[addedItem.length - 1];
+                gameState.immediateItemsAdded.push(newItem);
+                
+                // Обновляем статистику пользователя
+                user.totalValue += randomItem.value;
+                if (user.bestItem === "Нет" || randomItem.value > getItemValue(user.bestItem)) {
+                    user.bestItem = randomItem.name;
+                }
             }
+            
+            db.saveUser(currentUser, user);
             
             // Показываем информацию о батче
             currentCaseNumber.textContent = '1';
@@ -5542,11 +5569,12 @@
             maskLeft.style.display = 'block';
             maskRight.style.display = 'block';
             multipleScrollsContainer.style.display = 'flex';
+            centerIndicator.style.display = 'block';
             
             // Инициализируем ленты
             initMultipleScrolls(caseData);
             
-            // Начинаем открывать кейсы по одному
+            // Начинаем открывать кейсы по одному (только анимация)
             openNextCase();
         }
 
@@ -5556,6 +5584,7 @@
             maskLeft.style.display = 'none';
             maskRight.style.display = 'none';
             multipleScrollsContainer.style.display = 'none';
+            centerIndicator.style.display = 'none';
             
             stopItemAnimation();
             if (gameState.animationInterval) {
@@ -5568,6 +5597,7 @@
             gameState.caseResults = [];
             gameState.scrollContainers = [];
             gameState.batchResults = [];
+            gameState.immediateItemsAdded = [];
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
@@ -5619,7 +5649,7 @@
                             setTimeout(() => {
                                 centerItem.classList.remove('active');
                                 resolve(randomItem);
-                            }, 1500);
+                            }, 1000); // Уменьшена задержка
                         } else {
                             resolve(randomItem);
                         }
@@ -5633,7 +5663,7 @@
             });
         }
 
-        // Открыть следующий кейс
+        // Открыть следующий кейс (только анимация)
         function openNextCase() {
             if (gameState.currentCaseOpening >= gameState.caseQuantity) {
                 // Все кейсы открыты
@@ -5648,7 +5678,7 @@
                 // После показа результатов возвращаем начальный вид
                 setTimeout(() => {
                     resetCaseOpeningView();
-                }, 1000);
+                }, 500); // Уменьшена задержка
                 return;
             }
             
@@ -5662,29 +5692,12 @@
             
             // Запускаем анимацию прокрутки для текущего кейса
             spinCase(gameState.currentCaseOpening).then((item) => {
-                processCaseResult(item);
+                processCaseResultAnimation(item);
             });
         }
 
-        // Обработка результата открытия кейса
-        function processCaseResult(item) {
-            const user = db.getUser(currentUser);
-            
-            // Добавляем предмет в инвентарь
-            const addedItem = db.addToInventory(currentUser, item);
-            const newItem = addedItem[addedItem.length - 1];
-            
-            // Сохраняем результат для отображения
-            gameState.batchResults.push(newItem);
-            
-            // Обновляем статистику пользователя
-            user.totalValue += item.value;
-            if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
-                user.bestItem = item.name;
-            }
-            
-            db.saveUser(currentUser, user);
-            
+        // Обработка анимации результата открытия кейса
+        function processCaseResultAnimation(item) {
             const drop = {
                 user: currentUser,
                 item: item,
@@ -5695,31 +5708,28 @@
             db.addRecentDrop(drop);
             addDropToSidebar(drop);
             
+            // Сохраняем результат для отображения
+            gameState.batchResults.push(gameState.immediateItemsAdded[gameState.currentCaseOpening]);
+            
             // Обновляем счетчик открытых кейсов
             gameState.currentCaseOpening++;
             
-            updateUserDisplay();
-            
-            // Если есть еще кейсы, готовим следующий
+            // Если есть еще кейсы, готовим следующий (без задержки)
             if (gameState.currentCaseOpening < gameState.caseQuantity) {
-                setTimeout(() => {
-                    // Перезапускаем ленту для следующего кейса
-                    const caseData = casesData[gameState.selectedCase];
-                    const scrollData = gameState.scrollContainers[gameState.currentCaseOpening];
-                    scrollData.scroll.innerHTML = '';
-                    
-                    for (let j = 0; j < 40; j++) {
-                        addRandomItemToScroll(caseData, scrollData.scroll, j, gameState.currentCaseOpening);
-                    }
-                    
-                    // Запускаем следующий кейс
-                    openNextCase();
-                }, 1000);
+                // Перезапускаем ленту для следующего кейса
+                const caseData = casesData[gameState.selectedCase];
+                const scrollData = gameState.scrollContainers[gameState.currentCaseOpening];
+                scrollData.scroll.innerHTML = '';
+                
+                for (let j = 0; j < 40; j++) {
+                    addRandomItemToScroll(caseData, scrollData.scroll, j, gameState.currentCaseOpening);
+                }
+                
+                // Запускаем следующий кейс
+                openNextCase();
             } else {
                 // Все кейсы открыты, показываем результаты
-                setTimeout(() => {
-                    showBatchResults();
-                }, 1000);
+                showBatchResults();
             }
         }
 
@@ -5867,7 +5877,7 @@
             if (gameState.currentCaseOpening < gameState.caseQuantity) {
                 setTimeout(() => {
                     openNextCase();
-                }, 500);
+                }, 100); // Уменьшена задержка
             } else {
                 resetCaseOpeningView();
                 spinBtn.disabled = false;
