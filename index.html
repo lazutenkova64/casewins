@@ -3973,6 +3973,16 @@
                     localStorage.setItem('upgradeState', JSON.stringify(null));
                 }
                 
+                // НОВОЕ: Сохранение текущей вкладки
+                if (!localStorage.getItem('currentTab')) {
+                    localStorage.setItem('currentTab', JSON.stringify('main'));
+                }
+                
+                // НОВОЕ: Сохранение состояния открытия кейсов
+                if (!localStorage.getItem('pendingCaseItems')) {
+                    localStorage.setItem('pendingCaseItems', JSON.stringify([]));
+                }
+                
                 // Админ аккаунт
                 const users = this.getUsers();
                 if (!users['k1lame']) {
@@ -4067,6 +4077,14 @@
             
             clearCurrentUser() {
                 localStorage.setItem('currentUser', JSON.stringify(null));
+            }
+            
+            getCurrentTab() {
+                return JSON.parse(localStorage.getItem('currentTab')) || 'main';
+            }
+            
+            setCurrentTab(tab) {
+                localStorage.setItem('currentTab', JSON.stringify(tab));
             }
             
             getUsedPromocodes(username) {
@@ -4212,6 +4230,26 @@
             clearUpgradeState() {
                 localStorage.setItem('upgradeState', JSON.stringify(null));
             }
+            
+            // НОВЫЙ МЕТОД: Получение предметов из незавершенных открытий кейсов
+            getPendingCaseItems(username) {
+                const pendingItems = JSON.parse(localStorage.getItem('pendingCaseItems')) || {};
+                return pendingItems[username] || [];
+            }
+            
+            // НОВЫЙ МЕТОД: Сохранение предметов из незавершенных открытий кейсов
+            savePendingCaseItems(username, items) {
+                const pendingItems = JSON.parse(localStorage.getItem('pendingCaseItems')) || {};
+                pendingItems[username] = items;
+                localStorage.setItem('pendingCaseItems', JSON.stringify(pendingItems));
+            }
+            
+            // НОВЫЙ МЕТОД: Очистка предметов из незавершенных открытий
+            clearPendingCaseItems(username) {
+                const pendingItems = JSON.parse(localStorage.getItem('pendingCaseItems')) || {};
+                delete pendingItems[username];
+                localStorage.setItem('pendingCaseItems', JSON.stringify(pendingItems));
+            }
         }
 
         // Системные настройки
@@ -4333,37 +4371,37 @@
             ]
         };
 
-        // Данные о кейсах
+        // Данные о кейсах (УВЕЛИЧЕНЫ НА 40%)
         const casesData = {
             1: {
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: 19
+                price: Math.round(19 * 1.4) // Увеличено на 40%
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: 68
+                price: Math.round(68 * 1.4) // Увеличено на 40%
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: 188
+                price: Math.round(188 * 1.4) // Увеличено на 40%
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: 450
+                price: Math.round(450 * 1.4) // Увеличено на 40%
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: 1850
+                price: Math.round(1850 * 1.4) // Увеличено на 40%
             }
         };
 
@@ -4435,7 +4473,7 @@
         const caseBatchProgressFill = document.getElementById('case-batch-progress-fill');
         const multipleScrollsContainer = document.getElementById('multiple-scrolls-container');
         const fastScrollBtn = document.getElementById('fast-scroll-btn');
-        const upgradeFastScrollBtn = document.getElementById('upgrade-fast-scroll-btn'); // Новая кнопка
+        const upgradeFastScrollBtn = document.getElementById('upgrade-fast-scroll-btn');
         const centerLine = document.getElementById('center-line');
         
         // Секции
@@ -4591,6 +4629,9 @@
             // Проверяем незавершенный апгрейд
             checkPendingUpgrade();
             
+            // Проверяем предметы из незавершенных открытий кейсов
+            checkPendingCaseItems();
+            
             if (currentUser) {
                 const user = db.getUser(currentUser);
                 if (user) {
@@ -4598,9 +4639,6 @@
                     profileTab.style.display = 'flex';
                     if (user.isAdmin) {
                         adminBtn.classList.add('visible');
-                    }
-                    if (gameState.pendingItems.length > 0) {
-                        addPendingItemsToInventory();
                     }
                 } else {
                     db.clearCurrentUser();
@@ -4614,6 +4652,9 @@
             initEventListeners();
             updateOpenCaseButtons();
             
+            // Восстанавливаем последнюю вкладку
+            restoreLastTab();
+            
             setInterval(updateAdminBadge, 60000);
             
             for (let i = 1; i <= 10; i++) {
@@ -4624,17 +4665,103 @@
             startOtherUsersDropsSimulation();
         }
 
+        // Восстановление последней вкладки
+        function restoreLastTab() {
+            const lastTab = db.getCurrentTab();
+            switch(lastTab) {
+                case 'main':
+                    showMainPage();
+                    setActiveTab(casesTab);
+                    break;
+                case 'profile':
+                    if (currentUser) {
+                        showProfileSection();
+                        setActiveTab(profileTab);
+                    } else {
+                        showMainPage();
+                        setActiveTab(casesTab);
+                    }
+                    break;
+                case 'upgrade':
+                    if (currentUser) {
+                        showUpgradeSection();
+                        setActiveTab(upgradeTab);
+                    } else {
+                        showMainPage();
+                        setActiveTab(casesTab);
+                    }
+                    break;
+                case 'contracts':
+                    if (currentUser) {
+                        showContractSection();
+                        setActiveTab(contractsTab);
+                    } else {
+                        showMainPage();
+                        setActiveTab(casesTab);
+                    }
+                    break;
+                default:
+                    showMainPage();
+                    setActiveTab(casesTab);
+            }
+        }
+
+        // Проверка предметов из незавершенных открытий кейсов
+        function checkPendingCaseItems() {
+            if (!currentUser) return;
+            
+            const pendingItems = db.getPendingCaseItems(currentUser);
+            if (pendingItems.length > 0) {
+                // Добавляем предметы в инвентарь
+                const user = db.getUser(currentUser);
+                pendingItems.forEach(item => {
+                    db.addToInventory(currentUser, item);
+                    
+                    user.totalValue += item.value;
+                    if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                        user.bestItem = item.name;
+                    }
+                });
+                
+                db.saveUser(currentUser, user);
+                db.clearPendingCaseItems(currentUser);
+                updateUserDisplay();
+                
+                // Показываем уведомление
+                if (pendingItems.length === 1) {
+                    alert(`Вы получили предмет "${pendingItems[0].name}" из незавершенного открытия кейса!`);
+                } else {
+                    alert(`Вы получили ${pendingItems.length} предметов из незавершенных открытий кейсов!`);
+                }
+                
+                // Обновляем инвентарь если мы на странице профиля
+                if (profileSection.style.display === 'block') {
+                    loadInventoryPage();
+                }
+            }
+        }
+
         // Проверка незавершенного апгрейда
         function checkPendingUpgrade() {
             const upgradeState = db.getUpgradeState();
             if (upgradeState && upgradeState.username === currentUser) {
-                // Восстанавливаем состояние апгрейда
-                const user = db.getUser(currentUser);
-                const item = upgradeState.selectedItem;
-                const isSuccess = upgradeState.isSuccess;
+                // Определяем результат апгрейда на основе сохраненного шанса
+                const chance = upgradeState.selectedChance || 50;
+                const balanceAmount = upgradeState.balanceAmount || 0;
+                const effectiveChance = Math.min(95, chance + Math.floor(balanceAmount / 100));
                 
-                if (item) {
+                // Генерируем случайный результат на основе шанса
+                const isSuccess = Math.random() * 100 < effectiveChance;
+                
+                if (upgradeState.selectedItem) {
                     // Обрабатываем результат апгрейда
+                    const user = db.getUser(currentUser);
+                    const item = upgradeState.selectedItem;
+                    
+                    if (balanceAmount > 0) {
+                        user.balance -= balanceAmount;
+                    }
+                    
                     if (isSuccess) {
                         db.removeFromInventory(currentUser, item.id);
                         const newItem = db.addToInventory(currentUser, upgradeState.resultItem);
@@ -4683,67 +4810,64 @@
             }
         }
 
-        function addPendingItemsToInventory() {
-            if (!currentUser || gameState.pendingItems.length === 0) return;
-            
-            const user = db.getUser(currentUser);
-            gameState.pendingItems.forEach(item => {
-                db.addToInventory(currentUser, item);
-                
-                user.totalValue += item.value;
-                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
-                    user.bestItem = item.name;
-                }
-            });
-            
-            db.saveUser(currentUser, user);
-            gameState.pendingItems = [];
-            updateUserDisplay();
-            
-            if (profileSection.style.display === 'block') {
-                loadInventoryPage();
-            }
-        }
-
         // Инициализация обработчиков событий
         function initEventListeners() {
             logo.addEventListener('click', () => {
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
             
             mainTab.addEventListener('click', (e) => {
                 e.preventDefault();
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(mainTab);
             });
             
             casesTab.addEventListener('click', (e) => {
                 e.preventDefault();
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
             
             upgradeTab.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (!currentUser) {
+                    authModal.style.display = 'flex';
+                    return;
+                }
+                db.setCurrentTab('upgrade');
                 showUpgradeSection();
                 setActiveTab(upgradeTab);
             });
             
             contractsTab.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (!currentUser) {
+                    authModal.style.display = 'flex';
+                    return;
+                }
+                db.setCurrentTab('contracts');
                 showContractSection();
                 setActiveTab(contractsTab);
             });
             
             profileTab.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (!currentUser) {
+                    authModal.style.display = 'flex';
+                    return;
+                }
+                db.setCurrentTab('profile');
                 showProfileSection();
                 setActiveTab(profileTab);
             });
             
             userAvatarBtn.addEventListener('click', () => {
                 if (currentUser) {
+                    db.setCurrentTab('profile');
                     showProfileSection();
                     setActiveTab(profileTab);
                 } else {
@@ -4752,21 +4876,25 @@
             });
             
             backToMainFromProfile.addEventListener('click', () => {
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
             
             backToMainFromOther.addEventListener('click', () => {
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
             
             backToMainFromUpgrade.addEventListener('click', () => {
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
             
             backToMainFromContracts.addEventListener('click', () => {
+                db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
             });
@@ -5188,6 +5316,581 @@
             tab.classList.add('active');
         }
 
+        // НОВАЯ ФУНКЦИЯ: Быстрое открытие кейсов (1 секунда)
+        function fastCaseOpening() {
+            spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
+            
+            const promises = [];
+            for (let i = 0; i < gameState.caseQuantity; i++) {
+                promises.push(spinDynamicCaseFast(i));
+            }
+            
+            Promise.all(promises).then(() => {
+                gameState.caseResults.forEach((item, index) => {
+                    processCaseResult(item);
+                });
+                
+                gameState.currentCaseOpening = gameState.caseQuantity;
+                currentCaseNumber.textContent = gameState.caseQuantity;
+                caseBatchProgressFill.style.width = '100%';
+                
+                setTimeout(() => {
+                    gameState.isSpinning = false;
+                    spinBtn.disabled = false;
+                    updateSpinButtonPrice();
+                    caseBatchInfo.style.display = 'none';
+                    
+                    showBatchResults();
+                    
+                    setTimeout(() => {
+                        resetCaseOpeningView();
+                    }, 1000);
+                }, 500);
+            });
+        }
+
+        function spinDynamicCaseFast(scrollIndex) {
+            return new Promise((resolve) => {
+                const currentCase = scrollIndex;
+                const randomItem = gameState.caseResults[currentCase];
+                const scrollData = gameState.dynamicScrolls[scrollIndex];
+                const dynamicScroll = scrollData.scroll;
+                
+                let scrollPosition = 0;
+                let speed = 100; // Увеличена скорость
+                let deceleration = 0.85; // Более резкое торможение
+                let targetPosition = Math.random() * 5000 + 2000; // Меньше дистанции
+                let lastLoadedPosition = 0;
+                let animationId = null;
+                
+                const animate = () => {
+                    speed *= deceleration;
+                    scrollPosition += speed;
+                    
+                    // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
+                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                    
+                    if (scrollPosition > lastLoadedPosition + 5000) {
+                        loadMoreItemsToDynamicScroll(casesData[gameState.selectedCase], dynamicScroll, scrollIndex, scrollData.itemsLoaded, scrollData.itemWidth);
+                        lastLoadedPosition = scrollPosition;
+                    }
+                    
+                    if (speed < 0.5 || scrollPosition >= targetPosition) {
+                        cancelAnimationFrame(animationId);
+                        
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ - останавливаем на месте
+                        dynamicScroll.style.transition = 'none';
+                        dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                        
+                        const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
+                        let centerItem = null;
+                        let minDistance = Infinity;
+                        
+                        dynamicItems.forEach((item) => {
+                            const rect = item.getBoundingClientRect();
+                            const wrapperRect = scrollData.wrapper.getBoundingClientRect();
+                            const itemCenter = rect.left + rect.width / 2;
+                            const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
+                            const distance = Math.abs(itemCenter - wrapperCenter);
+                            
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                centerItem = item;
+                            }
+                        });
+                        
+                        if (centerItem) {
+                            centerItem.classList.add('active');
+                            
+                            setTimeout(() => {
+                                centerItem.classList.remove('active');
+                                resolve(randomItem);
+                            }, 300);
+                        } else {
+                            resolve(randomItem);
+                        }
+                        return;
+                    }
+                    
+                    animationId = requestAnimationFrame(animate);
+                };
+                
+                animationId = requestAnimationFrame(animate);
+                scrollData.animationId = animationId;
+                
+                // Устанавливаем таймаут для гарантированного завершения через 1 секунду
+                setTimeout(() => {
+                    if (animationId) {
+                        cancelAnimationFrame(animationId);
+                    }
+                    // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                    dynamicScroll.style.transition = 'none';
+                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                    resolve(randomItem);
+                }, 1000);
+            });
+        }
+
+        // НОВАЯ ФУНКЦИЯ: Быстрый апгрейд (1 секунда)
+        function startFastUpgrade() {
+            if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
+            
+            const user = db.getUser(currentUser);
+            const balanceAmount = gameState.upgradeBalanceAmount;
+            
+            if (balanceAmount > 0 && user.balance < balanceAmount) {
+                alert('Недостаточно средств!');
+                return;
+            }
+            
+            gameState.isWheelSpinning = true;
+            upgradeStartBtn.disabled = true;
+            upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
+            
+            // Для быстрой прокрутки - 1 секунда, 2-3 оборота
+            const spinDuration = 1000;
+            const spinRotations = 2 + Math.random(); // 2-3 оборота
+            
+            let startTime = null;
+            let rotation = 0;
+            let animationId = null;
+            
+            const animateSpin = (timestamp) => {
+                if (!startTime) startTime = timestamp;
+                const progress = timestamp - startTime;
+                
+                if (progress < spinDuration) {
+                    const t = progress / spinDuration;
+                    const easeOut = 1 - Math.pow(1 - t, 3);
+                    rotation = easeOut * 360 * spinRotations;
+                    
+                    wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                    animationId = requestAnimationFrame(animateSpin);
+                } else {
+                    cancelAnimationFrame(animationId);
+                    
+                    const finalRotation = rotation % 360;
+                    // Используем тот же расчет шанса что и в обычном режиме
+                    const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
+                    
+                    wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                    wheelArrowMoving.style.transition = 'none';
+                    
+                    // Сохраняем состояние апгрейда
+                    db.saveUpgradeState({
+                        username: currentUser,
+                        selectedItem: gameState.selectedUpgradeItem,
+                        resultItem: gameState.upgradeResultItem,
+                        isSuccess: isSuccess,
+                        selectedChance: gameState.upgradeSelectedChance,
+                        balanceAmount: gameState.upgradeBalanceAmount
+                    });
+                    
+                    setTimeout(() => {
+                        processUpgradeResult(isSuccess);
+                        gameState.isWheelSpinning = false;
+                        upgradeStartBtn.disabled = false;
+                        upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                        wheelArrowMoving.style.transition = 'transform 0.1s linear';
+                    }, 500);
+                }
+            };
+            
+            animationId = requestAnimationFrame(animateSpin);
+            
+            // Гарантированное завершение через 1 секунду
+            setTimeout(() => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                
+                const finalRotation = rotation % 360;
+                const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
+                
+                wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                wheelArrowMoving.style.transition = 'none';
+                
+                // Сохраняем состояние апгрейда
+                db.saveUpgradeState({
+                    username: currentUser,
+                    selectedItem: gameState.selectedUpgradeItem,
+                    resultItem: gameState.upgradeResultItem,
+                    isSuccess: isSuccess,
+                    selectedChance: gameState.upgradeSelectedChance,
+                    balanceAmount: gameState.upgradeBalanceAmount
+                });
+                
+                setTimeout(() => {
+                    processUpgradeResult(isSuccess);
+                    gameState.isWheelSpinning = false;
+                    upgradeStartBtn.disabled = false;
+                    upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                    wheelArrowMoving.style.transition = 'transform 0.1s linear';
+                }, 500);
+            }, 1000);
+        }
+
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Запуск апгрейда
+        function startUpgrade() {
+            if (gameState.fastUpgrade) {
+                startFastUpgrade();
+            } else {
+                startNormalUpgrade();
+            }
+        }
+
+        // ФУНКЦИЯ: Нормальный апгрейд (3 секунды)
+        function startNormalUpgrade() {
+            if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
+            
+            const user = db.getUser(currentUser);
+            const balanceAmount = gameState.upgradeBalanceAmount;
+            
+            if (balanceAmount > 0 && user.balance < balanceAmount) {
+                alert('Недостаточно средств!');
+                return;
+            }
+            
+            // Сохраняем состояние апгрейда перед началом
+            db.saveUpgradeState({
+                username: currentUser,
+                selectedItem: gameState.selectedUpgradeItem,
+                resultItem: gameState.upgradeResultItem,
+                isSuccess: null,
+                selectedChance: gameState.upgradeSelectedChance,
+                balanceAmount: gameState.upgradeBalanceAmount
+            });
+            
+            gameState.isWheelSpinning = true;
+            upgradeStartBtn.disabled = true;
+            upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
+            
+            const spinDuration = 3000 + Math.random() * 2000;
+            const spinRotations = 5 + Math.random() * 3;
+            
+            let startTime = null;
+            let rotation = 0;
+            let animationId = null;
+            
+            const animateSpin = (timestamp) => {
+                if (!startTime) startTime = timestamp;
+                const progress = timestamp - startTime;
+                
+                if (progress < spinDuration) {
+                    const t = progress / spinDuration;
+                    const easeOut = 1 - Math.pow(1 - t, 3);
+                    rotation = easeOut * 360 * spinRotations;
+                    
+                    wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                    animationId = requestAnimationFrame(animateSpin);
+                } else {
+                    cancelAnimationFrame(animationId);
+                    
+                    const finalRotation = rotation % 360;
+                    const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
+                    
+                    wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                    wheelArrowMoving.style.transition = 'none';
+                    
+                    // Обновляем состояние с результатом
+                    const upgradeState = db.getUpgradeState();
+                    if (upgradeState) {
+                        upgradeState.isSuccess = isSuccess;
+                        db.saveUpgradeState(upgradeState);
+                    }
+                    
+                    setTimeout(() => {
+                        processUpgradeResult(isSuccess);
+                        gameState.isWheelSpinning = false;
+                        upgradeStartBtn.disabled = false;
+                        upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                        wheelArrowMoving.style.transition = 'transform 0.1s linear';
+                    }, 500);
+                }
+            };
+            
+            animationId = requestAnimationFrame(animateSpin);
+        }
+
+        // НОВАЯ ФУНКЦИЯ: Контракт с высокой суммой
+        function executeContract() {
+            if (!currentUser || gameState.contractItemsCount < 3) return;
+            
+            const items = Object.values(gameState.contractSlots).filter(item => item !== null);
+            const totalValue = gameState.contractTotalValue;
+            
+            contractTradeupBtn.disabled = true;
+            contractTradeupBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Создание...`;
+            
+            setTimeout(() => {
+                items.forEach(item => {
+                    db.removeFromInventory(currentUser, item.id);
+                });
+                
+                // НОВАЯ ЛОГИКА: Для контрактов выше 1,000,000
+                let winValue;
+                if (totalValue > 1000000) {
+                    // От 1/4 до +20% от суммы
+                    const minWin = Math.floor(totalValue / 4);
+                    const maxWin = Math.floor(totalValue * 1.2);
+                    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
+                } else {
+                    // Старая логика для меньших сумм
+                    const minWin = Math.floor(totalValue / 4);
+                    const maxWin = totalValue * 4;
+                    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
+                }
+                
+                const allItems = [
+                    ...cs2Items.common,
+                    ...cs2Items.uncommon,
+                    ...cs2Items.rare,
+                    ...cs2Items.mythical,
+                    ...cs2Items.legendary,
+                    ...cs2Items.ancient
+                ];
+                
+                let winItem = allItems[Math.floor(Math.random() * allItems.length)];
+                winItem = { ...winItem, value: winValue };
+                
+                const newItem = db.addToInventory(currentUser, winItem);
+                gameState.contractResult = newItem;
+                
+                const user = db.getUser(currentUser);
+                user.totalValue += winValue;
+                if (winValue > getItemValue(user.bestItem)) {
+                    user.bestItem = winItem.name;
+                }
+                db.saveUser(currentUser, user);
+                
+                const drop = {
+                    user: currentUser,
+                    item: winItem,
+                    time: "Только что",
+                    timestamp: Date.now()
+                };
+                
+                db.addRecentDrop(drop);
+                db.addOtherUsersDrop(drop);
+                addDropToSidebar(drop);
+                
+                showContractResultModal(winItem);
+                
+                for (let i = 1; i <= 10; i++) {
+                    gameState.contractSlots[i] = null;
+                }
+                
+                updateUserDisplay();
+                loadProfile();
+                loadInventoryPage();
+                loadContractSlots();
+                loadContractInventory();
+                updateContractInfo();
+                
+                contractTradeupBtn.disabled = false;
+                contractTradeupBtn.innerHTML = `<i class="fas fa-exchange-alt"></i> Создать контракт`;
+            }, 2000);
+        }
+
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Запуск открытия кейсов
+        function startCaseOpening() {
+            if (!currentUser) {
+                authModal.style.display = 'flex';
+                return;
+            }
+            
+            const caseId = gameState.selectedCase;
+            const caseData = casesData[caseId];
+            const user = db.getUser(currentUser);
+            const totalPrice = caseData.price * gameState.caseQuantity;
+            
+            if (user.balance < totalPrice) {
+                alert('Недостаточно средств для открытия кейсов!');
+                return;
+            }
+            
+            user.balance -= totalPrice;
+            user.casesOpened += gameState.caseQuantity;
+            db.saveUser(currentUser, user);
+            
+            gameState.isSpinning = true;
+            gameState.currentCaseOpening = 0;
+            gameState.caseResults = [];
+            gameState.batchResults = [];
+            
+            spinBtn.disabled = true;
+            spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
+            
+            for (let i = 0; i < gameState.caseQuantity; i++) {
+                const randomItem = getRandomItem(caseData);
+                gameState.caseResults.push(randomItem);
+                
+                // НОВОЕ: Сохраняем предметы в случае обновления страницы
+                const pendingItems = db.getPendingCaseItems(currentUser);
+                pendingItems.push(randomItem);
+                db.savePendingCaseItems(currentUser, pendingItems);
+            }
+            
+            currentCaseNumber.textContent = '1';
+            totalCaseNumber.textContent = gameState.caseQuantity;
+            caseBatchProgressFill.style.width = '0%';
+            caseBatchInfo.style.display = 'block';
+            
+            caseOpeningStart.style.display = 'none';
+            maskLeft.style.display = 'block';
+            maskRight.style.display = 'block';
+            multipleScrollsContainer.style.display = 'flex';
+            
+            initDynamicScrolls(caseData);
+            
+            if (gameState.fastScroll) {
+                fastCaseOpening();
+            } else if (gameState.caseQuantity > 1) {
+                openAllCasesSimultaneously();
+            } else {
+                openNextCase();
+            }
+        }
+
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обработка результата кейса
+        function processCaseResult(item) {
+            const user = db.getUser(currentUser);
+            
+            if (currentUser) {
+                // Удаляем предмет из ожидающих (он уже был сохранен при начале открытия)
+                const pendingItems = db.getPendingCaseItems(currentUser);
+                const itemIndex = pendingItems.findIndex(pendingItem => 
+                    pendingItem.name === item.name && 
+                    pendingItem.value === item.value && 
+                    pendingItem.rarity === item.rarity
+                );
+                
+                if (itemIndex !== -1) {
+                    pendingItems.splice(itemIndex, 1);
+                    db.savePendingCaseItems(currentUser, pendingItems);
+                }
+                
+                const addedItem = db.addToInventory(currentUser, item);
+                const newItem = addedItem;
+                
+                gameState.batchResults.push(newItem);
+                
+                user.totalValue += item.value;
+                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                    user.bestItem = item.name;
+                }
+                
+                db.saveUser(currentUser, user);
+            }
+            
+            const drop = {
+                user: currentUser || 'Гость',
+                item: item,
+                time: "Только что",
+                timestamp: Date.now()
+            };
+            
+            db.addRecentDrop(drop);
+            db.addOtherUsersDrop(drop);
+            addDropToSidebar(drop);
+            
+            gameState.currentCaseOpening++;
+            
+            updateUserDisplay();
+            
+            if (gameState.currentCaseOpening < gameState.caseQuantity && !gameState.fastScroll && gameState.caseQuantity === 1) {
+                // Немедленно переходим к следующему кейсу
+                const caseData = casesData[gameState.selectedCase];
+                const scrollData = gameState.dynamicScrolls[gameState.currentCaseOpening];
+                
+                // Отменяем предыдущую анимацию если есть
+                if (scrollData.animationId) {
+                    cancelAnimationFrame(scrollData.animationId);
+                }
+                
+                scrollData.scroll.innerHTML = '';
+                loadMoreItemsToDynamicScroll(caseData, scrollData.scroll, gameState.currentCaseOpening, 0, scrollData.itemWidth);
+                
+                // Немедленно запускаем следующий кейс
+                openNextCase();
+            } else if (gameState.currentCaseOpening >= gameState.caseQuantity) {
+                setTimeout(() => {
+                    showBatchResults();
+                    // Очищаем ожидающие предметы после завершения
+                    db.clearPendingCaseItems(currentUser);
+                }, 500);
+            }
+        }
+
+        // ФУНКЦИЯ: Обновление отображения стрелки апгрейда (исправленная)
+        function updateWheelVisual() {
+            if (gameState.upgradeSelectedChance === 0) {
+                wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
+                wheelArrowMoving.style.display = 'none';
+                return;
+            }
+            
+            const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
+            wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
+            
+            wheelArrowMoving.style.display = 'block';
+            wheelArrowMoving.style.transform = `rotate(0deg)`;
+            
+            // ИСПРАВЛЕНИЕ: Устанавливаем правильный transform-origin для ровного вращения
+            wheelArrowMoving.style.transformOrigin = 'center 200px';
+        }
+
+        // ФУНКЦИЯ: Обработка результата апгрейда
+        function processUpgradeResult(isSuccess) {
+            const user = db.getUser(currentUser);
+            const item = gameState.selectedUpgradeItem;
+            const balanceAmount = gameState.upgradeBalanceAmount;
+            
+            if (balanceAmount > 0) {
+                user.balance -= balanceAmount;
+            }
+            
+            if (isSuccess) {
+                db.removeFromInventory(currentUser, item.id);
+                const newItem = db.addToInventory(currentUser, gameState.upgradeResultItem);
+                
+                user.totalValue += gameState.upgradeResultItem.value;
+                if (gameState.upgradeResultItem.value > getItemValue(user.bestItem)) {
+                    user.bestItem = gameState.upgradeResultItem.name;
+                }
+                
+                const drop = {
+                    user: currentUser,
+                    item: gameState.upgradeResultItem,
+                    time: "Только что",
+                    timestamp: Date.now()
+                };
+                
+                db.addRecentDrop(drop);
+                db.addOtherUsersDrop(drop);
+                addDropToSidebar(drop);
+                
+                alert(`Апгрейд успешен! Вы получили: ${gameState.upgradeResultItem.name}`);
+            } else {
+                db.removeFromInventory(currentUser, item.id);
+                
+                const refund = Math.floor(item.value * 0.01);
+                user.balance += refund;
+                
+                alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
+            }
+            
+            db.saveUser(currentUser, user);
+            updateUserDisplay();
+            loadProfile();
+            loadInventoryPage();
+            resetUpgrade();
+            
+            // Очищаем состояние после завершения
+            db.clearUpgradeState();
+        }
+
+        // Остальные функции остаются без изменений (loadProfile, loadInventoryPage, и т.д.)
         function loadProfile() {
             if (!currentUser) return;
             
@@ -5642,144 +6345,6 @@
             generatePossibleWin();
         }
 
-        function updateWheelVisual() {
-            if (gameState.upgradeSelectedChance === 0) {
-                wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
-                wheelArrowMoving.style.display = 'none';
-                return;
-            }
-            
-            const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
-            wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
-            
-            wheelArrowMoving.style.display = 'block';
-            wheelArrowMoving.style.transform = `rotate(0deg)`;
-        }
-
-        function startUpgrade() {
-            if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
-            
-            const user = db.getUser(currentUser);
-            const balanceAmount = gameState.upgradeBalanceAmount;
-            
-            if (balanceAmount > 0 && user.balance < balanceAmount) {
-                alert('Недостаточно средств!');
-                return;
-            }
-            
-            // Сохраняем состояние апгрейда перед началом
-            db.saveUpgradeState({
-                username: currentUser,
-                selectedItem: gameState.selectedUpgradeItem,
-                resultItem: gameState.upgradeResultItem,
-                isSuccess: null // Пока неизвестно
-            });
-            
-            gameState.isWheelSpinning = true;
-            upgradeStartBtn.disabled = true;
-            upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
-            
-            // ИСПРАВЛЕНИЕ: Для быстрой прокрутки - 2 секунды, для обычной - 3 секунды
-            const spinDuration = gameState.fastUpgrade ? 2000 : 3000 + Math.random() * 2000;
-            const spinRotations = gameState.fastUpgrade ? 3 : 5 + Math.random() * 3;
-            
-            let startTime = null;
-            let rotation = 0;
-            let animationId = null;
-            
-            const animateSpin = (timestamp) => {
-                if (!startTime) startTime = timestamp;
-                const progress = timestamp - startTime;
-                
-                if (progress < spinDuration) {
-                    const t = progress / spinDuration;
-                    const easeOut = 1 - Math.pow(1 - t, 3);
-                    rotation = easeOut * 360 * spinRotations;
-                    
-                    wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-                    animationId = requestAnimationFrame(animateSpin);
-                } else {
-                    // ИСПРАВЛЕНИЕ: Полностью останавливаем анимацию без лагов
-                    cancelAnimationFrame(animationId);
-                    
-                    const finalRotation = rotation % 360;
-                    const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
-                    
-                    wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    
-                    // Фиксируем стрелку на месте
-                    wheelArrowMoving.style.transition = 'none';
-                    
-                    // Обновляем состояние с результатом
-                    const upgradeState = db.getUpgradeState();
-                    if (upgradeState) {
-                        upgradeState.isSuccess = isSuccess;
-                        db.saveUpgradeState(upgradeState);
-                    }
-                    
-                    setTimeout(() => {
-                        processUpgradeResult(isSuccess);
-                        gameState.isWheelSpinning = false;
-                        upgradeStartBtn.disabled = false;
-                        upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                        // Восстанавливаем transition
-                        wheelArrowMoving.style.transition = 'transform 0.1s linear';
-                    }, 500);
-                }
-            };
-            
-            animationId = requestAnimationFrame(animateSpin);
-        }
-
-        function processUpgradeResult(isSuccess) {
-            const user = db.getUser(currentUser);
-            const item = gameState.selectedUpgradeItem;
-            const balanceAmount = gameState.upgradeBalanceAmount;
-            
-            if (balanceAmount > 0) {
-                user.balance -= balanceAmount;
-            }
-            
-            if (isSuccess) {
-                db.removeFromInventory(currentUser, item.id);
-                const newItem = db.addToInventory(currentUser, gameState.upgradeResultItem);
-                
-                user.totalValue += gameState.upgradeResultItem.value;
-                if (gameState.upgradeResultItem.value > getItemValue(user.bestItem)) {
-                    user.bestItem = gameState.upgradeResultItem.name;
-                }
-                
-                const drop = {
-                    user: currentUser,
-                    item: gameState.upgradeResultItem,
-                    time: "Только что",
-                    timestamp: Date.now()
-                };
-                
-                db.addRecentDrop(drop);
-                db.addOtherUsersDrop(drop);
-                addDropToSidebar(drop);
-                
-                alert(`Апгрейд успешен! Вы получили: ${gameState.upgradeResultItem.name}`);
-            } else {
-                db.removeFromInventory(currentUser, item.id);
-                
-                const refund = Math.floor(item.value * 0.01);
-                user.balance += refund;
-                
-                alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
-            }
-            
-            db.saveUser(currentUser, user);
-            updateUserDisplay();
-            loadProfile();
-            loadInventoryPage();
-            resetUpgrade();
-            
-            // Очищаем состояние после завершения
-            db.clearUpgradeState();
-        }
-
         function loadContractSlots() {
             contractSlotsGrid.innerHTML = '';
             
@@ -5968,8 +6533,17 @@
             contractTotalValue.textContent = totalValue;
             
             if (itemsCount >= 3) {
-                const minWin = Math.floor(totalValue / 4);
-                const maxWin = totalValue * 4;
+                // НОВАЯ ЛОГИКА: Для контрактов выше 1,000,000
+                let minWin, maxWin;
+                if (totalValue > 1000000) {
+                    // От 1/4 до +20% от суммы
+                    minWin = Math.floor(totalValue / 4);
+                    maxWin = Math.floor(totalValue * 1.2);
+                } else {
+                    // Старая логика для меньших сумм
+                    minWin = Math.floor(totalValue / 4);
+                    maxWin = totalValue * 4;
+                }
                 contractPossibleWin.textContent = `${minWin} - ${maxWin}`;
                 
                 contractTradeupBtn.disabled = false;
@@ -5977,75 +6551,6 @@
                 contractPossibleWin.textContent = '0 - 0';
                 contractTradeupBtn.disabled = true;
             }
-        }
-
-        function executeContract() {
-            if (!currentUser || gameState.contractItemsCount < 3) return;
-            
-            const items = Object.values(gameState.contractSlots).filter(item => item !== null);
-            const totalValue = gameState.contractTotalValue;
-            
-            contractTradeupBtn.disabled = true;
-            contractTradeupBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Создание...`;
-            
-            setTimeout(() => {
-                items.forEach(item => {
-                    db.removeFromInventory(currentUser, item.id);
-                });
-                
-                const minWin = Math.floor(totalValue / 4);
-                const maxWin = totalValue * 4;
-                const winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
-                
-                const allItems = [
-                    ...cs2Items.common,
-                    ...cs2Items.uncommon,
-                    ...cs2Items.rare,
-                    ...cs2Items.mythical,
-                    ...cs2Items.legendary,
-                    ...cs2Items.ancient
-                ];
-                
-                let winItem = allItems[Math.floor(Math.random() * allItems.length)];
-                winItem = { ...winItem, value: winValue };
-                
-                const newItem = db.addToInventory(currentUser, winItem);
-                gameState.contractResult = newItem;
-                
-                const user = db.getUser(currentUser);
-                user.totalValue += winValue;
-                if (winValue > getItemValue(user.bestItem)) {
-                    user.bestItem = winItem.name;
-                }
-                db.saveUser(currentUser, user);
-                
-                const drop = {
-                    user: currentUser,
-                    item: winItem,
-                    time: "Только что",
-                    timestamp: Date.now()
-                };
-                
-                db.addRecentDrop(drop);
-                db.addOtherUsersDrop(drop);
-                addDropToSidebar(drop);
-                
-                showContractResultModal(winItem);
-                
-                for (let i = 1; i <= 10; i++) {
-                    gameState.contractSlots[i] = null;
-                }
-                
-                updateUserDisplay();
-                loadProfile();
-                loadInventoryPage();
-                loadContractSlots();
-                loadContractInventory();
-                updateContractInfo();
-                
-                contractTradeupBtn.disabled = false;
-                contractTradeupBtn.innerHTML = `<i class="fas fa-exchange-alt"></i> Создать контракт`;
-            }, 2000);
         }
 
         function showContractResultModal(item) {
@@ -6101,11 +6606,10 @@
                     currentPosition: 0,
                     itemsLoaded: 0,
                     itemWidth: itemWidth,
-                    animationId: null // Для отмены анимации
+                    animationId: null
                 });
             }
             
-            // ПОКАЗЫВАЕМ КРАСНУЮ СТРЕЛКУ (УВЕЛИЧЕННУЮ В 3 РАЗА)
             centerLine.style.display = 'block';
         }
 
@@ -6147,64 +6651,6 @@
             }
         }
 
-        function startCaseOpening() {
-            if (!currentUser) {
-                authModal.style.display = 'flex';
-                return;
-            }
-            
-            const caseId = gameState.selectedCase;
-            const caseData = casesData[caseId];
-            const user = db.getUser(currentUser);
-            const totalPrice = caseData.price * gameState.caseQuantity;
-            
-            if (user.balance < totalPrice) {
-                alert('Недостаточно средств для открытия кейсов!');
-                return;
-            }
-            
-            user.balance -= totalPrice;
-            user.casesOpened += gameState.caseQuantity;
-            db.saveUser(currentUser, user);
-            
-            gameState.isSpinning = true;
-            gameState.currentCaseOpening = 0;
-            gameState.caseResults = [];
-            gameState.batchResults = [];
-            
-            spinBtn.disabled = true;
-            spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
-            
-            for (let i = 0; i < gameState.caseQuantity; i++) {
-                const randomItem = getRandomItem(caseData);
-                gameState.caseResults.push(randomItem);
-            }
-            
-            currentCaseNumber.textContent = '1';
-            totalCaseNumber.textContent = gameState.caseQuantity;
-            caseBatchProgressFill.style.width = '0%';
-            caseBatchInfo.style.display = 'block';
-            
-            caseOpeningStart.style.display = 'none';
-            maskLeft.style.display = 'block';
-            maskRight.style.display = 'block';
-            multipleScrollsContainer.style.display = 'flex';
-            
-            initDynamicScrolls(caseData);
-            
-            // ИСПРАВЛЕНИЕ: Если выбрано мультиоткрытие (2,3,4,5 кейсов), сразу открываем все без задержки
-            if (gameState.caseQuantity > 1) {
-                openAllCasesSimultaneously();
-            } else {
-                // Для одного кейса обычная логика
-                if (gameState.fastScroll) {
-                    fastCaseOpening();
-                } else {
-                    openNextCase();
-                }
-            }
-        }
-
         // ИСПРАВЛЕНИЕ: Функция одновременного открытия всех кейсов
         function openAllCasesSimultaneously() {
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открытие ${gameState.caseQuantity} кейсов...`;
@@ -6215,7 +6661,6 @@
             }
             
             Promise.all(promises).then(() => {
-                // Обрабатываем все результаты
                 gameState.caseResults.forEach((item, index) => {
                     processCaseResult(item);
                 });
@@ -6247,8 +6692,8 @@
                 const dynamicScroll = scrollData.scroll;
                 
                 let scrollPosition = 0;
-                let speed = gameState.fastScroll ? 80 : 40; // Быстрее для быстрой прокрутки
-                let deceleration = gameState.fastScroll ? 0.92 : 0.97;
+                let speed = 40;
+                let deceleration = 0.97;
                 let targetPosition = Math.random() * 8000 + 4000;
                 let lastLoadedPosition = 0;
                 let animationId = null;
@@ -6257,7 +6702,6 @@
                     speed *= deceleration;
                     scrollPosition += speed;
                     
-                    // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     
                     if (scrollPosition > lastLoadedPosition + 5000) {
@@ -6265,8 +6709,12 @@
                         lastLoadedPosition = scrollPosition;
                     }
                     
-                    if (speed < 0.5) {
+                    if (speed < 0.5 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
+                        
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'none';
+                        dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
                         let centerItem = null;
@@ -6306,105 +6754,6 @@
             });
         }
 
-        // Быстрое открытие кейсов (2 секунды)
-        function fastCaseOpening() {
-            spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
-            
-            const promises = [];
-            for (let i = 0; i < gameState.caseQuantity; i++) {
-                promises.push(spinDynamicCaseFast(i));
-            }
-            
-            Promise.all(promises).then(() => {
-                gameState.caseResults.forEach((item, index) => {
-                    processCaseResult(item);
-                });
-                
-                gameState.currentCaseOpening = gameState.caseQuantity;
-                currentCaseNumber.textContent = gameState.caseQuantity;
-                caseBatchProgressFill.style.width = '100%';
-                
-                setTimeout(() => {
-                    gameState.isSpinning = false;
-                    spinBtn.disabled = false;
-                    updateSpinButtonPrice();
-                    caseBatchInfo.style.display = 'none';
-                    
-                    showBatchResults();
-                    
-                    setTimeout(() => {
-                        resetCaseOpeningView();
-                    }, 1000);
-                }, 500);
-            });
-        }
-
-        function spinDynamicCaseFast(scrollIndex) {
-            return new Promise((resolve) => {
-                const currentCase = scrollIndex;
-                const randomItem = gameState.caseResults[currentCase];
-                const scrollData = gameState.dynamicScrolls[scrollIndex];
-                const dynamicScroll = scrollData.scroll;
-                
-                let scrollPosition = 0;
-                let speed = 80;
-                let deceleration = 0.92;
-                let lastLoadedPosition = 0;
-                let animationId = null;
-                
-                const animate = () => {
-                    speed *= deceleration;
-                    scrollPosition += speed;
-                    
-                    // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
-                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
-                    
-                    if (scrollPosition > lastLoadedPosition + 5000) {
-                        loadMoreItemsToDynamicScroll(casesData[gameState.selectedCase], dynamicScroll, scrollIndex, scrollData.itemsLoaded, scrollData.itemWidth);
-                        lastLoadedPosition = scrollPosition;
-                    }
-                    
-                    if (speed < 0.5) {
-                        cancelAnimationFrame(animationId);
-                        
-                        const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
-                        let centerItem = null;
-                        let minDistance = Infinity;
-                        
-                        dynamicItems.forEach((item) => {
-                            const rect = item.getBoundingClientRect();
-                            const wrapperRect = scrollData.wrapper.getBoundingClientRect();
-                            const itemCenter = rect.left + rect.width / 2;
-                            const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
-                            const distance = Math.abs(itemCenter - wrapperCenter);
-                            
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                centerItem = item;
-                            }
-                        });
-                        
-                        if (centerItem) {
-                            centerItem.classList.add('active');
-                            
-                            setTimeout(() => {
-                                centerItem.classList.remove('active');
-                                resolve(randomItem);
-                            }, 300);
-                        } else {
-                            resolve(randomItem);
-                        }
-                        return;
-                    }
-                    
-                    animationId = requestAnimationFrame(animate);
-                };
-                
-                animationId = requestAnimationFrame(animate);
-                scrollData.animationId = animationId;
-            });
-        }
-
         function spinDynamicCase(scrollIndex) {
             return new Promise((resolve) => {
                 const currentCase = gameState.currentCaseOpening;
@@ -6422,7 +6771,6 @@
                     speed *= deceleration;
                     scrollPosition += speed;
                     
-                    // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     
                     if (scrollPosition > lastLoadedPosition + 5000) {
@@ -6432,6 +6780,10 @@
                     
                     if (speed < 0.3) {
                         cancelAnimationFrame(animationId);
+                        
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'none';
+                        dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
                         let centerItem = null;
@@ -6496,63 +6848,6 @@
             spinDynamicCase(gameState.currentCaseOpening).then((item) => {
                 processCaseResult(item);
             });
-        }
-
-        function processCaseResult(item) {
-            const user = db.getUser(currentUser);
-            
-            if (currentUser) {
-                const addedItem = db.addToInventory(currentUser, item);
-                const newItem = addedItem;
-                
-                gameState.batchResults.push(newItem);
-                
-                user.totalValue += item.value;
-                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
-                    user.bestItem = item.name;
-                }
-                
-                db.saveUser(currentUser, user);
-            } else {
-                gameState.pendingItems.push(item);
-            }
-            
-            const drop = {
-                user: currentUser || 'Гость',
-                item: item,
-                time: "Только что",
-                timestamp: Date.now()
-            };
-            
-            db.addRecentDrop(drop);
-            db.addOtherUsersDrop(drop);
-            addDropToSidebar(drop);
-            
-            gameState.currentCaseOpening++;
-            
-            updateUserDisplay();
-            
-            // ИСПРАВЛЕНИЕ: Убрана задержка между кейсами при мультиоткрытии
-            if (gameState.currentCaseOpening < gameState.caseQuantity) {
-                // Немедленно переходим к следующему кейсу
-                const caseData = casesData[gameState.selectedCase];
-                const scrollData = gameState.dynamicScrolls[gameState.currentCaseOpening];
-                
-                // Отменяем предыдущую анимацию если есть
-                if (scrollData.animationId) {
-                    cancelAnimationFrame(scrollData.animationId);
-                }
-                
-                scrollData.scroll.innerHTML = '';
-                loadMoreItemsToDynamicScroll(caseData, scrollData.scroll, gameState.currentCaseOpening, 0, scrollData.itemWidth);
-                
-                // Немедленно запускаем следующий кейс
-                openNextCase();
-            } else {
-                setTimeout(() => {
-                    showBatchResults();
-                }, 500);
-            }
         }
 
         function showBatchResults() {
@@ -6698,10 +6993,13 @@
             multipleScrollsContainer.style.display = 'none';
             centerLine.style.display = 'none';
             
-            // Отменяем все анимации
+            // Отменяем все анимации и фиксируем положение
             gameState.dynamicScrolls.forEach(scrollData => {
                 if (scrollData.animationId) {
                     cancelAnimationFrame(scrollData.animationId);
+                }
+                if (scrollData.scroll) {
+                    scrollData.scroll.style.transition = 'none';
                 }
             });
             
@@ -7350,10 +7648,7 @@
                     adminBtn.classList.add('visible');
                 }
                 
-                if (gameState.pendingItems.length > 0) {
-                    addPendingItemsToInventory();
-                }
-                
+                checkPendingCaseItems();
                 checkPendingUpgrade();
                 
                 alert('Вы успешно вошли в аккаунт!');
@@ -7422,10 +7717,6 @@
             registerError.style.display = 'none';
             
             profileTab.style.display = 'flex';
-            
-            if (gameState.pendingItems.length > 0) {
-                addPendingItemsToInventory();
-            }
             
             alert('Аккаунт успешно создан! Вы вошли в систему.');
             loginTab.click();
