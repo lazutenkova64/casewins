@@ -1399,27 +1399,28 @@
             border-radius: 50%;
         }
 
-       /* ИСПРАВЛЕННЫЙ СТИЛЬ СТРЕЛКИ ДЛЯ КРУГА АПГРЕЙДА */
-.wheel-arrow-moving {
-    position: absolute;
-    top: -35px; /* Увеличено отступ сверху для более четкого позиционирования */
-    left: 50%;
-    transform: translateX(-50%) rotate(0deg);
-    transform-origin: bottom center; /* Точка вращения внизу стрелки */
-    z-index: 20;
-    transition: transform 0.1s linear;
-}
+        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ФИОЛЕТОВЫЙ ГРАДИЕНТ, БЕЗ КРУЖКА */
+        .wheel-arrow-moving {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            transform-origin: center 225px;
+            z-index: 20;
+            transition: transform 0.1s linear;
+        }
 
-.arrow-inner {
-    width: 0;
-    height: 0;
-    border-left: 20px solid transparent; /* Увеличено для более заметной стрелки */
-    border-right: 20px solid transparent;
-    border-top: 40px solid; /* Увеличена высота стрелки */
-    border-top-color: #8847ff; /* Фиолетовый цвет */
-    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
-    position: relative;
-}
+        .arrow-inner {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid;
+            border-top-color: #8847ff;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+            position: relative;
+        }
 
         .wheel-percentages {
             position: absolute;
@@ -1460,39 +1461,6 @@
             color: rgba(255,255,255,0.7);
             text-transform: uppercase;
             letter-spacing: 1px;
-        }
-
-        /* НОВЫЕ ПРОЦЕНТЫ НА КРУГЕ */
-        .wheel-percentage-label {
-            position: absolute;
-            color: white;
-            font-weight: 700;
-            font-size: 20px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .wheel-percentage-top {
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .wheel-percentage-right {
-            top: 50%;
-            right: -40px;
-            transform: translateY(-50%);
-        }
-
-        .wheel-percentage-bottom {
-            bottom: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .wheel-percentage-left {
-            top: 50%;
-            left: -40px;
-            transform: translateY(-50%);
         }
 
         .chance-selector {
@@ -3263,35 +3231,6 @@
             width: 30px;
             height: 30px;
         }
-
-        /* ========== ИСПРАВЛЕНИЕ СТРЕЛКИ АПГРЕЙДА ========== */
-.wheel-arrow-moving {
-    position: absolute;
-    top: -35px !important;
-    left: 50% !important;
-    transform: translateX(-50%) rotate(0deg) !important;
-    transform-origin: bottom center !important;
-    z-index: 20;
-    transition: transform 0.1s linear !important;
-    width: auto !important;
-    height: auto !important;
-}
-
-.wheel-arrow-moving .arrow-inner {
-    width: 0 !important;
-    height: 0 !important;
-    border-left: 20px solid transparent !important;
-    border-right: 20px solid transparent !important;
-    border-top: 40px solid !important;
-    border-top-color: #8847ff !important;
-    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5)) !important;
-}
-
-.wheel-percentage-top {
-    top: -55px !important;
-    font-size: 22px !important;
-}
-/* ========== КОНЕЦ ИСПРАВЛЕНИЯ ========== */
     </style>
 </head>
 <body>
@@ -3602,11 +3541,6 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <!-- НОВЫЕ ПРОЦЕНТЫ НА КРУГЕ -->
-                                    <div class="wheel-percentage-label wheel-percentage-top">100%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-right">25%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-left">75%</div>
                                 </div>
                                 <div class="wheel-arrow-moving" id="wheel-arrow-moving">
                                     <div class="arrow-inner"></div>
@@ -3952,7 +3886,7 @@
                     <input type="text" id="register-username" placeholder="Придумайте логин (мин. 3 символа)">
                 </div>
                 
-                .form-group {
+                <div class="form-group">
                     <label for="register-password">Пароль</label>
                     <input type="password" id="register-password" placeholder="Придумайте пароль (мин. 6 символов)">
                 </div>
@@ -5415,7 +5349,6 @@
             });
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрая прокрутка кейса с плавным завершением
         function spinDynamicCaseFast(scrollIndex) {
             return new Promise((resolve) => {
                 const currentCase = scrollIndex;
@@ -5424,19 +5357,14 @@
                 const dynamicScroll = scrollData.scroll;
                 
                 let scrollPosition = 0;
-                let speed = 200; // Высокая начальная скорость для быстрой прокрутки
-                let deceleration = 0.8; // Более плавное замедление
-                let targetPosition = Math.random() * 8000 + 4000; // Меньше дистанции
+                let speed = 100; // Увеличена скорость
+                let deceleration = 0.85; // Более резкое торможение
+                let targetPosition = Math.random() * 5000 + 2000; // Меньше дистанции
                 let lastLoadedPosition = 0;
                 let animationId = null;
                 
                 const animate = () => {
-                    // Плавное замедление
                     speed *= deceleration;
-                    if (scrollPosition > targetPosition * 0.7) {
-                        deceleration = 0.95; // Еще более плавное замедление в конце
-                    }
-                    
                     scrollPosition += speed;
                     
                     // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
@@ -5447,11 +5375,11 @@
                         lastLoadedPosition = scrollPosition;
                     }
                     
-                    if (speed < 1 || scrollPosition >= targetPosition) {
+                    if (speed < 0.5 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ - останавливаем на месте
+                        dynamicScroll.style.transition = 'none';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -5477,7 +5405,7 @@
                             setTimeout(() => {
                                 centerItem.classList.remove('active');
                                 resolve(randomItem);
-                            }, 500); // Увеличенное время для плавности
+                            }, 300);
                         } else {
                             resolve(randomItem);
                         }
@@ -5490,16 +5418,16 @@
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
                 
-                // Устанавливаем таймаут для гарантированного завершения через 1.5 секунды (вместо 1)
+                // Устанавливаем таймаут для гарантированного завершения через 1 секунду
                 setTimeout(() => {
                     if (animationId) {
                         cancelAnimationFrame(animationId);
                     }
-                    // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                    dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                    // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                    dynamicScroll.style.transition = 'none';
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     resolve(randomItem);
-                }, 1500);
+                }, 1000);
             });
         }
 
@@ -5519,8 +5447,8 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
             
-            // Для быстрой прокрутки - 1.5 секунды, 2-3 оборота с плавным завершением
-            const spinDuration = 1500;
+            // Для быстрой прокрутки - 1 секунда, 2-3 оборота
+            const spinDuration = 1000;
             const spinRotations = 2 + Math.random(); // 2-3 оборота
             
             let startTime = null;
@@ -5533,7 +5461,6 @@
                 
                 if (progress < spinDuration) {
                     const t = progress / spinDuration;
-                    // Более плавная анимация с easeOutCubic
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
@@ -5547,7 +5474,7 @@
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+                    wheelArrowMoving.style.transition = 'none';
                     
                     // Сохраняем состояние апгрейда
                     db.saveUpgradeState({
@@ -5571,7 +5498,7 @@
             
             animationId = requestAnimationFrame(animateSpin);
             
-            // Гарантированное завершение через 1.5 секунды с плавным завершением
+            // Гарантированное завершение через 1 секунду
             setTimeout(() => {
                 if (animationId) {
                     cancelAnimationFrame(animationId);
@@ -5581,7 +5508,7 @@
                 const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                 
                 wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+                wheelArrowMoving.style.transition = 'none';
                 
                 // Сохраняем состояние апгрейда
                 db.saveUpgradeState({
@@ -5600,7 +5527,7 @@
                     upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                     wheelArrowMoving.style.transition = 'transform 0.1s linear';
                 }, 500);
-            }, 1500);
+            }, 1000);
         }
 
         // ОБНОВЛЕННАЯ ФУНКЦИЯ: Запуск апгрейда
@@ -5663,7 +5590,7 @@
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+                    wheelArrowMoving.style.transition = 'none';
                     
                     // Обновляем состояние с результатом
                     const upgradeState = db.getUpgradeState();
@@ -5895,7 +5822,7 @@
             }
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обновление отображения стрелки апгрейда (исправленная)
+        // ФУНКЦИЯ: Обновление отображения стрелки апгрейда (исправленная)
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
@@ -5909,12 +5836,8 @@
             wheelArrowMoving.style.display = 'block';
             wheelArrowMoving.style.transform = `rotate(0deg)`;
             
-            // ИСПРАВЛЕНИЕ: Устанавливаем правильный transform-origin для ровного вращения по окружности
+            // ИСПРАВЛЕНИЕ: Устанавливаем правильный transform-origin для ровного вращения
             wheelArrowMoving.style.transformOrigin = 'center 200px';
-            
-            // Убедимся, что стрелка правильно позиционирована в самой верхней точке круга
-            wheelArrowMoving.style.top = '-25px';
-            wheelArrowMoving.style.left = '50%';
         }
 
         // ФУНКЦИЯ: Обработка результата апгрейда
@@ -6789,8 +6712,8 @@
                     if (speed < 0.5 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'none';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -6831,7 +6754,6 @@
             });
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обычная прокрутка кейса (дольше на 3 секунды и плавное завершение)
         function spinDynamicCase(scrollIndex) {
             return new Promise((resolve) => {
                 const currentCase = gameState.currentCaseOpening;
@@ -6859,8 +6781,8 @@
                     if (speed < 0.3) {
                         cancelAnimationFrame(animationId);
                         
-                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ - вместо резкой остановки
-                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'none';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -6886,7 +6808,7 @@
                             setTimeout(() => {
                                 centerItem.classList.remove('active');
                                 resolve(randomItem);
-                            }, 1500); // Увеличенное время для плавности
+                            }, 1500);
                         } else {
                             resolve(randomItem);
                         }
@@ -6898,17 +6820,6 @@
                 
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
-                
-                // Гарантированное завершение через 5 секунд (вместо быстрого)
-                setTimeout(() => {
-                    if (animationId) {
-                        cancelAnimationFrame(animationId);
-                    }
-                    // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                    dynamicScroll.style.transition = 'transform 0.5s ease-out';
-                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
-                    resolve(randomItem);
-                }, 5000); // Увеличено до 5 секунд
             });
         }
 
@@ -7853,22 +7764,6 @@
         window.addEventListener('resize', updateOnlineCount);
         setInterval(updateOnlineCount, 30000);
         updateOnlineCount();
-
-        // Исправление для стрелки апгрейда
-document.addEventListener('DOMContentLoaded', function() {
-    const originalWheelStyle = wheelArrowMoving.style;
-    const originalSetProperty = wheelArrowMoving.style.setProperty;
-    
-    wheelArrowMoving.style.setProperty = function(prop, value, priority) {
-        if (prop === 'transform' && value.includes('rotate') && !value.includes('translateX')) {
-            value = `translateX(-50%) ${value}`;
-        }
-        return originalSetProperty.call(this, prop, value, priority);
-    };
-});
     </script>
 </body>
 </html>
-
-
-
