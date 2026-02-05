@@ -8035,4 +8035,80 @@
             
             const userData = {
                 password: password,
-                balance: systemSettings.default
+                balance: systemSettings.defaultBalance,
+                casesOpened: 0,
+                totalValue: 0,
+                bestItem: "Нет",
+                createdAt: new Date().toLocaleDateString(),
+                isAdmin: false,
+                inventory: []
+            };
+            
+            db.saveUser(username, userData);
+            currentUser = username;
+            db.setCurrentUser(username);
+            
+            updateUserDisplay();
+            updateOpenCaseButtons();
+            authModal.style.display = 'none';
+            registerUsername.value = '';
+            registerPassword.value = '';
+            registerConfirm.value = '';
+            registerError.style.display = 'none';
+            
+            profileTab.style.display = 'flex';
+            
+            if (gameState.pendingItems.length > 0) {
+                addPendingItemsToInventory();
+            }
+            
+            alert('Аккаунт успешно создан! Вы вошли в систему.');
+            loginTab.click();
+        }
+
+        function getAvatarColor(username) {
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
+            const index = username.length % colors.length;
+            return colors[index];
+        }
+
+        function getRarityColor(rarity) {
+            const colors = {
+                'common': '#5e98d9',
+                'uncommon': '#4b69ff',
+                'rare': '#8847ff',
+                'mythical': '#d32ee6',
+                'legendary': '#ffd700',
+                'ancient': '#eb4b4b'
+            };
+            return colors[rarity] || '#969696';
+        }
+
+        function getRarityName(rarity) {
+            const names = {
+                'common': 'Армейское',
+                'uncommon': 'Запрещенное',
+                'rare': 'Засекреченное',
+                'mythical': 'Тайное',
+                'legendary': 'Ножевое',
+                'ancient': 'Древнее'
+            };
+            return names[rarity] || rarity;
+        }
+
+        function getItemValue(itemName) {
+            for (const rarity in cs2Items) {
+                const item = cs2Items[rarity].find(i => i.name === itemName);
+                if (item) return item.value;
+            }
+            return 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('resize', updateOnlineCount);
+        setInterval(updateOnlineCount, 30000);
+        updateOnlineCount();
+    </script>
+</body>
+</html>
+
