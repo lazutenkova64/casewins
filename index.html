@@ -1463,6 +1463,39 @@
             letter-spacing: 1px;
         }
 
+        /* НОВЫЕ ПРОЦЕНТЫ НА КРУГЕ */
+        .wheel-percentage-label {
+            position: absolute;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .wheel-percentage-top {
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wheel-percentage-right {
+            top: 50%;
+            right: -40px;
+            transform: translateY(-50%);
+        }
+
+        .wheel-percentage-bottom {
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wheel-percentage-left {
+            top: 50%;
+            left: -40px;
+            transform: translateY(-50%);
+        }
+
         .chance-selector {
             display: flex;
             flex-wrap: wrap;
@@ -3541,6 +3574,11 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
+                                    <!-- НОВЫЕ ПРОЦЕНТЫ НА КРУГЕ -->
+                                    <div class="wheel-percentage-label wheel-percentage-top">100%</div>
+                                    <div class="wheel-percentage-label wheel-percentage-right">25%</div>
+                                    <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
+                                    <div class="wheel-percentage-label wheel-percentage-left">75%</div>
                                 </div>
                                 <div class="wheel-arrow-moving" id="wheel-arrow-moving">
                                     <div class="arrow-inner"></div>
@@ -3886,7 +3924,7 @@
                     <input type="text" id="register-username" placeholder="Придумайте логин (мин. 3 символа)">
                 </div>
                 
-                <div class="form-group">
+                .form-group {
                     <label for="register-password">Пароль</label>
                     <input type="password" id="register-password" placeholder="Придумайте пароль (мин. 6 символов)">
                 </div>
@@ -5349,6 +5387,7 @@
             });
         }
 
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрая прокрутка кейса с плавным завершением
         function spinDynamicCaseFast(scrollIndex) {
             return new Promise((resolve) => {
                 const currentCase = scrollIndex;
@@ -5357,14 +5396,19 @@
                 const dynamicScroll = scrollData.scroll;
                 
                 let scrollPosition = 0;
-                let speed = 100; // Увеличена скорость
-                let deceleration = 0.85; // Более резкое торможение
-                let targetPosition = Math.random() * 5000 + 2000; // Меньше дистанции
+                let speed = 200; // Высокая начальная скорость для быстрой прокрутки
+                let deceleration = 0.8; // Более плавное замедление
+                let targetPosition = Math.random() * 8000 + 4000; // Меньше дистанции
                 let lastLoadedPosition = 0;
                 let animationId = null;
                 
                 const animate = () => {
+                    // Плавное замедление
                     speed *= deceleration;
+                    if (scrollPosition > targetPosition * 0.7) {
+                        deceleration = 0.95; // Еще более плавное замедление в конце
+                    }
+                    
                     scrollPosition += speed;
                     
                     // ИСПРАВЛЕНИЕ: Гарантируем, что прокрутка идет только справа налево
@@ -5375,11 +5419,11 @@
                         lastLoadedPosition = scrollPosition;
                     }
                     
-                    if (speed < 0.5 || scrollPosition >= targetPosition) {
+                    if (speed < 1 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ - останавливаем на месте
-                        dynamicScroll.style.transition = 'none';
+                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -5405,7 +5449,7 @@
                             setTimeout(() => {
                                 centerItem.classList.remove('active');
                                 resolve(randomItem);
-                            }, 300);
+                            }, 500); // Увеличенное время для плавности
                         } else {
                             resolve(randomItem);
                         }
@@ -5418,16 +5462,16 @@
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
                 
-                // Устанавливаем таймаут для гарантированного завершения через 1 секунду
+                // Устанавливаем таймаут для гарантированного завершения через 1.5 секунды (вместо 1)
                 setTimeout(() => {
                     if (animationId) {
                         cancelAnimationFrame(animationId);
                     }
-                    // ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                    dynamicScroll.style.transition = 'none';
+                    // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                    dynamicScroll.style.transition = 'transform 0.5s ease-out';
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     resolve(randomItem);
-                }, 1000);
+                }, 1500);
             });
         }
 
@@ -5447,8 +5491,8 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
             
-            // Для быстрой прокрутки - 1 секунда, 2-3 оборота
-            const spinDuration = 1000;
+            // Для быстрой прокрутки - 1.5 секунды, 2-3 оборота с плавным завершением
+            const spinDuration = 1500;
             const spinRotations = 2 + Math.random(); // 2-3 оборота
             
             let startTime = null;
@@ -5461,6 +5505,7 @@
                 
                 if (progress < spinDuration) {
                     const t = progress / spinDuration;
+                    // Более плавная анимация с easeOutCubic
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
@@ -5474,7 +5519,7 @@
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'none';
+                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                     
                     // Сохраняем состояние апгрейда
                     db.saveUpgradeState({
@@ -5498,7 +5543,7 @@
             
             animationId = requestAnimationFrame(animateSpin);
             
-            // Гарантированное завершение через 1 секунду
+            // Гарантированное завершение через 1.5 секунды с плавным завершением
             setTimeout(() => {
                 if (animationId) {
                     cancelAnimationFrame(animationId);
@@ -5508,7 +5553,7 @@
                 const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                 
                 wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                wheelArrowMoving.style.transition = 'none';
+                wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                 
                 // Сохраняем состояние апгрейда
                 db.saveUpgradeState({
@@ -5527,7 +5572,7 @@
                     upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                     wheelArrowMoving.style.transition = 'transform 0.1s linear';
                 }, 500);
-            }, 1000);
+            }, 1500);
         }
 
         // ОБНОВЛЕННАЯ ФУНКЦИЯ: Запуск апгрейда
@@ -5590,7 +5635,7 @@
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'none';
+                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                     
                     // Обновляем состояние с результатом
                     const upgradeState = db.getUpgradeState();
@@ -5822,7 +5867,7 @@
             }
         }
 
-        // ФУНКЦИЯ: Обновление отображения стрелки апгрейда (исправленная)
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обновление отображения стрелки апгрейда (исправленная)
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
@@ -5836,8 +5881,12 @@
             wheelArrowMoving.style.display = 'block';
             wheelArrowMoving.style.transform = `rotate(0deg)`;
             
-            // ИСПРАВЛЕНИЕ: Устанавливаем правильный transform-origin для ровного вращения
+            // ИСПРАВЛЕНИЕ: Устанавливаем правильный transform-origin для ровного вращения по окружности
             wheelArrowMoving.style.transformOrigin = 'center 200px';
+            
+            // Убедимся, что стрелка правильно позиционирована в самой верхней точке круга
+            wheelArrowMoving.style.top = '-25px';
+            wheelArrowMoving.style.left = '50%';
         }
 
         // ФУНКЦИЯ: Обработка результата апгрейда
@@ -6712,8 +6761,8 @@
                     if (speed < 0.5 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                        dynamicScroll.style.transition = 'none';
+                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -6754,6 +6803,7 @@
             });
         }
 
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обычная прокрутка кейса (дольше на 3 секунды и плавное завершение)
         function spinDynamicCase(scrollIndex) {
             return new Promise((resolve) => {
                 const currentCase = gameState.currentCaseOpening;
@@ -6781,8 +6831,8 @@
                     if (speed < 0.3) {
                         cancelAnimationFrame(animationId);
                         
-                        // ФИКСАЦИЯ ПОЛОЖЕНИЯ
-                        dynamicScroll.style.transition = 'none';
+                        // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ - вместо резкой остановки
+                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
@@ -6808,7 +6858,7 @@
                             setTimeout(() => {
                                 centerItem.classList.remove('active');
                                 resolve(randomItem);
-                            }, 1500);
+                            }, 1500); // Увеличенное время для плавности
                         } else {
                             resolve(randomItem);
                         }
@@ -6820,6 +6870,17 @@
                 
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
+                
+                // Гарантированное завершение через 5 секунд (вместо быстрого)
+                setTimeout(() => {
+                    if (animationId) {
+                        cancelAnimationFrame(animationId);
+                    }
+                    // ПЛАВНАЯ ФИКСАЦИЯ ПОЛОЖЕНИЯ
+                    dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                    resolve(randomItem);
+                }, 5000); // Увеличено до 5 секунд
             });
         }
 
