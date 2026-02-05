@@ -1326,33 +1326,17 @@
             perspective: 1000px;
         }
 
-        /* ИСПРАВЛЕННАЯ ВИЗУАЛИЗАЦИЯ ШАНСА - ЗАПОЛНЕНИЕ СНИЗУ ВВЕРХ */
         .wheel-success-sector {
             position: absolute;
             width: 100%;
             height: 100%;
+            background: conic-gradient(
+                #4CAF50 0deg,
+                #4CAF50 var(--success-degrees, 0deg),
+                #f44336 var(--success-degrees, 0deg),
+                #f44336 360deg
+            );
             border-radius: 50%;
-            overflow: hidden;
-        }
-
-        .success-fill {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(0deg, #4CAF50 0%, #8BC34A 100%);
-            transition: height 0.5s ease;
-            border-radius: 50% 50% 0 0;
-        }
-
-        .failure-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(180deg, #f44336 0%, #ff9800 100%);
-            transition: height 0.5s ease;
-            border-radius: 0 0 50% 50%;
         }
 
         /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ФИОЛЕТОВЫЙ ГРАДИЕНТ, БЕЗ КРУЖКА */
@@ -1415,35 +1399,6 @@
         .percent-label {
             font-size: 12px;
             color: rgba(255,255,255,0.7);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* КРУЖОК С ШАНСАМИ ПЕРЕМЕЩЕН ПОД КРУГ */
-        .chance-display-circle {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.8);
-            border: 3px solid var(--gold-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 20px auto 0;
-            position: relative;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        .chance-display-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: white;
-        }
-
-        .chance-display-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -2934,11 +2889,11 @@
             transition: width 0.3s ease;
         }
 
-        /* Контейнер для нескольких лент - ИСПРАВЛЕННЫЙ */
+        /* Контейнер для нескольких лент */
         .multiple-scrolls-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
             width: 100%;
             height: auto;
             padding: 10px 0;
@@ -3138,16 +3093,6 @@
             border-right: 1px solid rgba(255, 255, 255, 0.05);
             flex-shrink: 0;
             position: relative;
-        }
-
-        /* Стиль для контракта - скрыть полосу скролла */
-        .contract-inventory-grid::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .contract-inventory-grid {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
         }
 
         /* Адаптивные стили для прокрутки на телефонах */
@@ -3504,18 +3449,14 @@
                         <div class="upgrade-center">
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
-                                    <div class="wheel-success-sector" id="wheel-success-sector">
-                                        <div class="success-fill" id="success-fill" style="height: 0%"></div>
-                                        <div class="failure-fill" id="failure-fill" style="height: 100%"></div>
-                                    </div>
-                                    <div class="wheel-arrow-moving" id="wheel-arrow-moving">
-                                        <div class="arrow-inner"></div>
-                                    </div>
+                                    <div class="wheel-success-sector" id="wheel-success-sector"></div>
                                 </div>
-                                <!-- Кружок с шансами перемещен под круг -->
-                                <div class="chance-display-circle" id="chance-display-circle">
-                                    <div class="chance-display-value" id="chance-display-value">0%</div>
-                                    <div class="chance-display-label">Шанс успеха</div>
+                                <div class="wheel-arrow-moving" id="wheel-arrow-moving">
+                                    <div class="arrow-inner"></div>
+                                </div>
+                                <div class="percent-display" id="percent-display">
+                                    <div class="percent-value" id="percent-value">0%</div>
+                                    <div class="percent-label">Шанс</div>
                                 </div>
                             </div>
                             
@@ -4430,15 +4371,13 @@
         const upgradeResultItem = document.getElementById('upgrade-result-item');
         const upgradeWheel = document.getElementById('upgrade-wheel');
         const wheelArrowMoving = document.getElementById('wheel-arrow-moving');
-        const successFill = document.getElementById('success-fill');
-        const failureFill = document.getElementById('failure-fill');
+        const wheelSuccessSector = document.getElementById('wheel-success-sector');
         const upgradeStatus = document.getElementById('upgrade-status');
         const chanceSelector = document.getElementById('chance-selector');
         const upgradeBalanceInput = document.getElementById('upgrade-balance-input');
         const upgradeStartBtn = document.getElementById('upgrade-start-btn');
         const upgradeInventoryGrid = document.getElementById('upgrade-inventory-grid');
-        const chanceDisplayValue = document.getElementById('chance-display-value');
-        const chanceDisplayCircle = document.getElementById('chance-display-circle');
+        const percentValue = document.getElementById('percent-value');
         
         // Контракты элементы
         const contractSlotsGrid = document.getElementById('contract-slots-grid');
@@ -5458,8 +5397,6 @@
             if (gameState.upgradeSelectedChance === 0) {
                 upgradeStatus.textContent = 'Выберите процент успеха';
                 upgradeStartBtn.disabled = true;
-                chanceDisplayValue.textContent = '0%';
-                updateWheelVisual();
                 return;
             }
             
@@ -5470,35 +5407,23 @@
                 return;
             }
             
-            // Рассчитываем шанс с учетом добавленных монет: каждая 100 монет = +1% шанса
-            const bonusChance = Math.floor(balanceAmount / 100);
-            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + bonusChance);
-            
-            chanceDisplayValue.textContent = `${effectiveChance}%`;
-            upgradeStatus.textContent = `Шанс успеха: ${effectiveChance}% (базовый: ${gameState.upgradeSelectedChance}% + ${bonusChance}% за монеты)`;
+            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+            percentValue.textContent = `${effectiveChance}%`;
+            upgradeStatus.textContent = `Шанс успеха: ${effectiveChance}%`;
             upgradeStartBtn.disabled = false;
             
-            updateWheelVisual();
             generatePossibleWin();
         }
 
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
-                successFill.style.height = '0%';
-                failureFill.style.height = '100%';
+                wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
                 wheelArrowMoving.style.display = 'none';
                 return;
             }
             
-            const balanceAmount = gameState.upgradeBalanceAmount || 0;
-            const bonusChance = Math.floor(balanceAmount / 100);
-            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + bonusChance);
-            
-            const successHeight = effectiveChance;
-            const failureHeight = 100 - effectiveChance;
-            
-            successFill.style.height = `${successHeight}%`;
-            failureFill.style.height = `${failureHeight}%`;
+            const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
+            wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
             
             wheelArrowMoving.style.display = 'block';
             wheelArrowMoving.style.transform = `rotate(0deg)`;
@@ -5538,10 +5463,7 @@
                     requestAnimationFrame(animateSpin);
                 } else {
                     const finalRotation = rotation % 360;
-                    const balanceAmount = gameState.upgradeBalanceAmount || 0;
-                    const bonusChance = Math.floor(balanceAmount / 100);
-                    const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + bonusChance);
-                    const isSuccess = finalRotation < (effectiveChance / 100) * 360;
+                    const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
                     
@@ -5888,8 +5810,7 @@
             multipleScrollsContainer.innerHTML = '';
             gameState.dynamicScrolls = [];
             
-            // Рассчитываем высоту контейнера в зависимости от количества кейсов
-            const containerHeight = Math.max(150, 700 / gameState.caseQuantity);
+            const containerHeight = Math.min(200, 700 / gameState.caseQuantity);
             
             for (let i = 0; i < gameState.caseQuantity; i++) {
                 const scrollContainer = document.createElement('div');
@@ -6031,37 +5952,6 @@
                 let targetPosition = Math.random() * 10000 + 5000;
                 let lastLoadedPosition = 0;
                 
-                // ИЗМЕНЕНИЕ: Предмет сразу добавляется в инвентарь при запуске анимации
-                if (currentUser) {
-                    const user = db.getUser(currentUser);
-                    const addedItem = db.addToInventory(currentUser, randomItem);
-                    
-                    gameState.batchResults.push(addedItem);
-                    
-                    user.totalValue += randomItem.value;
-                    if (user.bestItem === "Нет" || randomItem.value > getItemValue(user.bestItem)) {
-                        user.bestItem = randomItem.name;
-                    }
-                    
-                    db.saveUser(currentUser, user);
-                } else {
-                    gameState.pendingItems.push(randomItem);
-                }
-                
-                // Добавляем выпадение в историю
-                const drop = {
-                    user: currentUser || 'Гость',
-                    item: randomItem,
-                    time: "Только что",
-                    timestamp: Date.now()
-                };
-                
-                db.addRecentDrop(drop);
-                db.addOtherUsersDrop(drop);
-                addDropToSidebar(drop);
-                
-                updateUserDisplay();
-                
                 const animate = () => {
                     speed *= deceleration;
                     scrollPosition += speed;
@@ -6135,24 +6025,59 @@
             caseBatchProgressFill.style.width = `${progressPercentage}%`;
             
             spinDynamicCase(gameState.currentCaseOpening).then((item) => {
-                gameState.currentCaseOpening++;
-                
-                if (gameState.currentCaseOpening < gameState.caseQuantity) {
-                    setTimeout(() => {
-                        const caseData = casesData[gameState.selectedCase];
-                        const scrollData = gameState.dynamicScrolls[gameState.currentCaseOpening];
-                        scrollData.scroll.innerHTML = '';
-                        
-                        loadMoreItemsToDynamicScroll(caseData, scrollData.scroll, gameState.currentCaseOpening, 0);
-                        
-                        openNextCase();
-                    }, 1000);
-                } else {
-                    setTimeout(() => {
-                        showBatchResults();
-                    }, 1000);
-                }
+                processCaseResult(item);
             });
+        }
+
+        function processCaseResult(item) {
+            const user = db.getUser(currentUser);
+            
+            if (currentUser) {
+                const addedItem = db.addToInventory(currentUser, item);
+                const newItem = addedItem;
+                
+                gameState.batchResults.push(newItem);
+                
+                user.totalValue += item.value;
+                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                    user.bestItem = item.name;
+                }
+                
+                db.saveUser(currentUser, user);
+            } else {
+                gameState.pendingItems.push(item);
+            }
+            
+            const drop = {
+                user: currentUser || 'Гость',
+                item: item,
+                time: "Только что",
+                timestamp: Date.now()
+            };
+            
+            db.addRecentDrop(drop);
+            db.addOtherUsersDrop(drop);
+            addDropToSidebar(drop);
+            
+            gameState.currentCaseOpening++;
+            
+            updateUserDisplay();
+            
+            if (gameState.currentCaseOpening < gameState.caseQuantity) {
+                setTimeout(() => {
+                    const caseData = casesData[gameState.selectedCase];
+                    const scrollData = gameState.dynamicScrolls[gameState.currentCaseOpening];
+                    scrollData.scroll.innerHTML = '';
+                    
+                    loadMoreItemsToDynamicScroll(caseData, scrollData.scroll, gameState.currentCaseOpening, 0);
+                    
+                    openNextCase();
+                }, 1000);
+            } else {
+                setTimeout(() => {
+                    showBatchResults();
+                }, 1000);
+            }
         }
 
         function showBatchResults() {
