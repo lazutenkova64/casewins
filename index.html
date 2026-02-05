@@ -1913,6 +1913,13 @@
             border: 1px solid #eb4b4b;
         }
 
+        .rarity-billionaire {
+            background: linear-gradient(45deg, rgba(0, 255, 0, 0.2), rgba(0, 200, 0, 0.2));
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
         .modal-actions {
             display: flex;
             justify-content: center;
@@ -2832,6 +2839,28 @@
             text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
         }
         
+        .case-billionaire {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+        }
+        
+        .case-billionaire::before {
+            content: '₿';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 800;
+            font-size: 40px;
+            color: #000;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+        
         /* Стили для картинок предметов */
         .item-img {
             width: 100px;
@@ -2874,6 +2903,19 @@
         
         .item-ancient {
             background: linear-gradient(45deg, #ff0000, #ff6b6b);
+        }
+        
+        .item-billionaire {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+        
+        .item-billionaire::before {
+            content: '₿';
+            font-weight: 800;
+            font-size: 24px;
+            color: #000;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
         }
         
         /* Новые стили для апгрейда */
@@ -4368,6 +4410,24 @@
                 { name: "AWP | Рубиновая слава", value: 2700, rarity: 'ancient' },
                 { name: "Нож | Алмазный клинок", value: 3500, rarity: 'ancient' },
                 { name: "AK-47 | Рубиновый дракон", value: 2900, rarity: 'ancient' }
+            ],
+            
+            // НОВЫЙ РАЗДЕЛ: Предметы для кейса "Миллиардер"
+            billionaire: [
+                { name: "AK-47 | Золотой миллиардер", value: 1000000000, rarity: 'billionaire' },
+                { name: "AWP | Алмазная элита", value: 5000000000, rarity: 'billionaire' },
+                { name: "Нож | Кристалл миллиардера", value: 10000000000, rarity: 'billionaire' },
+                { name: "M4A4 | Платиновый статус", value: 2000000000, rarity: 'billionaire' },
+                { name: "Desert Eagle | Изумрудный миллионер", value: 8000000000, rarity: 'billionaire' },
+                { name: "Перчатки | Золотой капитал", value: 15000000000, rarity: 'billionaire' },
+                { name: "Нож | Рубиновая империя", value: 20000000000, rarity: 'billionaire' }
+            ],
+            
+            // НОВЫЙ РАЗДЕЛ: Дешевые предметы для кейса "Миллиардер" (выпадают в 97% случаев)
+            billionaire_cheap: [
+                { name: "Glock-18 | Обычный камуфляж", value: 100000, rarity: 'common' },
+                { name: "USP-S | Базовый серый", value: 250000, rarity: 'common' },
+                { name: "P250 | Простой паттерн", value: 500000, rarity: 'common' }
             ]
         };
 
@@ -4402,6 +4462,14 @@
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
                 price: Math.round(1850 * 1.4) // Увеличено на 40%
+            },
+            // НОВЫЙ КЕЙС "Миллиардер"
+            6: {
+                name: "Миллиардер",
+                items: cs2Items.billionaire.concat(cs2Items.billionaire_cheap),
+                color: '#00ff00',
+                price: 2000000000, // 2 миллиарда
+                isSpecial: true // Флаг специального кейса
             }
         };
 
@@ -5722,7 +5790,22 @@
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
             
             for (let i = 0; i < gameState.caseQuantity; i++) {
-                const randomItem = getRandomItem(caseData);
+                // ОСОБАЯ ЛОГИКА ДЛЯ КЕЙСА "МИЛЛИАРДЕР"
+                let randomItem;
+                if (caseId == 6) {
+                    // 3% шанс на дорогой предмет, 97% на дешевый
+                    if (Math.random() < 0.03) {
+                        // Дорогой предмет (1-20 миллиардов)
+                        randomItem = cs2Items.billionaire[Math.floor(Math.random() * cs2Items.billionaire.length)];
+                    } else {
+                        // Дешевый предмет (100,000 - 500,000)
+                        randomItem = cs2Items.billionaire_cheap[Math.floor(Math.random() * cs2Items.billionaire_cheap.length)];
+                    }
+                } else {
+                    // Обычная логика для других кейсов
+                    randomItem = getRandomItem(caseData);
+                }
+                
                 gameState.caseResults.push(randomItem);
                 
                 // НОВОЕ: Сохраняем предметы в случае обновления страницы
@@ -6285,9 +6368,9 @@
         }
 
         function getNextRarity(currentRarity) {
-            const rarityOrder = ['common', 'uncommon', 'rare', 'mythical', 'legendary', 'ancient'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'mythical', 'legendary', 'ancient', 'billionaire'];
             const currentIndex = rarityOrder.indexOf(currentRarity);
-            return currentIndex < rarityOrder.length - 1 ? rarityOrder[currentIndex + 1] : 'ancient';
+            return currentIndex < rarityOrder.length - 1 ? rarityOrder[currentIndex + 1] : 'billionaire';
         }
 
         function resetUpgrade() {
@@ -6618,7 +6701,22 @@
             const itemsToLoad = 20;
             
             for (let i = 0; i < itemsToLoad; i++) {
-                const randomItem = items[Math.floor(Math.random() * items.length)];
+                // ОСОБАЯ ЛОГИКА ДЛЯ КЕЙСА "МИЛЛИАРДЕР" - ПРАВИЛЬНЫЕ ШАНСЫ В ПРЕВЬЮ
+                let randomItem;
+                if (gameState.selectedCase == 6) {
+                    // Для превью в кейсе "Миллиардер" показываем оба типа предметов
+                    if (i % 3 === 0) {
+                        // Каждый 3-й предмет - дорогой (для демонстрации)
+                        randomItem = cs2Items.billionaire[Math.floor(Math.random() * cs2Items.billionaire.length)];
+                    } else {
+                        // Остальные - дешевые
+                        randomItem = cs2Items.billionaire_cheap[Math.floor(Math.random() * cs2Items.billionaire_cheap.length)];
+                    }
+                } else {
+                    // Обычная логика для других кейсов
+                    randomItem = items[Math.floor(Math.random() * items.length)];
+                }
+                
                 const itemIndex = startIndex + i;
                 
                 const itemElement = document.createElement('div');
@@ -7458,6 +7556,7 @@
                     case '3': caseImage = '<div class="case-secret"></div>'; break;
                     case '4': caseImage = '<div class="case-classified"></div>'; break;
                     case '5': caseImage = '<div class="case-knife"></div>'; break;
+                    case '6': caseImage = '<div class="case-billionaire"></div>'; break;
                 }
                 
                 caseCard.innerHTML = `
@@ -7480,6 +7579,7 @@
                             <div class="case-stats">
                                 <div class="stat"><i class="fas fa-box-open"></i> ${caseData.items.length} предметов</div>
                                 <div class="stat"><i class="fas fa-palette"></i> ${caseData.name}</div>
+                                ${caseId == 6 ? '<div class="stat"><i class="fas fa-crown"></i> 3% на миллиарды</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -7735,7 +7835,8 @@
                 'rare': '#8847ff',
                 'mythical': '#d32ee6',
                 'legendary': '#ffd700',
-                'ancient': '#eb4b4b'
+                'ancient': '#eb4b4b',
+                'billionaire': '#00ff00'
             };
             return colors[rarity] || '#969696';
         }
@@ -7747,7 +7848,8 @@
                 'rare': 'Засекреченное',
                 'mythical': 'Тайное',
                 'legendary': 'Ножевое',
-                'ancient': 'Древнее'
+                'ancient': 'Древнее',
+                'billionaire': 'Миллиардер'
             };
             return names[rarity] || rarity;
         }
