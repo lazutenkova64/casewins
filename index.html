@@ -7853,8 +7853,22 @@
         window.addEventListener('resize', updateOnlineCount);
         setInterval(updateOnlineCount, 30000);
         updateOnlineCount();
+
+        // Исправление для стрелки апгрейда
+document.addEventListener('DOMContentLoaded', function() {
+    const originalWheelStyle = wheelArrowMoving.style;
+    const originalSetProperty = wheelArrowMoving.style.setProperty;
+    
+    wheelArrowMoving.style.setProperty = function(prop, value, priority) {
+        if (prop === 'transform' && value.includes('rotate') && !value.includes('translateX')) {
+            value = `translateX(-50%) ${value}`;
+        }
+        return originalSetProperty.call(this, prop, value, priority);
+    };
+});
     </script>
 </body>
 </html>
+
 
 
