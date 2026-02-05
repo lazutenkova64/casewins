@@ -677,28 +677,9 @@
             padding: 10px;
         }
 
-        .center-arrow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            color: var(--gold-color);
-            font-size: 48px;
-            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-        }
-
+        /* Убрали красную стрелку */
         .center-line {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(to bottom, transparent, var(--primary-color), transparent);
-            z-index: 10;
-            box-shadow: 0 0 10px rgba(255, 70, 85, 0.7);
+            display: none;
         }
 
         .mask-left, .mask-right {
@@ -2893,7 +2874,7 @@
         .multiple-scrolls-container {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 25px; /* Увеличено расстояние между лентами */
             width: 100%;
             height: auto;
             padding: 10px 0;
@@ -2909,17 +2890,10 @@
             background: rgba(0, 0, 0, 0.2);
             width: 100%;
         }
-
+        
+        /* Убрали стрелку из single-scroll-container */
         .single-scroll-arrow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            color: var(--primary-color);
-            font-size: 32px;
-            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
-            text-shadow: 0 0 15px rgba(255, 70, 85, 0.8);
+            display: none;
         }
         
         /* Стили для результатов батча */
@@ -2964,29 +2938,18 @@
             border-radius: 10px;
         }
         
-        /* Новые стили для фиксированной стрелки ВЫШЕ вещей */
+        /* Желтая стрелка ВЫШЕ вещей - фиксированная */
         .fixed-arrow {
             position: absolute;
-            top: 30%;
+            top: 5px; /* Поставили стрелку ВЫШЕ вещей */
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             z-index: 20;
             color: var(--gold-color);
             font-size: 36px;
             filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.8));
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.9);
             pointer-events: none;
-        }
-        
-        .fixed-arrow::before {
-            content: '▼';
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 24px;
-            color: var(--primary-color);
-            text-shadow: 0 0 10px rgba(255, 70, 85, 0.8);
         }
         
         /* Профиль другого пользователя */
@@ -3095,6 +3058,11 @@
             position: relative;
         }
 
+        /* Увеличение расстояния между лентами при открытии 5 кейсов */
+        .case-opening-container.open-5-cases .multiple-scrolls-container {
+            gap: 35px;
+        }
+
         /* Адаптивные стили для прокрутки на телефонах */
         @media (max-width: 768px) {
             .case-opening-container {
@@ -3117,8 +3085,13 @@
             }
             
             .fixed-arrow {
-                top: 25%;
+                top: 0px;
                 font-size: 28px;
+            }
+            
+            /* Увеличение расстояния между лентами на мобильных */
+            .case-opening-container.open-5-cases .multiple-scrolls-container {
+                gap: 25px;
             }
         }
 
@@ -3138,12 +3111,12 @@
             }
             
             .fixed-arrow {
-                top: 20%;
+                top: -5px;
                 font-size: 24px;
             }
             
-            .center-arrow {
-                font-size: 24px;
+            .case-opening-container.open-5-cases .multiple-scrolls-container {
+                gap: 20px;
             }
         }
     </style>
@@ -4289,7 +4262,9 @@
             batchResults: [],
             viewingOtherProfile: null,
             pendingItems: [],
-            dynamicScrolls: []
+            dynamicScrolls: [],
+            // Новое свойство для хранения промоутов прокрутки
+            spinPromises: []
         };
 
         // DOM элементы
@@ -4320,6 +4295,7 @@
         const totalCaseNumber = document.getElementById('total-case-number');
         const caseBatchProgressFill = document.getElementById('case-batch-progress-fill');
         const multipleScrollsContainer = document.getElementById('multiple-scrolls-container');
+        const caseOpeningContainer = document.getElementById('case-opening-container');
         
         // Секции
         const profileSection = document.getElementById('profile-section');
@@ -4331,7 +4307,6 @@
         const caseOpeningStart = document.getElementById('case-opening-start');
         const maskLeft = document.getElementById('mask-left');
         const maskRight = document.getElementById('mask-right');
-        const caseOpeningContainer = document.getElementById('case-opening-container');
         
         // Профиль элементы
         const backToMainFromProfile = document.getElementById('back-to-main-from-profile');
@@ -4852,6 +4827,13 @@
                     this.classList.add('active');
                     gameState.caseQuantity = parseInt(this.dataset.quantity);
                     updateSpinButtonPrice();
+                    
+                    // Добавляем или удаляем класс для 5 кейсов
+                    if (gameState.caseQuantity === 5) {
+                        caseOpeningContainer.classList.add('open-5-cases');
+                    } else {
+                        caseOpeningContainer.classList.remove('open-5-cases');
+                    }
                 });
             });
         }
@@ -5809,6 +5791,7 @@
         function initDynamicScrolls(caseData) {
             multipleScrollsContainer.innerHTML = '';
             gameState.dynamicScrolls = [];
+            gameState.spinPromises = [];
             
             const containerHeight = Math.min(200, 700 / gameState.caseQuantity);
             
@@ -5829,6 +5812,7 @@
                 rightMask.className = 'scroll-mask-right';
                 dynamicContainer.appendChild(rightMask);
                 
+                // Желтая стрелка ВЫШЕ вещей
                 const fixedArrow = document.createElement('div');
                 fixedArrow.className = 'fixed-arrow';
                 fixedArrow.innerHTML = '<i class="fas fa-caret-down"></i>';
@@ -5849,7 +5833,8 @@
                     scroll: dynamicScroll,
                     wrapper: dynamicContainer,
                     currentPosition: 0,
-                    itemsLoaded: 0
+                    itemsLoaded: 0,
+                    fixedArrow: fixedArrow
                 });
             }
         }
@@ -5916,6 +5901,7 @@
             gameState.currentCaseOpening = 0;
             gameState.caseResults = [];
             gameState.batchResults = [];
+            gameState.spinPromises = [];
             
             spinBtn.disabled = true;
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Подготовка...`;
@@ -5936,13 +5922,12 @@
             multipleScrollsContainer.style.display = 'flex';
             
             initDynamicScrolls(caseData);
-            openNextCase();
+            openAllCasesSimultaneously();
         }
 
         function spinDynamicCase(scrollIndex) {
             return new Promise((resolve) => {
-                const currentCase = gameState.currentCaseOpening;
-                const randomItem = gameState.caseResults[currentCase];
+                const randomItem = gameState.caseResults[scrollIndex];
                 const scrollData = gameState.dynamicScrolls[scrollIndex];
                 const dynamicScroll = scrollData.scroll;
                 
@@ -6002,6 +5987,89 @@
             });
         }
 
+        // НОВАЯ ФУНКЦИЯ: Открытие всех кейсов одновременно
+        function openAllCasesSimultaneously() {
+            if (gameState.caseQuantity === 1) {
+                // Для одного кейса используем старую логику
+                openNextCase();
+                return;
+            }
+            
+            // Для нескольких кейсов запускаем все одновременно
+            gameState.spinPromises = [];
+            
+            for (let i = 0; i < gameState.caseQuantity; i++) {
+                const spinPromise = spinDynamicCase(i);
+                gameState.spinPromises.push(spinPromise);
+                
+                // Немедленно обрабатываем результат для каждого кейса
+                spinPromise.then((item) => {
+                    processCaseResultImmediately(item, i);
+                });
+            }
+            
+            // Когда все промисы завершены, показываем результаты
+            Promise.all(gameState.spinPromises).then(() => {
+                setTimeout(() => {
+                    gameState.isSpinning = false;
+                    spinBtn.disabled = false;
+                    updateSpinButtonPrice();
+                    caseBatchInfo.style.display = 'none';
+                    
+                    showBatchResults();
+                    
+                    setTimeout(() => {
+                        resetCaseOpeningView();
+                    }, 1000);
+                }, 2000);
+            });
+            
+            // Обновляем прогресс батча
+            updateBatchProgress();
+        }
+
+        function processCaseResultImmediately(item, caseIndex) {
+            const user = db.getUser(currentUser);
+            
+            if (currentUser) {
+                const addedItem = db.addToInventory(currentUser, item);
+                const newItem = addedItem;
+                
+                gameState.batchResults.push(newItem);
+                
+                user.totalValue += item.value;
+                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                    user.bestItem = item.name;
+                }
+                
+                db.saveUser(currentUser, user);
+            } else {
+                gameState.pendingItems.push(item);
+            }
+            
+            const drop = {
+                user: currentUser || 'Гость',
+                item: item,
+                time: "Только что",
+                timestamp: Date.now()
+            };
+            
+            db.addRecentDrop(drop);
+            db.addOtherUsersDrop(drop);
+            addDropToSidebar(drop);
+            
+            gameState.currentCaseOpening++;
+            updateUserDisplay();
+            updateBatchProgress();
+        }
+
+        function updateBatchProgress() {
+            const progressPercentage = (gameState.currentCaseOpening / gameState.caseQuantity) * 100;
+            caseBatchProgressFill.style.width = `${progressPercentage}%`;
+            currentCaseNumber.textContent = gameState.currentCaseOpening;
+        }
+
+        // Старая функция для одного кейса
         function openNextCase() {
             if (gameState.currentCaseOpening >= gameState.caseQuantity) {
                 gameState.isSpinning = false;
@@ -6221,6 +6289,7 @@
             maskLeft.style.display = 'none';
             maskRight.style.display = 'none';
             multipleScrollsContainer.style.display = 'none';
+            caseOpeningContainer.classList.remove('open-5-cases');
             
             if (gameState.animationInterval) {
                 clearInterval(gameState.animationInterval);
@@ -6232,6 +6301,7 @@
             gameState.caseResults = [];
             gameState.dynamicScrolls = [];
             gameState.batchResults = [];
+            gameState.spinPromises = [];
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
