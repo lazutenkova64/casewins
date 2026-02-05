@@ -1339,7 +1339,7 @@
             border-radius: 50%;
         }
 
-        /* НОВАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ДВИЖЕТСЯ ПО КОНТУРУ */
+        /* ИЗМЕНЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ФИОЛЕТОВЫЙ ГРАДИЕНТ */
         .wheel-arrow-moving {
             position: absolute;
             top: -25px;
@@ -1356,11 +1356,16 @@
             height: 0;
             border-left: 15px solid transparent;
             border-right: 15px solid transparent;
-            border-bottom: 30px solid var(--primary-color);
+            border-top: 30px solid;
+            border-top-color: var(--primary-color);
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
+            background: linear-gradient(45deg, #8847ff, #d32ee6);
+            -webkit-background-clip: border-box;
+            background-clip: border-box;
         }
 
+        /* УДАЛЕН ЖЕЛТЫЙ КРУЖОК */
         .arrow-inner::before {
             content: '';
             position: absolute;
@@ -1368,10 +1373,10 @@
             left: -10px;
             width: 20px;
             height: 20px;
-            background: linear-gradient(45deg, #ffd700, #ff9800);
+            background: linear-gradient(45deg, #8847ff, #d32ee6);
             border-radius: 50%;
             z-index: 3;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 15px rgba(136, 71, 255, 0.5);
         }
 
         .wheel-percentages {
@@ -2981,10 +2986,10 @@
             border-radius: 10px;
         }
         
-        /* Новые стили для фиксированной стрелки */
+        /* Новые стили для фиксированной стрелки ВЫШЕ вещей */
         .fixed-arrow {
             position: absolute;
-            top: 50%;
+            top: 30%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 20;
@@ -3080,6 +3085,58 @@
         .scroll-mask-right {
             right: 0;
             background: linear-gradient(90deg, transparent, rgba(15, 25, 35, 0.9));
+        }
+
+        /* Адаптивные стили для прокрутки на телефонах */
+        @media (max-width: 768px) {
+            .case-opening-container {
+                min-height: 200px;
+                padding: 5px;
+            }
+            
+            .single-scroll-container {
+                height: 150px;
+            }
+            
+            .scroll-item {
+                width: 130px;
+                height: 130px;
+            }
+            
+            .scroll-item img {
+                width: 90px;
+                height: 70px;
+            }
+            
+            .fixed-arrow {
+                top: 25%;
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .single-scroll-container {
+                height: 120px;
+            }
+            
+            .scroll-item {
+                width: 110px;
+                height: 110px;
+            }
+            
+            .scroll-item img {
+                width: 80px;
+                height: 60px;
+            }
+            
+            .fixed-arrow {
+                top: 20%;
+                font-size: 24px;
+            }
+            
+            .center-arrow {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
@@ -4222,7 +4279,8 @@
             wheelRotation: 0,
             scrollContainers: [],
             batchResults: [],
-            viewingOtherProfile: null
+            viewingOtherProfile: null,
+            pendingItems: [] // Новое поле для хранения предметов, которые нужно добавить
         };
 
         // DOM элементы
@@ -4412,6 +4470,10 @@
                     if (user.isAdmin) {
                         adminBtn.classList.add('visible');
                     }
+                    // Проверяем есть ли pending items
+                    if (gameState.pendingItems.length > 0) {
+                        addPendingItemsToInventory();
+                    }
                 } else {
                     db.clearCurrentUser();
                     currentUser = null;
@@ -4436,6 +4498,31 @@
             
             // Запуск симуляции выпадений других пользователей
             startOtherUsersDropsSimulation();
+        }
+
+        // Добавление ожидающих предметов в инвентарь
+        function addPendingItemsToInventory() {
+            if (!currentUser || gameState.pendingItems.length === 0) return;
+            
+            const user = db.getUser(currentUser);
+            gameState.pendingItems.forEach(item => {
+                db.addToInventory(currentUser, item);
+                
+                // Обновляем статистику пользователя
+                user.totalValue += item.value;
+                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                    user.bestItem = item.name;
+                }
+            });
+            
+            db.saveUser(currentUser, user);
+            gameState.pendingItems = [];
+            updateUserDisplay();
+            
+            // Если открыта страница профиля, обновляем инвентарь
+            if (profileSection.style.display === 'block') {
+                loadInventoryPage();
+            }
         }
 
         // Инициализация обработчиков событий
@@ -5825,7 +5912,7 @@
                 rightMask.className = 'scroll-mask-right';
                 scrollWrapper.appendChild(rightMask);
                 
-                // Добавляем фиксированную стрелку
+                // Добавляем фиксированную стрелку ВЫШЕ вещей
                 const fixedArrow = document.createElement('div');
                 fixedArrow.className = 'fixed-arrow';
                 fixedArrow.innerHTML = '<i class="fas fa-caret-down"></i>';
@@ -5836,8 +5923,8 @@
                 scroll.className = 'case-items-scroll';
                 scroll.dataset.scrollIndex = i;
                 
-                // Создаем 30 предметов для плавной прокрутки
-                for (let j = 0; j < 30; j++) {
+                // УВЕЛИЧИВАЕМ количество предметов для плавной прокрутки
+                for (let j = 0; j < 50; j++) {
                     addRandomItemToScroll(caseData, scroll, j, i);
                 }
                 
@@ -5898,7 +5985,7 @@
                 return;
             }
             
-            // Списываем деньги за все кейсы
+            // ИЗМЕНЕНО: Списываем деньги за все кейсы СРАЗУ
             user.balance -= totalPrice;
             user.casesOpened += gameState.caseQuantity;
             db.saveUser(currentUser, user);
@@ -6056,23 +6143,28 @@
         function processCaseResult(item) {
             const user = db.getUser(currentUser);
             
-            // Добавляем предмет в инвентарь
-            const addedItem = db.addToInventory(currentUser, item);
-            const newItem = addedItem;
-            
-            // Сохраняем результат для отображения
-            gameState.batchResults.push(newItem);
-            
-            // Обновляем статистику пользователя
-            user.totalValue += item.value;
-            if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
-                user.bestItem = item.name;
+            // ИЗМЕНЕНО: Добавляем предмет в инвентарь или в pending items
+            if (currentUser) {
+                const addedItem = db.addToInventory(currentUser, item);
+                const newItem = addedItem;
+                
+                // Сохраняем результат для отображения
+                gameState.batchResults.push(newItem);
+                
+                // Обновляем статистику пользователя
+                user.totalValue += item.value;
+                if (user.bestItem === "Нет" || item.value > getItemValue(user.bestItem)) {
+                    user.bestItem = item.name;
+                }
+                
+                db.saveUser(currentUser, user);
+            } else {
+                // Если пользователь не авторизован, сохраняем в pending items
+                gameState.pendingItems.push(item);
             }
             
-            db.saveUser(currentUser, user);
-            
             const drop = {
-                user: currentUser,
+                user: currentUser || 'Гость',
                 item: item,
                 time: "Только что",
                 timestamp: Date.now()
@@ -6095,7 +6187,7 @@
                     const scrollData = gameState.scrollContainers[gameState.currentCaseOpening];
                     scrollData.scroll.innerHTML = '';
                     
-                    for (let j = 0; j < 30; j++) {
+                    for (let j = 0; j < 50; j++) {
                         addRandomItemToScroll(caseData, scrollData.scroll, j, gameState.currentCaseOpening);
                     }
                     
@@ -6913,6 +7005,11 @@
                     adminBtn.classList.add('visible');
                 }
                 
+                // Добавляем pending items если они есть
+                if (gameState.pendingItems.length > 0) {
+                    addPendingItemsToInventory();
+                }
+                
                 alert('Вы успешно вошли в аккаунт!');
             } else {
                 loginError.textContent = "Неверный логин или пароль";
@@ -6979,6 +7076,11 @@
             registerError.style.display = 'none';
             
             profileTab.style.display = 'flex';
+            
+            // Добавляем pending items если они есть
+            if (gameState.pendingItems.length > 0) {
+                addPendingItemsToInventory();
+            }
             
             alert('Аккаунт успешно создан! Вы вошли в систему.');
             loginTab.click();
