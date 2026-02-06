@@ -3287,6 +3287,22 @@
             color: white;
             margin: 15px 0;
         }
+        
+        /* Уменьшенные иконки для апгрейда */
+        .upgrade-selected-item, .upgrade-result-item {
+            width: 250px;
+            min-height: 200px;
+            padding: 15px;
+        }
+        
+        .upgrade-wheel-container {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .upgrade-inventory-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        }
     </style>
 </head>
 <body>
@@ -4066,7 +4082,7 @@
                     if (!users[username]) {
                         users[username] = {
                             password: 'demo123',
-                            balance: 0, // ИЗМЕНЕНО: Баланс 0 для новых пользователей
+                            balance: 0,
                             casesOpened: Math.floor(Math.random() * 500) + 50,
                             totalValue: Math.floor(Math.random() * 100000) + 50000,
                             bestItem: 'Нет',
@@ -4311,154 +4327,154 @@
         // Системные настройки
         const systemSettings = {
             adminPassword: "1234",
-            defaultBalance: 0, // ИЗМЕНЕНО: Баланс при регистрации 0
+            defaultBalance: 0,
             promocodeValue: 10000,
             maxPromocodeBalance: 10000,
-            validPromocodes: ['начало'] // ИЗМЕНЕНО: Добавлен промокод "начало"
+            validPromocodes: ['начало']
         };
 
-        // Данные о скинах (УВЕЛИЧЕНЫ НА 100%)
+        // Данные о скинах (увеличены в 3 раза)
         const cs2Items = {
             common: [
-                { name: "Glock-18 | Армейский камуфляж", value: 20, rarity: 'common' },
-                { name: "USP-S | Тактический серый", value: 30, rarity: 'common' },
-                { name: "P250 | Пустынный песок", value: 24, rarity: 'common' },
-                { name: "MAC-10 | Городской камуфляж", value: 36, rarity: 'common' },
-                { name: "UMP-45 | Военный камуфляж", value: 40, rarity: 'common' },
-                { name: "AK-47 | Базовый камуфляж", value: 50, rarity: 'common' },
-                { name: "M4A4 | Тактический песок", value: 44, rarity: 'common' },
-                { name: "AWP | Полевой камуфляж", value: 60, rarity: 'common' },
-                { name: "Desert Eagle | Тактический серый", value: 56, rarity: 'common' },
-                { name: "P90 | Городская роспись", value: 32, rarity: 'common' },
-                { name: "FAMAS | Лесной камуфляж", value: 28, rarity: 'common' },
-                { name: "Galil AR | Пустынный бой", value: 38, rarity: 'common' },
-                { name: "SG 553 | Тактический камуфляж", value: 48, rarity: 'common' },
-                { name: "SSG 08 | Лесной патруль", value: 42, rarity: 'common' },
-                { name: "MAG-7 | Пустынный рассвет", value: 34, rarity: 'common' }
+                { name: "Glock-18 | Бронзовые украшения", value: 60, rarity: 'common' },
+                { name: "USP-S | Убийца", value: 90, rarity: 'common' },
+                { name: "P250 | Песчаные дюны", value: 72, rarity: 'common' },
+                { name: "MAC-10 | Лазурный узор", value: 108, rarity: 'common' },
+                { name: "UMP-45 | Карибу", value: 120, rarity: 'common' },
+                { name: "AK-47 | Elite Build", value: 150, rarity: 'common' },
+                { name: "M4A4 | Griffin", value: 132, rarity: 'common' },
+                { name: "AWP | Фантом", value: 180, rarity: 'common' },
+                { name: "Desert Eagle | Рубиновая сетка", value: 168, rarity: 'common' },
+                { name: "P90 | Грим", value: 96, rarity: 'common' },
+                { name: "FAMAS | Macabre", value: 84, rarity: 'common' },
+                { name: "Galil AR | Каменная крошка", value: 114, rarity: 'common' },
+                { name: "SG 553 | Пулемётчик", value: 144, rarity: 'common' },
+                { name: "SSG 08 | Следы смерти", value: 126, rarity: 'common' },
+                { name: "MAG-7 | Небесный синий", value: 102, rarity: 'common' }
             ],
             
             uncommon: [
-                { name: "M4A1-S | Синий тигр", value: 100, rarity: 'uncommon' },
-                { name: "AK-47 | Синяя линия", value: 140, rarity: 'uncommon' },
-                { name: "AWP | Электрический океан", value: 200, rarity: 'uncommon' },
-                { name: "Desert Eagle | Синяя змея", value: 120, rarity: 'uncommon' },
-                { name: "Glock-18 | Синий кристалл", value: 90, rarity: 'uncommon' },
-                { name: "USP-S | Синий шторм", value: 110, rarity: 'uncommon' },
-                { name: "P250 | Синяя волна", value: 80, rarity: 'uncommon' },
-                { name: "MAC-10 | Синий градиент", value: 96, rarity: 'uncommon' },
-                { name: "UMP-45 | Синий лабиринт", value: 130, rarity: 'uncommon' },
-                { name: "P90 | Синий прилив", value: 116, rarity: 'uncommon' },
-                { name: "FAMAS | Синий паттерн", value: 104, rarity: 'uncommon' },
-                { name: "Galil AR | Синяя буря", value: 124, rarity: 'uncommon' },
-                { name: "SG 553 | Синий рассвет", value: 150, rarity: 'uncommon' },
-                { name: "SSG 08 | Синий кристалл", value: 136, rarity: 'uncommon' },
-                { name: "MAG-7 | Синий омут", value: 84, rarity: 'uncommon' }
+                { name: "M4A1-S | Гиперзверь", value: 300, rarity: 'uncommon' },
+                { name: "AK-47 | Краснолинейка", value: 420, rarity: 'uncommon' },
+                { name: "AWP | Электрический океан", value: 600, rarity: 'uncommon' },
+                { name: "Desert Eagle | Гипнотический", value: 360, rarity: 'uncommon' },
+                { name: "Glock-18 | Сумеречный гальванический", value: 270, rarity: 'uncommon' },
+                { name: "USP-S | Циановый узор", value: 330, rarity: 'uncommon' },
+                { name: "P250 | Муаровый", value: 240, rarity: 'uncommon' },
+                { name: "MAC-10 | Оранжевый зверь", value: 288, rarity: 'uncommon' },
+                { name: "UMP-45 | Миндальное", value: 390, rarity: 'uncommon' },
+                { name: "P90 | Азиатский лев", value: 348, rarity: 'uncommon' },
+                { name: "FAMAS | Живая изгородь", value: 312, rarity: 'uncommon' },
+                { name: "Galil AR | Сигнал", value: 372, rarity: 'uncommon' },
+                { name: "SG 553 | Путешествие", value: 450, rarity: 'uncommon' },
+                { name: "SSG 08 | Мертвое болото", value: 408, rarity: 'uncommon' },
+                { name: "MAG-7 | Следы", value: 252, rarity: 'uncommon' }
             ],
             
             rare: [
-                { name: "M4A4 | Розовый укус", value: 300, rarity: 'rare' },
-                { name: "AK-47 | Розовый вулкан", value: 500, rarity: 'rare' },
-                { name: "Desert Eagle | Розовый кристалл", value: 400, rarity: 'rare' },
-                { name: "AWP | Розовая линия", value: 600, rarity: 'rare' },
-                { name: "Glock-18 | Розовый блеск", value: 240, rarity: 'rare' },
-                { name: "USP-S | Розовый туман", value: 360, rarity: 'rare' },
-                { name: "P250 | Розовый цветок", value: 280, rarity: 'rare' },
-                { name: "MAC-10 | Розовый граффити", value: 320, rarity: 'rare' },
-                { name: "UMP-45 | Розовый узор", value: 440, rarity: 'rare' },
-                { name: "P90 | Розовый поток", value: 380, rarity: 'rare' },
-                { name: "FAMAS | Розовый паттерн", value: 340, rarity: 'rare' },
-                { name: "Galil AR | Розовая буря", value: 460, rarity: 'rare' },
-                { name: "SG 553 | Розовый закат", value: 560, rarity: 'rare' },
-                { name: "SSG 08 | Розовый кристалл", value: 420, rarity: 'rare' },
-                { name: "MAG-7 | Розовый взрыв", value: 260, rarity: 'rare' }
+                { name: "M4A4 | Царство зверей", value: 900, rarity: 'rare' },
+                { name: "AK-47 | Краснолинейка", value: 1500, rarity: 'rare' },
+                { name: "Desert Eagle | Пробуждение", value: 1200, rarity: 'rare' },
+                { name: "AWP | Зверь внутри", value: 1800, rarity: 'rare' },
+                { name: "Glock-18 | Реактор", value: 720, rarity: 'rare' },
+                { name: "USP-S | Кровавая паутина", value: 1080, rarity: 'rare' },
+                { name: "P250 | Аскета", value: 840, rarity: 'rare' },
+                { name: "MAC-10 | Золотая спираль", value: 960, rarity: 'rare' },
+                { name: "UMP-45 | Арктический волк", value: 1320, rarity: 'rare' },
+                { name: "P90 | Золотой дракон", value: 1140, rarity: 'rare' },
+                { name: "FAMAS | Нейронная сеть", value: 1020, rarity: 'rare' },
+                { name: "Galil AR | Черный песок", value: 1380, rarity: 'rare' },
+                { name: "SG 553 | Триархия", value: 1680, rarity: 'rare' },
+                { name: "SSG 08 | Кровавая паутина", value: 1260, rarity: 'rare' },
+                { name: "MAG-7 | Кобальтовый яд", value: 780, rarity: 'rare' }
             ],
             
             mythical: [
-                { name: "AWP | Красный дракон", value: 800, rarity: 'mythical' },
-                { name: "M4A1-S | Красный кристалл", value: 1000, rarity: 'mythical' },
-                { name: "AK-47 | Красный вулкан", value: 1200, rarity: 'mythical' },
-                { name: "Glock-18 | Красный блеск", value: 700, rarity: 'mythical' },
-                { name: "USP-S | Красный шторм", value: 900, rarity: 'mythical' },
-                { name: "Desert Eagle | Красный кристалл", value: 1100, rarity: 'mythical' },
-                { name: "P250 | Красный цветок", value: 760, rarity: 'mythical' },
-                { name: "MAC-10 | Красный граффити", value: 840, rarity: 'mythical' },
-                { name: "UMP-45 | Красный узор", value: 1040, rarity: 'mythical' },
-                { name: "P90 | Красный поток", value: 960, rarity: 'mythical' },
-                { name: "FAMAS | Красный паттерн", value: 880, rarity: 'mythical' },
-                { name: "Galil AR | Красная буря", value: 1160, rarity: 'mythical' },
-                { name: "SG 553 | Красный закат", value: 1300, rarity: 'mythical' },
-                { name: "SSG 08 | Красный кристалл", value: 940, rarity: 'mythical' },
-                { name: "MAG-7 | Красный взрыв", value: 720, rarity: 'mythical' }
+                { name: "AWP | Годзилла", value: 2400, rarity: 'mythical' },
+                { name: "M4A1-S | Золотая катушка", value: 3000, rarity: 'mythical' },
+                { name: "AK-47 | Водная стихия", value: 3600, rarity: 'mythical' },
+                { name: "Glock-18 | Золотой змей", value: 2100, rarity: 'mythical' },
+                { name: "USP-S | Кибербезопасность", value: 2700, rarity: 'mythical' },
+                { name: "Desert Eagle | Код красный", value: 3300, rarity: 'mythical' },
+                { name: "P250 | Ведьмин круг", value: 2280, rarity: 'mythical' },
+                { name: "MAC-10 | Золотой змей", value: 2520, rarity: 'mythical' },
+                { name: "UMP-45 | Голографический", value: 3120, rarity: 'mythical' },
+                { name: "P90 | Шторм", value: 2880, rarity: 'mythical' },
+                { name: "FAMAS | Мекка", value: 2640, rarity: 'mythical' },
+                { name: "Galil AR | Сахарный тростник", value: 3480, rarity: 'mythical' },
+                { name: "SG 553 | Циклон", value: 3900, rarity: 'mythical' },
+                { name: "SSG 08 | Кровавая паутина", value: 2820, rarity: 'mythical' },
+                { name: "MAG-7 | Медный гальванический", value: 2160, rarity: 'mythical' }
             ],
             
             legendary: [
-                { name: "Нож | Золотой бабочка", value: 2000, rarity: 'legendary' },
-                { name: "Перчатки | Золотые когти", value: 3000, rarity: 'legendary' },
-                { name: "Нож | Золотой карамбут", value: 4000, rarity: 'legendary' },
-                { name: "Нож | Золотой охотничий", value: 2400, rarity: 'legendary' },
-                { name: "Перчатки | Золотые драконы", value: 3600, rarity: 'legendary' },
-                { name: "Нож | Золотой флип", value: 3200, rarity: 'legendary' },
-                { name: "Перчатки | Золотые тигры", value: 4400, rarity: 'legendary' },
-                { name: "Нож | Золотой коготь", value: 2800, rarity: 'legendary' },
-                { name: "Перчатки | Золотые львы", value: 3800, rarity: 'legendary' },
-                { name: "Нож | Золотой клинок", value: 3400, rarity: 'legendary' },
-                { name: "Перчатки | Золотые орлы", value: 4800, rarity: 'legendary' },
-                { name: "Нож | Золотой меч", value: 2600, rarity: 'legendary' },
-                { name: "Перчатки | Золотые волки", value: 4200, rarity: 'legendary' },
-                { name: "Нож | Золотой кинжал", value: 3000, rarity: 'legendary' },
-                { name: "Перчатки | Золотые фениксы", value: 5000, rarity: 'legendary' }
+                { name: "Нож-бабочка | Фольга", value: 6000, rarity: 'legendary' },
+                { name: "Перчатки | Кровавые замочки", value: 9000, rarity: 'legendary' },
+                { name: "Нож карамбут | Фольга", value: 12000, rarity: 'legendary' },
+                { name: "Нож охотничий | Фольга", value: 7200, rarity: 'legendary' },
+                { name: "Перчатки | Гидравлические", value: 10800, rarity: 'legendary' },
+                { name: "Нож флип | Фольга", value: 9600, rarity: 'legendary' },
+                { name: "Перчатки | Шипы", value: 13200, rarity: 'legendary' },
+                { name: "Нож коготь | Фольга", value: 8400, rarity: 'legendary' },
+                { name: "Перчатки | Бронзовые морщины", value: 11400, rarity: 'legendary' },
+                { name: "Нож клинок | Фольга", value: 10200, rarity: 'legendary' },
+                { name: "Перчатки | Кожаные", value: 14400, rarity: 'legendary' },
+                { name: "Нож меч | Фольга", value: 7800, rarity: 'legendary' },
+                { name: "Перчатки | Гоночные", value: 12600, rarity: 'legendary' },
+                { name: "Нож кинжал | Фольга", value: 9000, rarity: 'legendary' },
+                { name: "Перчатки | Военные", value: 15000, rarity: 'legendary' }
             ],
             
             ancient: [
-                { name: "AK-47 | Огненный дракон", value: 3000, rarity: 'ancient' },
-                { name: "AWP | Драконья слава", value: 4000, rarity: 'ancient' },
-                { name: "Нож | Сапфировый клинок", value: 5000, rarity: 'ancient' },
-                { name: "M4A4 | Огненный феникс", value: 3600, rarity: 'ancient' },
-                { name: "AWP | Сапфировая слава", value: 4400, rarity: 'ancient' },
-                { name: "Нож | Изумрудный клинок", value: 5600, rarity: 'ancient' },
-                { name: "AK-47 | Сапфировый дракон", value: 3800, rarity: 'ancient' },
-                { name: "M4A1-S | Огненный кристалл", value: 4200, rarity: 'ancient' },
-                { name: "AWP | Изумрудная слава", value: 4800, rarity: 'ancient' },
-                { name: "Нож | Рубиновый клинок", value: 6000, rarity: 'ancient' },
-                { name: "AK-47 | Изумрудный вулкан", value: 4600, rarity: 'ancient' },
-                { name: "M4A4 | Сапфировый феникс", value: 5200, rarity: 'ancient' },
-                { name: "AWP | Рубиновая слава", value: 5400, rarity: 'ancient' },
-                { name: "Нож | Алмазный клинок", value: 7000, rarity: 'ancient' },
-                { name: "AK-47 | Рубиновый дракон", value: 5800, rarity: 'ancient' }
+                { name: "AK-47 | Огненная змея", value: 9000, rarity: 'ancient' },
+                { name: "AWP | Драконья пасть", value: 12000, rarity: 'ancient' },
+                { name: "Нож сапфировый | Фольга", value: 15000, rarity: 'ancient' },
+                { name: "M4A4 | Королевский паладин", value: 10800, rarity: 'ancient' },
+                { name: "AWP | Гидра", value: 13200, rarity: 'ancient' },
+                { name: "Нож изумрудный | Фольга", value: 16800, rarity: 'ancient' },
+                { name: "AK-47 | Гидропоника", value: 11400, rarity: 'ancient' },
+                { name: "M4A1-S | Кибербезопасность", value: 12600, rarity: 'ancient' },
+                { name: "AWP | Азимов", value: 14400, rarity: 'ancient' },
+                { name: "Нож рубиновый | Фольга", value: 18000, rarity: 'ancient' },
+                { name: "AK-47 | Пламенный узор", value: 13800, rarity: 'ancient' },
+                { name: "M4A4 | Азимов", value: 15600, rarity: 'ancient' },
+                { name: "AWP | Медуза", value: 16200, rarity: 'ancient' },
+                { name: "Нож алмазный | Фольга", value: 21000, rarity: 'ancient' },
+                { name: "AK-47 | Неоновая революция", value: 17400, rarity: 'ancient' }
             ]
         };
 
-        // Данные о кейсах (УВЕЛИЧЕНЫ НА 100%)
+        // Данные о кейсах (увеличены в 3 раза)
         const casesData = {
             1: {
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: Math.round(19 * 2)
+                price: Math.round(19 * 3)
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: Math.round(68 * 2)
+                price: Math.round(68 * 3)
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: Math.round(188 * 2)
+                price: Math.round(188 * 3)
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: Math.round(450 * 2)
+                price: Math.round(450 * 3)
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: Math.round(1850 * 2)
+                price: Math.round(1850 * 3)
             }
         };
 
@@ -5165,6 +5181,9 @@
                 
                 batchResultModal.style.display = 'none';
                 updateUserDisplay();
+                
+                // Обновляем кнопки открытия кейсов после продажи
+                updateOpenCaseButtons();
             });
             
             openBatchAgainBtn.addEventListener('click', () => {
@@ -5622,7 +5641,7 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
             
-            const spinDuration = 2000; // Увеличено на 1 секунду
+            const spinDuration = 2000;
             const spinRotations = 2 + Math.random();
             
             let startTime = null;
@@ -5741,7 +5760,7 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
             
-            const spinDuration = 4000 + Math.random() * 2000; // Увеличено на 1 секунду
+            const spinDuration = 4000 + Math.random() * 2000;
             const spinRotations = 5 + Math.random() * 3;
             
             let startTime = null;
@@ -6079,7 +6098,7 @@
                     
                     const itemUnderArrow = getItemUnderArrow(scrollIndex);
                     resolve(itemUnderArrow || getRandomItem(casesData[gameState.selectedCase]));
-                }, 9000); // Увеличено на 1 секунду
+                }, 9000);
             });
         }
 
@@ -6345,6 +6364,9 @@
                 updateUserDisplay();
                 loadProfile();
                 loadInventoryPage();
+                
+                // Обновляем кнопки открытия кейсов после продажи
+                updateOpenCaseButtons();
             }
         }
 
@@ -6789,7 +6811,8 @@
                 dynamicScroll.className = 'dynamic-scroll';
                 dynamicScroll.style.display = 'flex';
                 
-                loadMoreItemsToDynamicScroll(caseData, dynamicScroll, i, 0, itemWidth, 40);
+                // Загружаем больше предметов для бесконечной прокрутки
+                loadMoreItemsToDynamicScroll(caseData, dynamicScroll, i, 0, itemWidth, 60);
                 
                 dynamicContainer.appendChild(dynamicScroll);
                 scrollContainer.appendChild(dynamicContainer);
@@ -6809,7 +6832,7 @@
             centerLine.style.display = 'block';
         }
 
-        function loadMoreItemsToDynamicScroll(caseData, scrollElement, scrollIndex, startIndex, itemWidth, count = 20) {
+        function loadMoreItemsToDynamicScroll(caseData, scrollElement, scrollIndex, startIndex, itemWidth, count = 60) {
             const items = caseData.items;
             
             for (let i = 0; i < count; i++) {
@@ -6911,8 +6934,9 @@
                     
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     
+                    // Загружаем больше предметов при необходимости
                     if (scrollPosition > lastLoadedPosition + 5000) {
-                        loadMoreItemsToDynamicScroll(casesData[gameState.selectedCase], dynamicScroll, scrollIndex, scrollData.itemsLoaded, scrollData.itemWidth);
+                        loadMoreItemsToDynamicScroll(casesData[gameState.selectedCase], dynamicScroll, scrollIndex, scrollData.itemsLoaded, scrollData.itemWidth, 30);
                         lastLoadedPosition = scrollPosition;
                     }
                     
@@ -7070,6 +7094,9 @@
             showBatchResultModal();
             
             updateUserDisplay();
+            
+            // Обновляем кнопки открытия кейсов после продажи
+            updateOpenCaseButtons();
         }
 
         function resetCaseOpeningView() {
@@ -7103,6 +7130,9 @@
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
+            
+            // Обновляем кнопки открытия кейсов
+            updateOpenCaseButtons();
         }
 
         function getRandomItem(caseData) {
@@ -7782,7 +7812,7 @@
             
             const userData = {
                 password: password,
-                balance: systemSettings.defaultBalance, // 0 при регистрации
+                balance: systemSettings.defaultBalance,
                 casesOpened: 0,
                 totalValue: 0,
                 bestItem: "Нет",
