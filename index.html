@@ -1392,28 +1392,26 @@
                 #f44336 360deg
             );
             border-radius: 50%;
-            z-index: 1;
         }
 
         /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ТОЧНО НАД 100% */
         .wheel-arrow-moving {
             position: absolute;
-            top: -60px;
+            top: -40px;
             left: 50%;
-            transform: translateX(-50%) rotate(0deg);
-            width: 40px;
-            height: 100px;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
             z-index: 20;
             transition: transform 0.1s linear;
-            transform-origin: center 170px;
         }
 
         .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 50px solid #ffd700;
+            border-left: 25px solid transparent;
+            border-right: 25px solid transparent;
+            border-top: 40px solid #8847ff;
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
         }
@@ -1428,7 +1426,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 2;
         }
 
         .percent-display {
@@ -1460,37 +1457,41 @@
             letter-spacing: 1px;
         }
 
-        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - БЕЛЫЕ, БЛИЖЕ К ФИОЛЕТОВОЙ ЧАСТИ */
+        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - ЗЕЛЕНЫЙ ГРАДИЕНТ, БЕЗ КРУЖКОВ, БЛИЖЕ К КРАЮ */
         .wheel-percentage-label {
             position: absolute;
             color: white;
             font-weight: 800;
-            font-size: 22px;
+            font-size: 24px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             z-index: 10;
         }
 
         .wheel-percentage-top {
-            top: 10px;
+            top: 30px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 10px;
+            right: 30px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 10px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 10px;
+            left: 30px;
             transform: translateY(-50%);
         }
 
@@ -1578,29 +1579,6 @@
             padding: 20px;
             background: rgba(0, 0, 0, 0.1);
             border-radius: 15px;
-        }
-
-        /* Результат апгрейда (Успешно/Неудача) */
-        .upgrade-result-status {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 32px;
-            font-weight: 800;
-            z-index: 25;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            pointer-events: none;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-        }
-
-        .upgrade-success {
-            color: #4CAF50;
-        }
-
-        .upgrade-failure {
-            color: #f44336;
         }
 
         /* Контракты секция */
@@ -2936,7 +2914,6 @@
             margin: 20px 0;
             font-size: 18px;
             font-weight: 600;
-            display: none; /* Скрываем старый статус */
         }
         
         .upgrade-inventory-header {
@@ -3473,17 +3450,17 @@
                 <div class="promocode-section">
                     <h3><i class="fas fa-ticket-alt"></i> Активация промокода</h3>
                     <p style="margin-bottom: 15px; color: rgba(255,255,255,0.7); font-size: 14px;">
-                        Введите промокод для получения бонусных монет
+                        Введите промокод для получения бонусных монет. Например: <strong>Начало</strong>
                     </p>
                     <div class="promocode-input">
-                        <input type="text" id="promocode-input" placeholder="Введите промокод">
+                        <input type="text" id="promocode-input" placeholder="Введите промокод (например: Начало)">
                         <button id="activate-promocode-btn">Активировать</button>
                     </div>
                     <div class="promocode-success" id="promocode-success">
-                        Промокод успешно активирован! +1000 монет
+                        Промокод успешно активирован! +10000 монет
                     </div>
                     <div class="promocode-error" id="promocode-error">
-                        Ошибка: Больше промокод ввести временно не получится
+                        Ошибка: Этот промокод больше не получиться использовать
                     </div>
                 </div>
                 
@@ -3580,28 +3557,23 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <!-- ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - БЕЛЫЕ И БЛИЖЕ К ФИОЛЕТОВОЙ ЧАСТИ -->
+                                    <!-- ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ -->
                                     <div class="wheel-percentage-label wheel-percentage-top">100%</div>
                                     <div class="wheel-percentage-label wheel-percentage-right">25%</div>
                                     <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
                                     <div class="wheel-percentage-label wheel-percentage-left">75%</div>
                                 </div>
-                                <div class="wheel-arrow-moving" id="wheel-arrow-moving">
+                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: none;">
                                     <div class="arrow-inner"></div>
                                 </div>
-                                <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
-                                <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
-                                <div class="percent-display" id="percent-display">
+                                <!-- ПЕРЕМЕЩЕННЫЙ ПРОЦЕНТ ПРАВЕЕ -->
+                                <div class="percent-display" id="percent-display" style="right: 30px; left: auto;">
                                     <div class="percent-value" id="percent-value">0%</div>
                                     <div class="percent-label">Шанс</div>
                                 </div>
                             </div>
                             
-                            <!-- Убрали старый upgrade-status и добавили новый блок для отображения процента под кругом -->
-                            <div style="text-align: center; margin-top: 10px; font-size: 20px; font-weight: 700; color: white;">
-                                Шанс успеха: <span id="chance-display-under-wheel">0%</span>
-                            </div>
-                            
+                            <!-- УБРАН ТЕКСТ "Шанс успеха: 0%" -->
                             <div class="chance-selector" id="chance-selector">
                                 <div class="chance-option" data-chance="85">85%</div>
                                 <div class="chance-option" data-chance="70">70%</div>
@@ -4294,153 +4266,154 @@
         // Системные настройки
         const systemSettings = {
             adminPassword: "1234",
-            defaultBalance: 10000,
-            promocodeValue: 1000,
-            maxPromocodeBalance: 10000
+            defaultBalance: 0, // ИЗМЕНЕНО: баланс 0 для новых пользователей
+            promocodeValue: 10000, // ИЗМЕНЕНО: 10 000 рублей
+            maxPromocodeBalance: 10000,
+            validPromocodes: ['начало'] // ДОБАВЛЕНО: промокод "начало"
         };
 
-        // Данные о скинах
+        // Данные о скинах (УВЕЛИЧЕНЫ НА 100%)
         const cs2Items = {
             common: [
-                { name: "Glock-18 | Армейский камуфляж", value: 10, rarity: 'common' },
-                { name: "USP-S | Тактический серый", value: 15, rarity: 'common' },
-                { name: "P250 | Пустынный песок", value: 12, rarity: 'common' },
-                { name: "MAC-10 | Городской камуфляж", value: 18, rarity: 'common' },
-                { name: "UMP-45 | Военный камуфляж", value: 20, rarity: 'common' },
-                { name: "AK-47 | Базовый камуфляж", value: 25, rarity: 'common' },
-                { name: "M4A4 | Тактический песок", value: 22, rarity: 'common' },
-                { name: "AWP | Полевой камуфляж", value: 30, rarity: 'common' },
-                { name: "Desert Eagle | Тактический серый", value: 28, rarity: 'common' },
-                { name: "P90 | Городская роспись", value: 16, rarity: 'common' },
-                { name: "FAMAS | Лесной камуфляж", value: 14, rarity: 'common' },
-                { name: "Galil AR | Пустынный бой", value: 19, rarity: 'common' },
-                { name: "SG 553 | Тактический камуфляж", value: 24, rarity: 'common' },
-                { name: "SSG 08 | Лесной патруль", value: 21, rarity: 'common' },
-                { name: "MAG-7 | Пустынный рассвет", value: 17, rarity: 'common' }
+                { name: "Glock-18 | Армейский камуфляж", value: 20, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "USP-S | Тактический серый", value: 30, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "P250 | Пустынный песок", value: 24, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "MAC-10 | Городской камуфляж", value: 36, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "UMP-45 | Военный камуфляж", value: 40, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Базовый камуфляж", value: 50, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "M4A4 | Тактический песок", value: 44, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "AWP | Полевой камуфляж", value: 60, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "Desert Eagle | Тактический серый", value: 56, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "P90 | Городская роспись", value: 32, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "FAMAS | Лесной камуфляж", value: 28, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "Galil AR | Пустынный бой", value: 38, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "SG 553 | Тактический камуфляж", value: 48, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "SSG 08 | Лесной патруль", value: 42, rarity: 'common' }, // УВЕЛИЧЕНО
+                { name: "MAG-7 | Пустынный рассвет", value: 34, rarity: 'common' } // УВЕЛИЧЕНО
             ],
             
             uncommon: [
-                { name: "M4A1-S | Синий тигр", value: 50, rarity: 'uncommon' },
-                { name: "AK-47 | Синяя линия", value: 70, rarity: 'uncommon' },
-                { name: "AWP | Электрический океан", value: 100, rarity: 'uncommon' },
-                { name: "Desert Eagle | Синяя змея", value: 60, rarity: 'uncommon' },
-                { name: "Glock-18 | Синий кристалл", value: 45, rarity: 'uncommon' },
-                { name: "USP-S | Синий шторм", value: 55, rarity: 'uncommon' },
-                { name: "P250 | Синяя волна", value: 40, rarity: 'uncommon' },
-                { name: "MAC-10 | Синий градиент", value: 48, rarity: 'uncommon' },
-                { name: "UMP-45 | Синий лабиринт", value: 65, rarity: 'uncommon' },
-                { name: "P90 | Синий прилив", value: 58, rarity: 'uncommon' },
-                { name: "FAMAS | Синий паттерн", value: 52, rarity: 'uncommon' },
-                { name: "Galil AR | Синяя буря", value: 62, rarity: 'uncommon' },
-                { name: "SG 553 | Синий рассвет", value: 75, rarity: 'uncommon' },
-                { name: "SSG 08 | Синий кристалл", value: 68, rarity: 'uncommon' },
-                { name: "MAG-7 | Синий омут", value: 42, rarity: 'uncommon' }
+                { name: "M4A1-S | Синий тигр", value: 100, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Синяя линия", value: 140, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "AWP | Электрический океан", value: 200, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "Desert Eagle | Синяя змея", value: 120, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "Glock-18 | Синий кристалл", value: 90, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "USP-S | Синий шторм", value: 110, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "P250 | Синяя волна", value: 80, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "MAC-10 | Синий градиент", value: 96, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "UMP-45 | Синий лабиринт", value: 130, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "P90 | Синий прилив", value: 116, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "FAMAS | Синий паттерн", value: 104, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "Galil AR | Синяя буря", value: 124, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "SG 553 | Синий рассвет", value: 150, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "SSG 08 | Синий кристалл", value: 136, rarity: 'uncommon' }, // УВЕЛИЧЕНО
+                { name: "MAG-7 | Синий омут", value: 84, rarity: 'uncommon' } // УВЕЛИЧЕНО
             ],
             
             rare: [
-                { name: "M4A4 | Розовый укус", value: 150, rarity: 'rare' },
-                { name: "AK-47 | Розовый вулкан", value: 250, rarity: 'rare' },
-                { name: "Desert Eagle | Розовый кристалл", value: 200, rarity: 'rare' },
-                { name: "AWP | Розовая линия", value: 300, rarity: 'rare' },
-                { name: "Glock-18 | Розовый блеск", value: 120, rarity: 'rare' },
-                { name: "USP-S | Розовый туман", value: 180, rarity: 'rare' },
-                { name: "P250 | Розовый цветок", value: 140, rarity: 'rare' },
-                { name: "MAC-10 | Розовый граффити", value: 160, rarity: 'rare' },
-                { name: "UMP-45 | Розовый узор", value: 220, rarity: 'rare' },
-                { name: "P90 | Розовый поток", value: 190, rarity: 'rare' },
-                { name: "FAMAS | Розовый паттерн", value: 170, rarity: 'rare' },
-                { name: "Galil AR | Розовая буря", value: 230, rarity: 'rare' },
-                { name: "SG 553 | Розовый закат", value: 280, rarity: 'rare' },
-                { name: "SSG 08 | Розовый кристалл", value: 210, rarity: 'rare' },
-                { name: "MAG-7 | Розовый взрыв", value: 130, rarity: 'rare' }
+                { name: "M4A4 | Розовый укус", value: 300, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Розовый вулкан", value: 500, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "Desert Eagle | Розовый кристалл", value: 400, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "AWP | Розовая линия", value: 600, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "Glock-18 | Розовый блеск", value: 240, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "USP-S | Розовый туман", value: 360, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "P250 | Розовый цветок", value: 280, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "MAC-10 | Розовый граффити", value: 320, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "UMP-45 | Розовый узор", value: 440, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "P90 | Розовый поток", value: 380, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "FAMAS | Розовый паттерн", value: 340, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "Galil AR | Розовая буря", value: 460, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "SG 553 | Розовый закат", value: 560, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "SSG 08 | Розовый кристалл", value: 420, rarity: 'rare' }, // УВЕЛИЧЕНО
+                { name: "MAG-7 | Розовый взрыв", value: 260, rarity: 'rare' } // УВЕЛИЧЕНО
             ],
             
             mythical: [
-                { name: "AWP | Красный дракон", value: 400, rarity: 'mythical' },
-                { name: "M4A1-S | Красный кристалл", value: 500, rarity: 'mythical' },
-                { name: "AK-47 | Красный вулкан", value: 600, rarity: 'mythical' },
-                { name: "Glock-18 | Красный блеск", value: 350, rarity: 'mythical' },
-                { name: "USP-S | Красный шторм", value: 450, rarity: 'mythical' },
-                { name: "Desert Eagle | Красный кристалл", value: 550, rarity: 'mythical' },
-                { name: "P250 | Красный цветок", value: 380, rarity: 'mythical' },
-                { name: "MAC-10 | Красный граффити", value: 420, rarity: 'mythical' },
-                { name: "UMP-45 | Красный узор", value: 520, rarity: 'mythical' },
-                { name: "P90 | Красный поток", value: 480, rarity: 'mythical' },
-                { name: "FAMAS | Красный паттерн", value: 440, rarity: 'mythical' },
-                { name: "Galil AR | Красная буря", value: 580, rarity: 'mythical' },
-                { name: "SG 553 | Красный закат", value: 650, rarity: 'mythical' },
-                { name: "SSG 08 | Красный кристалл", value: 470, rarity: 'mythical' },
-                { name: "MAG-7 | Красный взрыв", value: 360, rarity: 'mythical' }
+                { name: "AWP | Красный дракон", value: 800, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "M4A1-S | Красный кристалл", value: 1000, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Красный вулкан", value: 1200, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "Glock-18 | Красный блеск", value: 700, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "USP-S | Красный шторм", value: 900, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "Desert Eagle | Красный кристалл", value: 1100, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "P250 | Красный цветок", value: 760, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "MAC-10 | Красный граффити", value: 840, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "UMP-45 | Красный узор", value: 1040, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "P90 | Красный поток", value: 960, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "FAMAS | Красный паттерн", value: 880, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "Galil AR | Красная буря", value: 1160, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "SG 553 | Красный закат", value: 1300, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "SSG 08 | Красный кристалл", value: 940, rarity: 'mythical' }, // УВЕЛИЧЕНО
+                { name: "MAG-7 | Красный взрыв", value: 720, rarity: 'mythical' } // УВЕЛИЧЕНО
             ],
             
             legendary: [
-                { name: "Нож | Золотой бабочка", value: 1000, rarity: 'legendary' },
-                { name: "Перчатки | Золотые когти", value: 1500, rarity: 'legendary' },
-                { name: "Нож | Золотой карамбут", value: 2000, rarity: 'legendary' },
-                { name: "Нож | Золотой охотничий", value: 1200, rarity: 'legendary' },
-                { name: "Перчатки | Золотые драконы", value: 1800, rarity: 'legendary' },
-                { name: "Нож | Золотой флип", value: 1600, rarity: 'legendary' },
-                { name: "Перчатки | Золотые тигры", value: 2200, rarity: 'legendary' },
-                { name: "Нож | Золотой коготь", value: 1400, rarity: 'legendary' },
-                { name: "Перчатки | Золотые львы", value: 1900, rarity: 'legendary' },
-                { name: "Нож | Золотой клинок", value: 1700, rarity: 'legendary' },
-                { name: "Перчатки | Золотые орлы", value: 2400, rarity: 'legendary' },
-                { name: "Нож | Золотой меч", value: 1300, rarity: 'legendary' },
-                { name: "Перчатки | Золотые волки", value: 2100, rarity: 'legendary' },
-                { name: "Нож | Золотой кинжал", value: 1500, rarity: 'legendary' },
-                { name: "Перчатки | Золотые фениксы", value: 2500, rarity: 'legendary' }
+                { name: "Нож | Золотой бабочка", value: 2000, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые когти", value: 3000, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой карамбут", value: 4000, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой охотничий", value: 2400, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые драконы", value: 3600, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой флип", value: 3200, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые тигры", value: 4400, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой коготь", value: 2800, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые львы", value: 3800, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой клинок", value: 3400, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые орлы", value: 4800, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой меч", value: 2600, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые волки", value: 4200, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Нож | Золотой кинжал", value: 3000, rarity: 'legendary' }, // УВЕЛИЧЕНО
+                { name: "Перчатки | Золотые фениксы", value: 5000, rarity: 'legendary' } // УВЕЛИЧЕНО
             ],
             
             ancient: [
-                { name: "AK-47 | Огненный дракон", value: 1500, rarity: 'ancient' },
-                { name: "AWP | Драконья слава", value: 2000, rarity: 'ancient' },
-                { name: "Нож | Сапфировый клинок", value: 2500, rarity: 'ancient' },
-                { name: "M4A4 | Огненный феникс", value: 1800, rarity: 'ancient' },
-                { name: "AWP | Сапфировая слава", value: 2200, rarity: 'ancient' },
-                { name: "Нож | Изумрудный клинок", value: 2800, rarity: 'ancient' },
-                { name: "AK-47 | Сапфировый дракон", value: 1900, rarity: 'ancient' },
-                { name: "M4A1-S | Огненный кристалл", value: 2100, rarity: 'ancient' },
-                { name: "AWP | Изумрудная слава", value: 2400, rarity: 'ancient' },
-                { name: "Нож | Рубиновый клинок", value: 3000, rarity: 'ancient' },
-                { name: "AK-47 | Изумрудный вулкан", value: 2300, rarity: 'ancient' },
-                { name: "M4A4 | Сапфировый феникс", value: 2600, rarity: 'ancient' },
-                { name: "AWP | Рубиновая слава", value: 2700, rarity: 'ancient' },
-                { name: "Нож | Алмазный клинок", value: 3500, rarity: 'ancient' },
-                { name: "AK-47 | Рубиновый дракон", value: 2900, rarity: 'ancient' }
+                { name: "AK-47 | Огненный дракон", value: 3000, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AWP | Драконья слава", value: 4000, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "Нож | Сапфировый клинок", value: 5000, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "M4A4 | Огненный феникс", value: 3600, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AWP | Сапфировая слава", value: 4400, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "Нож | Изумрудный клинок", value: 5600, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Сапфировый дракон", value: 3800, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "M4A1-S | Огненный кристалл", value: 4200, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AWP | Изумрудная слава", value: 4800, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "Нож | Рубиновый клинок", value: 6000, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Изумрудный вулкан", value: 4600, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "M4A4 | Сапфировый феникс", value: 5200, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AWP | Рубиновая слава", value: 5400, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "Нож | Алмазный клинок", value: 7000, rarity: 'ancient' }, // УВЕЛИЧЕНО
+                { name: "AK-47 | Рубиновый дракон", value: 5800, rarity: 'ancient' } // УВЕЛИЧЕНО
             ]
         };
 
-        // Данные о кейсах (УВЕЛИЧЕНЫ НА 40%)
+        // Данные о кейсах (УВЕЛИЧЕНЫ НА 100%)
         const casesData = {
             1: {
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: Math.round(19 * 1.4)
+                price: 38 // УВЕЛИЧЕНО
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: Math.round(68 * 1.4)
+                price: 136 // УВЕЛИЧЕНО
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: Math.round(188 * 1.4)
+                price: 376 // УВЕЛИЧЕНО
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: Math.round(450 * 1.4)
+                price: 900 // УВЕЛИЧЕНО
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: Math.round(1850 * 1.4)
+                price: 3700 // УВЕЛИЧЕНО
             }
         };
 
@@ -4573,9 +4546,6 @@
         const upgradeStartBtn = document.getElementById('upgrade-start-btn');
         const upgradeInventoryGrid = document.getElementById('upgrade-inventory-grid');
         const percentValue = document.getElementById('percent-value');
-        const upgradeSuccessText = document.getElementById('upgrade-success-text');
-        const upgradeFailureText = document.getElementById('upgrade-failure-text');
-        const chanceDisplayUnderWheel = document.getElementById('chance-display-under-wheel');
         
         // Контракты элементы
         const contractSlotsGrid = document.getElementById('contract-slots-grid');
@@ -4769,9 +4739,9 @@
                 
                 if (pendingItems.filter(item => item.id).length > 0) {
                     if (pendingItems.length === 1) {
-                        // БЕЗ УВЕДОМЛЕНИЯ
+                        alert(`Вы получили предмет "${pendingItems[0].name}" из незавершенного открытия кейса!`);
                     } else {
-                        // БЕЗ УВЕДОМЛЕНИЯ
+                        alert(`Вы получили ${pendingItems.filter(item => item.id).length} предметов из незавершенных открытий кейсов!`);
                     }
                 }
                 
@@ -4819,14 +4789,14 @@
                         db.addOtherUsersDrop(drop);
                         addDropToSidebar(drop);
                         
-                        // БЕЗ УВЕДОМЛЕНИЯ
+                        alert(`Апгрейд успешен! Вы получили: ${upgradeState.resultItem.name}`);
                     } else {
                         db.removeFromInventory(currentUser, item.id);
                         
                         const refund = Math.floor(item.value * 0.01);
                         user.balance += refund;
                         
-                        // БЕЗ УВЕДОМЛЕНИЯ
+                        alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
                     }
                     
                     db.saveUser(currentUser, user);
@@ -5074,37 +5044,7 @@
                 updateSpinButtonPrice();
             });
             
-            sellItemBtn.addEventListener('click', () => {
-                if (!currentUser || !gameState.currentWonItem) return;
-                
-                const user = db.getUser(currentUser);
-                const item = gameState.currentWonItem;
-                
-                const items = db.getInventory(currentUser);
-                const itemIndex = items.findIndex(i => 
-                    i.name === item.name && i.value === item.value && i.rarity === item.rarity
-                );
-                
-                if (itemIndex !== -1) {
-                    items.splice(itemIndex, 1);
-                    db.saveInventory(currentUser, items);
-                    
-                    user.balance += item.value;
-                    db.saveUser(currentUser, user);
-                    
-                    updateUserDisplay();
-                    resultModal.style.display = 'none';
-                    
-                    // БЕЗ УВЕДОМЛЕНИЯ
-                    gameState.currentWonItem = null;
-                    
-                    if (profileSection.style.display === 'block') {
-                        loadInventoryPage();
-                    }
-                } else {
-                    // БЕЗ УВЕДОМЛЕНИЯ
-                }
-            });
+            sellItemBtn.addEventListener('click', sellWonItem);
             
             openAgainBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
@@ -5129,26 +5069,7 @@
                 updateSpinButtonPrice();
             });
             
-            sellBatchAllBtn.addEventListener('click', () => {
-                if (!currentUser || gameState.batchResults.length === 0) return;
-                
-                const totalValue = gameState.batchResults.reduce((sum, item) => sum + item.value, 0);
-                
-                const user = db.getUser(currentUser);
-                
-                gameState.batchResults.forEach(item => {
-                    db.removeFromInventory(currentUser, item.id);
-                });
-                
-                user.balance += totalValue;
-                db.saveUser(currentUser, user);
-                
-                gameState.batchResults = [];
-                
-                batchResultModal.style.display = 'none';
-                updateUserDisplay();
-                // БЕЗ УВЕДОМЛЕНИЯ
-            });
+            sellBatchAllBtn.addEventListener('click', sellBatchAllItems);
             
             openBatchAgainBtn.addEventListener('click', () => {
                 batchResultModal.style.display = 'none';
@@ -5182,7 +5103,7 @@
                     updateUserDisplay();
                     contractResultModal.style.display = 'none';
                     
-                    // БЕЗ УВЕДОМЛЕНИЯ
+                    alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
                     gameState.contractResult = null;
                     
                     if (profileSection.style.display === 'block') {
@@ -5193,7 +5114,7 @@
                         loadContractInventory();
                     }
                 } else {
-                    // БЕЗ УВЕДОМЛЕНИЯ
+                    alert('Предмет не найден в инвентаре!');
                 }
             });
             
@@ -5455,7 +5376,7 @@
                     setTimeout(() => {
                         resetCaseOpeningView();
                     }, 1000);
-                }, 500);
+                }, 1500); // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             });
         }
 
@@ -5586,7 +5507,7 @@
                     
                     const itemUnderArrow = getItemUnderArrow(scrollIndex);
                     resolve(itemUnderArrow || getRandomItem(casesData[gameState.selectedCase]));
-                }, 2500);
+                }, 3500); // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             });
         }
 
@@ -5606,7 +5527,7 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
             
-            const spinDuration = 1500;
+            const spinDuration = 2500; // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             const spinRotations = 2 + Math.random();
             
             let startTime = null;
@@ -5683,7 +5604,7 @@
                     upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                     wheelArrowMoving.style.transition = 'transform 0.1s linear';
                 }, 1000);
-            }, 1500);
+            }, 2500); // УВЕЛИЧЕНО НА 1 СЕКУНДУ
         }
 
         // ФУНКЦИЯ: Запуск апгрейда
@@ -5695,7 +5616,7 @@
             }
         }
 
-        // ФУНКЦИЯ: Нормальный апгрейд (3 секунды)
+        // ФУНКЦИЯ: Нормальный апгрейд (4 секунды)
         function startNormalUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5727,7 +5648,7 @@
             upgradeStartBtn.disabled = true;
             upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
             
-            const spinDuration = 3000 + Math.random() * 2000;
+            const spinDuration = 4000 + Math.random() * 2000; // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             const spinRotations = 5 + Math.random() * 3;
             
             let startTime = null;
@@ -5903,7 +5824,7 @@
             }
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Обновление отображения стрелки апгрейда
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Обновление отображения стрелки апгрейда
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
@@ -5944,22 +5865,14 @@
                 db.addOtherUsersDrop(drop);
                 addDropToSidebar(drop);
                 
-                // Показываем текст "Успешно!" в центре круга
-                upgradeSuccessText.style.opacity = '1';
-                setTimeout(() => {
-                    upgradeSuccessText.style.opacity = '0';
-                }, 2000);
+                alert(`Апгрейд успешен! Вы получили: ${gameState.upgradeResultItem.name}`);
             } else {
                 db.removeFromInventory(currentUser, item.id);
                 
                 const refund = Math.floor(item.value * 0.01);
                 user.balance += refund;
                 
-                // Показываем текст "Неудача" в центре круга
-                upgradeFailureText.style.opacity = '1';
-                setTimeout(() => {
-                    upgradeFailureText.style.opacity = '0';
-                }, 2000);
+                alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
             }
             
             db.saveUser(currentUser, user);
@@ -6066,7 +5979,7 @@
                     
                     const itemUnderArrow = getItemUnderArrow(scrollIndex);
                     resolve(itemUnderArrow || getRandomItem(casesData[gameState.selectedCase]));
-                }, 8000);
+                }, 9000); // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             });
         }
 
@@ -6156,7 +6069,6 @@
             }
             
             const promocode = promocodeInput.value.trim().toLowerCase();
-            const validPromocodes = ['андрей', 'максим'];
             
             promocodeSuccess.style.display = 'none';
             promocodeError.style.display = 'none';
@@ -6167,8 +6079,15 @@
                 return;
             }
             
-            if (!validPromocodes.includes(promocode)) {
+            if (!systemSettings.validPromocodes.includes(promocode)) {
                 promocodeError.textContent = 'Неверный промокод';
+                promocodeError.style.display = 'block';
+                return;
+            }
+            
+            const usedPromocodes = db.getUsedPromocodes(currentUser);
+            if (usedPromocodes.includes(promocode)) {
+                promocodeError.textContent = 'Этот промокод больше не получиться использовать';
                 promocodeError.style.display = 'block';
                 return;
             }
@@ -6325,7 +6244,7 @@
                 updateUserDisplay();
                 loadProfile();
                 loadInventoryPage();
-                // БЕЗ УВЕДОМЛЕНИЯ
+                alert(`Все предметы проданы за ${totalValue} монет!`);
             }
         }
 
@@ -6358,8 +6277,6 @@
                         updateContractInfo();
                     }
                 }
-                
-                // БЕЗ УВЕДОМЛЕНИЯ
             }
         }
 
@@ -6508,20 +6425,17 @@
             
             if (gameState.upgradeSelectedChance === 0) {
                 upgradeStartBtn.disabled = true;
-                chanceDisplayUnderWheel.textContent = '0%';
                 return;
             }
             
             const user = db.getUser(currentUser);
             if (balanceAmount > 0 && user.balance < balanceAmount) {
                 upgradeStartBtn.disabled = true;
-                chanceDisplayUnderWheel.textContent = 'Недостаточно средств';
                 return;
             }
             
             const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
             percentValue.textContent = `${effectiveChance}%`;
-            chanceDisplayUnderWheel.textContent = `${effectiveChance}%`;
             upgradeStartBtn.disabled = false;
             
             generatePossibleWin();
@@ -6861,7 +6775,7 @@
                     setTimeout(() => {
                         resetCaseOpeningView();
                     }, 1000);
-                }, 500);
+                }, 1500); // УВЕЛИЧЕНО НА 1 СЕКУНДУ
             });
         }
 
@@ -6987,7 +6901,6 @@
         }
 
         function showResultModal(item, rarity) {
-            gameState.currentWonItem = item;
             wonItemImg.className = `item-img item-${rarity}`;
             wonItemName.textContent = item.name;
             wonItemPrice.innerHTML = `Цена: ${item.value} <i class="fas fa-coins"></i>`;
@@ -7055,7 +6968,65 @@
             showBatchResultModal();
             
             updateUserDisplay();
-            // БЕЗ УВЕДОМЛЕНИЯ
+            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+        }
+
+        function sellBatchAllItems() {
+            if (!currentUser || gameState.batchResults.length === 0) return;
+            
+            const totalValue = gameState.batchResults.reduce((sum, item) => sum + item.value, 0);
+            
+            if (confirm(`Продать все предметы (${gameState.batchResults.length} шт.) за ${totalValue} монет?`)) {
+                const user = db.getUser(currentUser);
+                
+                gameState.batchResults.forEach(item => {
+                    db.removeFromInventory(currentUser, item.id);
+                });
+                
+                user.balance += totalValue;
+                db.saveUser(currentUser, user);
+                
+                gameState.batchResults = [];
+                
+                batchResultModal.style.display = 'none';
+                updateUserDisplay();
+                alert(`Все предметы проданы за ${totalValue} монет!`);
+            }
+        }
+
+        function sellWonItem() {
+            if (!currentUser || !gameState.caseResults[0]) return;
+            
+            const user = db.getUser(currentUser);
+            const item = gameState.caseResults[0];
+            
+            const items = db.getInventory(currentUser);
+            const itemIndex = items.findIndex(i => 
+                i.name === item.name && i.value === item.value && i.rarity === item.rarity
+            );
+            
+            if (itemIndex !== -1) {
+                items.splice(itemIndex, 1);
+                db.saveInventory(currentUser, items);
+                
+                user.balance += item.value;
+                db.saveUser(currentUser, user);
+            }
+            
+            updateUserDisplay();
+            resultModal.style.display = 'none';
+            
+            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+            
+            if (gameState.currentCaseOpening < gameState.caseQuantity) {
+                setTimeout(() => {
+                    openNextCase();
+                }, 500);
+            } else {
+                resetCaseOpeningView();
+                spinBtn.disabled = false;
+                updateSpinButtonPrice();
+            }
         }
 
         function resetCaseOpeningView() {
@@ -7085,7 +7056,6 @@
             gameState.caseResults = [];
             gameState.dynamicScrolls = [];
             gameState.batchResults = [];
-            gameState.currentWonItem = null;
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
@@ -7768,7 +7738,7 @@
             
             const userData = {
                 password: password,
-                balance: systemSettings.defaultBalance,
+                balance: systemSettings.defaultBalance, // 0 РУБЛЕЙ
                 casesOpened: 0,
                 totalValue: 0,
                 bestItem: "Нет",
