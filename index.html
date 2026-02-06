@@ -1392,26 +1392,28 @@
                 #f44336 360deg
             );
             border-radius: 50%;
+            z-index: 1;
         }
 
         /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ТОЧНО НАД 100% */
         .wheel-arrow-moving {
             position: absolute;
-            top: -40px;
+            top: -60px;
             left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
+            transform: translateX(-50%) rotate(0deg);
+            width: 40px;
+            height: 100px;
             z-index: 20;
             transition: transform 0.1s linear;
+            transform-origin: center 170px;
         }
 
         .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 25px solid transparent;
-            border-right: 25px solid transparent;
-            border-top: 40px solid #8847ff;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 50px solid #ffd700;
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
         }
@@ -1426,6 +1428,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
         }
 
         .percent-display {
@@ -1457,41 +1460,37 @@
             letter-spacing: 1px;
         }
 
-        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - ЗЕЛЕНЫЙ ГРАДИЕНТ, БЕЗ КРУЖКОВ, БЛИЖЕ К КРАЮ */
+        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - БЕЛЫЕ, БЛИЖЕ К ФИОЛЕТОВОЙ ЧАСТИ */
         .wheel-percentage-label {
             position: absolute;
             color: white;
             font-weight: 800;
-            font-size: 24px;
+            font-size: 22px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            background: linear-gradient(45deg, #4CAF50, #2E7D32);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
             z-index: 10;
         }
 
         .wheel-percentage-top {
-            top: 30px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 30px;
+            right: 10px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 30px;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 30px;
+            left: 10px;
             transform: translateY(-50%);
         }
 
@@ -1579,6 +1578,29 @@
             padding: 20px;
             background: rgba(0, 0, 0, 0.1);
             border-radius: 15px;
+        }
+
+        /* Результат апгрейда (Успешно/Неудача) */
+        .upgrade-result-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 800;
+            z-index: 25;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .upgrade-success {
+            color: #4CAF50;
+        }
+
+        .upgrade-failure {
+            color: #f44336;
         }
 
         /* Контракты секция */
@@ -2914,6 +2936,7 @@
             margin: 20px 0;
             font-size: 18px;
             font-weight: 600;
+            display: none; /* Скрываем старый статус */
         }
         
         .upgrade-inventory-header {
@@ -3557,7 +3580,7 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <!-- ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ -->
+                                    <!-- ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - БЕЛЫЕ И БЛИЖЕ К ФИОЛЕТОВОЙ ЧАСТИ -->
                                     <div class="wheel-percentage-label wheel-percentage-top">100%</div>
                                     <div class="wheel-percentage-label wheel-percentage-right">25%</div>
                                     <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
@@ -3566,14 +3589,17 @@
                                 <div class="wheel-arrow-moving" id="wheel-arrow-moving">
                                     <div class="arrow-inner"></div>
                                 </div>
+                                <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
+                                <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
                                 <div class="percent-display" id="percent-display">
                                     <div class="percent-value" id="percent-value">0%</div>
                                     <div class="percent-label">Шанс</div>
                                 </div>
                             </div>
                             
-                            <div class="upgrade-status" id="upgrade-status">
-                                Выберите процент успеха
+                            <!-- Убрали старый upgrade-status и добавили новый блок для отображения процента под кругом -->
+                            <div style="text-align: center; margin-top: 10px; font-size: 20px; font-weight: 700; color: white;">
+                                Шанс успеха: <span id="chance-display-under-wheel">0%</span>
                             </div>
                             
                             <div class="chance-selector" id="chance-selector">
@@ -4547,6 +4573,9 @@
         const upgradeStartBtn = document.getElementById('upgrade-start-btn');
         const upgradeInventoryGrid = document.getElementById('upgrade-inventory-grid');
         const percentValue = document.getElementById('percent-value');
+        const upgradeSuccessText = document.getElementById('upgrade-success-text');
+        const upgradeFailureText = document.getElementById('upgrade-failure-text');
+        const chanceDisplayUnderWheel = document.getElementById('chance-display-under-wheel');
         
         // Контракты элементы
         const contractSlotsGrid = document.getElementById('contract-slots-grid');
@@ -4740,9 +4769,9 @@
                 
                 if (pendingItems.filter(item => item.id).length > 0) {
                     if (pendingItems.length === 1) {
-                        alert(`Вы получили предмет "${pendingItems[0].name}" из незавершенного открытия кейса!`);
+                        // БЕЗ УВЕДОМЛЕНИЯ
                     } else {
-                        alert(`Вы получили ${pendingItems.filter(item => item.id).length} предметов из незавершенных открытий кейсов!`);
+                        // БЕЗ УВЕДОМЛЕНИЯ
                     }
                 }
                 
@@ -4790,14 +4819,14 @@
                         db.addOtherUsersDrop(drop);
                         addDropToSidebar(drop);
                         
-                        alert(`Апгрейд успешен! Вы получили: ${upgradeState.resultItem.name}`);
+                        // БЕЗ УВЕДОМЛЕНИЯ
                     } else {
                         db.removeFromInventory(currentUser, item.id);
                         
                         const refund = Math.floor(item.value * 0.01);
                         user.balance += refund;
                         
-                        alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
+                        // БЕЗ УВЕДОМЛЕНИЯ
                     }
                     
                     db.saveUser(currentUser, user);
@@ -5045,7 +5074,37 @@
                 updateSpinButtonPrice();
             });
             
-            sellItemBtn.addEventListener('click', sellWonItem);
+            sellItemBtn.addEventListener('click', () => {
+                if (!currentUser || !gameState.currentWonItem) return;
+                
+                const user = db.getUser(currentUser);
+                const item = gameState.currentWonItem;
+                
+                const items = db.getInventory(currentUser);
+                const itemIndex = items.findIndex(i => 
+                    i.name === item.name && i.value === item.value && i.rarity === item.rarity
+                );
+                
+                if (itemIndex !== -1) {
+                    items.splice(itemIndex, 1);
+                    db.saveInventory(currentUser, items);
+                    
+                    user.balance += item.value;
+                    db.saveUser(currentUser, user);
+                    
+                    updateUserDisplay();
+                    resultModal.style.display = 'none';
+                    
+                    // БЕЗ УВЕДОМЛЕНИЯ
+                    gameState.currentWonItem = null;
+                    
+                    if (profileSection.style.display === 'block') {
+                        loadInventoryPage();
+                    }
+                } else {
+                    // БЕЗ УВЕДОМЛЕНИЯ
+                }
+            });
             
             openAgainBtn.addEventListener('click', () => {
                 resultModal.style.display = 'none';
@@ -5070,7 +5129,26 @@
                 updateSpinButtonPrice();
             });
             
-            sellBatchAllBtn.addEventListener('click', sellBatchAllItems);
+            sellBatchAllBtn.addEventListener('click', () => {
+                if (!currentUser || gameState.batchResults.length === 0) return;
+                
+                const totalValue = gameState.batchResults.reduce((sum, item) => sum + item.value, 0);
+                
+                const user = db.getUser(currentUser);
+                
+                gameState.batchResults.forEach(item => {
+                    db.removeFromInventory(currentUser, item.id);
+                });
+                
+                user.balance += totalValue;
+                db.saveUser(currentUser, user);
+                
+                gameState.batchResults = [];
+                
+                batchResultModal.style.display = 'none';
+                updateUserDisplay();
+                // БЕЗ УВЕДОМЛЕНИЯ
+            });
             
             openBatchAgainBtn.addEventListener('click', () => {
                 batchResultModal.style.display = 'none';
@@ -5104,7 +5182,7 @@
                     updateUserDisplay();
                     contractResultModal.style.display = 'none';
                     
-                    alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
+                    // БЕЗ УВЕДОМЛЕНИЯ
                     gameState.contractResult = null;
                     
                     if (profileSection.style.display === 'block') {
@@ -5115,7 +5193,7 @@
                         loadContractInventory();
                     }
                 } else {
-                    alert('Предмет не найден в инвентаре!');
+                    // БЕЗ УВЕДОМЛЕНИЯ
                 }
             });
             
@@ -5866,14 +5944,22 @@
                 db.addOtherUsersDrop(drop);
                 addDropToSidebar(drop);
                 
-                alert(`Апгрейд успешен! Вы получили: ${gameState.upgradeResultItem.name}`);
+                // Показываем текст "Успешно!" в центре круга
+                upgradeSuccessText.style.opacity = '1';
+                setTimeout(() => {
+                    upgradeSuccessText.style.opacity = '0';
+                }, 2000);
             } else {
                 db.removeFromInventory(currentUser, item.id);
                 
                 const refund = Math.floor(item.value * 0.01);
                 user.balance += refund;
                 
-                alert(`Апгрейд провален! Вы получили ${refund} монет компенсации.`);
+                // Показываем текст "Неудача" в центре круга
+                upgradeFailureText.style.opacity = '1';
+                setTimeout(() => {
+                    upgradeFailureText.style.opacity = '0';
+                }, 2000);
             }
             
             db.saveUser(currentUser, user);
@@ -6239,7 +6325,7 @@
                 updateUserDisplay();
                 loadProfile();
                 loadInventoryPage();
-                alert(`Все предметы проданы за ${totalValue} монет!`);
+                // БЕЗ УВЕДОМЛЕНИЯ
             }
         }
 
@@ -6272,6 +6358,8 @@
                         updateContractInfo();
                     }
                 }
+                
+                // БЕЗ УВЕДОМЛЕНИЯ
             }
         }
 
@@ -6419,21 +6507,21 @@
             gameState.upgradeBalanceAmount = balanceAmount;
             
             if (gameState.upgradeSelectedChance === 0) {
-                upgradeStatus.textContent = 'Выберите процент успеха';
                 upgradeStartBtn.disabled = true;
+                chanceDisplayUnderWheel.textContent = '0%';
                 return;
             }
             
             const user = db.getUser(currentUser);
             if (balanceAmount > 0 && user.balance < balanceAmount) {
-                upgradeStatus.textContent = 'Недостаточно средств';
                 upgradeStartBtn.disabled = true;
+                chanceDisplayUnderWheel.textContent = 'Недостаточно средств';
                 return;
             }
             
             const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
             percentValue.textContent = `${effectiveChance}%`;
-            upgradeStatus.textContent = `Шанс успеха: ${effectiveChance}%`;
+            chanceDisplayUnderWheel.textContent = `${effectiveChance}%`;
             upgradeStartBtn.disabled = false;
             
             generatePossibleWin();
@@ -6899,6 +6987,7 @@
         }
 
         function showResultModal(item, rarity) {
+            gameState.currentWonItem = item;
             wonItemImg.className = `item-img item-${rarity}`;
             wonItemName.textContent = item.name;
             wonItemPrice.innerHTML = `Цена: ${item.value} <i class="fas fa-coins"></i>`;
@@ -6966,65 +7055,7 @@
             showBatchResultModal();
             
             updateUserDisplay();
-            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
-        }
-
-        function sellBatchAllItems() {
-            if (!currentUser || gameState.batchResults.length === 0) return;
-            
-            const totalValue = gameState.batchResults.reduce((sum, item) => sum + item.value, 0);
-            
-            if (confirm(`Продать все предметы (${gameState.batchResults.length} шт.) за ${totalValue} монет?`)) {
-                const user = db.getUser(currentUser);
-                
-                gameState.batchResults.forEach(item => {
-                    db.removeFromInventory(currentUser, item.id);
-                });
-                
-                user.balance += totalValue;
-                db.saveUser(currentUser, user);
-                
-                gameState.batchResults = [];
-                
-                batchResultModal.style.display = 'none';
-                updateUserDisplay();
-                alert(`Все предметы проданы за ${totalValue} монет!`);
-            }
-        }
-
-        function sellWonItem() {
-            if (!currentUser || !gameState.caseResults[0]) return;
-            
-            const user = db.getUser(currentUser);
-            const item = gameState.caseResults[0];
-            
-            const items = db.getInventory(currentUser);
-            const itemIndex = items.findIndex(i => 
-                i.name === item.name && i.value === item.value && i.rarity === item.rarity
-            );
-            
-            if (itemIndex !== -1) {
-                items.splice(itemIndex, 1);
-                db.saveInventory(currentUser, items);
-                
-                user.balance += item.value;
-                db.saveUser(currentUser, user);
-            }
-            
-            updateUserDisplay();
-            resultModal.style.display = 'none';
-            
-            alert(`Предмет "${item.name}" продан за ${item.value} монет!`);
-            
-            if (gameState.currentCaseOpening < gameState.caseQuantity) {
-                setTimeout(() => {
-                    openNextCase();
-                }, 500);
-            } else {
-                resetCaseOpeningView();
-                spinBtn.disabled = false;
-                updateSpinButtonPrice();
-            }
+            // БЕЗ УВЕДОМЛЕНИЯ
         }
 
         function resetCaseOpeningView() {
@@ -7054,6 +7085,7 @@
             gameState.caseResults = [];
             gameState.dynamicScrolls = [];
             gameState.batchResults = [];
+            gameState.currentWonItem = null;
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
