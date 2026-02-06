@@ -1168,6 +1168,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 220px;
+            max-height: 220px;
+            overflow: hidden;
         }
 
         .inventory-item:hover {
@@ -1198,6 +1201,7 @@
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
+            width: 100%;
         }
 
         .item-value {
@@ -1205,12 +1209,19 @@
             font-size: 14px;
             font-weight: 700;
             margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
         }
 
         .item-actions {
             display: flex;
             gap: 5px;
             justify-content: center;
+            width: 100%;
+            margin-top: auto;
         }
 
         .item-btn {
@@ -1223,6 +1234,10 @@
             cursor: pointer;
             transition: var(--transition);
             text-transform: uppercase;
+            white-space: nowrap;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .contract-btn {
@@ -1395,25 +1410,25 @@
             z-index: 1;
         }
 
-        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - СТОИТ ПОД 100% */
+        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА */
         .wheel-arrow-moving {
             position: absolute;
-            top: -60px;
+            top: -45px;
             left: 50%;
             transform: translateX(-50%) rotate(0deg);
             width: 40px;
             height: 100px;
-            z-index: 20;
+            z-index: 25;
             transition: transform 0.1s linear;
-            transform-origin: center 170px;
+            transform-origin: center 185px;
         }
 
         .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 50px solid #ffd700;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 60px solid #ffd700;
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
         }
@@ -1460,7 +1475,7 @@
             letter-spacing: 1px;
         }
 
-        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ - БЕЛЫЕ, БЛИЖЕ К ФИОЛЕТОВОЙ ЧАСТИ */
+        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ */
         .wheel-percentage-label {
             position: absolute;
             color: white;
@@ -1471,26 +1486,26 @@
         }
 
         .wheel-percentage-top {
-            top: 10px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 10px;
+            right: 15px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 10px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 10px;
+            left: 15px;
             transform: translateY(-50%);
         }
 
@@ -3303,6 +3318,23 @@
         .upgrade-inventory-grid {
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         }
+        
+        /* ФИКС для инвентаря - устраняем увеличение на 10% */
+        .inventory-item {
+            transform: none !important;
+            zoom: 1 !important;
+            scale: 1 !important;
+        }
+        
+        .inventory-grid {
+            transform: none !important;
+            zoom: 1 !important;
+            scale: 1 !important;
+        }
+        
+        .item-actions {
+            transform: none !important;
+        }
     </style>
 </head>
 <body>
@@ -4061,6 +4093,11 @@
                     localStorage.setItem('pendingCaseItems', JSON.stringify({}));
                 }
                 
+                // Сохранение состояния открытого кейса
+                if (!localStorage.getItem('openedCaseState')) {
+                    localStorage.setItem('openedCaseState', JSON.stringify(null));
+                }
+                
                 // Админ аккаунт
                 const users = this.getUsers();
                 if (!users['k1lame']) {
@@ -4160,6 +4197,19 @@
             
             setCurrentTab(tab) {
                 localStorage.setItem('currentTab', JSON.stringify(tab));
+            }
+            
+            // Сохранение состояния открытого кейса
+            getOpenedCaseState() {
+                return JSON.parse(localStorage.getItem('openedCaseState'));
+            }
+            
+            setOpenedCaseState(state) {
+                localStorage.setItem('openedCaseState', JSON.stringify(state));
+            }
+            
+            clearOpenedCaseState() {
+                localStorage.setItem('openedCaseState', JSON.stringify(null));
             }
             
             getUsedPromocodes(username) {
@@ -4728,7 +4778,8 @@
             initEventListeners();
             updateOpenCaseButtons();
             
-            restoreLastTab();
+            // Восстанавливаем состояние открытого кейса при загрузке
+            restoreOpenedCase();
             
             setInterval(updateAdminBadge, 60000);
             
@@ -4741,6 +4792,51 @@
             
             // Инициализация стрелки колеса апгрейда
             initWheelArrow();
+        }
+
+        // Восстановление открытого кейса при обновлении страницы
+        function restoreOpenedCase() {
+            const openedCaseState = db.getOpenedCaseState();
+            if (openedCaseState && openedCaseState.caseId) {
+                gameState.selectedCase = openedCaseState.caseId;
+                const caseData = casesData[openedCaseState.caseId];
+                
+                if (caseData) {
+                    openingCaseName.textContent = caseData.name;
+                    updateSpinButtonPrice();
+                    initItemsPreview(caseData);
+                    
+                    caseOpeningSection.classList.add('active');
+                    caseSelection.style.display = 'none';
+                    profileSection.style.display = 'none';
+                    otherProfileSection.style.display = 'none';
+                    upgradeSection.style.display = 'none';
+                    contractSection.style.display = 'none';
+                    caseBatchInfo.style.display = 'none';
+                    
+                    db.setCurrentTab('main');
+                    setActiveTab(casesTab);
+                }
+            } else {
+                restoreLastTab();
+            }
+        }
+
+        // Сохранение состояния открытого кейса
+        function saveOpenedCaseState() {
+            if (gameState.selectedCase) {
+                db.setOpenedCaseState({
+                    caseId: gameState.selectedCase,
+                    timestamp: Date.now()
+                });
+            } else {
+                db.clearOpenedCaseState();
+            }
+        }
+
+        // Очистка состояния открытого кейса
+        function clearOpenedCaseState() {
+            db.clearOpenedCaseState();
         }
 
         // Инициализация стрелки колеса
@@ -4889,6 +4985,7 @@
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             mainTab.addEventListener('click', (e) => {
@@ -4896,6 +4993,7 @@
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(mainTab);
+                clearOpenedCaseState();
             });
             
             casesTab.addEventListener('click', (e) => {
@@ -4903,6 +5001,7 @@
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             upgradeTab.addEventListener('click', (e) => {
@@ -4914,6 +5013,7 @@
                 db.setCurrentTab('upgrade');
                 showUpgradeSection();
                 setActiveTab(upgradeTab);
+                clearOpenedCaseState();
             });
             
             contractsTab.addEventListener('click', (e) => {
@@ -4925,6 +5025,7 @@
                 db.setCurrentTab('contracts');
                 showContractSection();
                 setActiveTab(contractsTab);
+                clearOpenedCaseState();
             });
             
             profileTab.addEventListener('click', (e) => {
@@ -4936,6 +5037,7 @@
                 db.setCurrentTab('profile');
                 showProfileSection();
                 setActiveTab(profileTab);
+                clearOpenedCaseState();
             });
             
             userAvatarBtn.addEventListener('click', () => {
@@ -4943,6 +5045,7 @@
                     db.setCurrentTab('profile');
                     showProfileSection();
                     setActiveTab(profileTab);
+                    clearOpenedCaseState();
                 } else {
                     authModal.style.display = 'flex';
                 }
@@ -4952,24 +5055,28 @@
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             backToMainFromOther.addEventListener('click', () => {
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             backToMainFromUpgrade.addEventListener('click', () => {
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             backToMainFromContracts.addEventListener('click', () => {
                 db.setCurrentTab('main');
                 showMainPage();
                 setActiveTab(casesTab);
+                clearOpenedCaseState();
             });
             
             closeOpeningBtn.addEventListener('click', () => {
@@ -4979,6 +5086,7 @@
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
                 caseBatchInfo.style.display = 'none';
+                clearOpenedCaseState();
             });
             
             spinBtn.addEventListener('click', startCaseOpening);
@@ -5102,6 +5210,7 @@
                 resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
+                clearOpenedCaseState();
             });
             
             closeResultModalBtn.addEventListener('click', () => {
@@ -5109,6 +5218,7 @@
                 resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
+                clearOpenedCaseState();
             });
             
             sellItemBtn.addEventListener('click', () => {
@@ -5154,6 +5264,7 @@
                 resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
+                clearOpenedCaseState();
             });
             
             closeBatchModalBtn.addEventListener('click', () => {
@@ -5161,6 +5272,7 @@
                 resetCaseOpeningView();
                 spinBtn.disabled = false;
                 updateSpinButtonPrice();
+                clearOpenedCaseState();
             });
             
             sellBatchAllBtn.addEventListener('click', () => {
@@ -5317,6 +5429,7 @@
             resetCaseOpeningView();
             caseBatchInfo.style.display = 'none';
             gameState.viewingOtherProfile = null;
+            clearOpenedCaseState();
         }
 
         function showProfileSection() {
@@ -5338,6 +5451,7 @@
             loadProfile();
             loadInventoryPage();
             resetPromocodeDisplay();
+            clearOpenedCaseState();
         }
 
         function showOtherProfileSection(username) {
@@ -5354,6 +5468,7 @@
             caseBatchInfo.style.display = 'none';
             
             loadOtherProfile(username);
+            clearOpenedCaseState();
         }
 
         function showUpgradeSection() {
@@ -5374,6 +5489,7 @@
             
             resetUpgrade();
             loadUpgradeInventory();
+            clearOpenedCaseState();
             
             // Инициализация стрелки при показе секции
             if (!gameState.wheelArrowInitialized) {
@@ -5400,6 +5516,7 @@
             loadContractSlots();
             loadContractInventory();
             updateContractInfo();
+            clearOpenedCaseState();
         }
 
         function setActiveTab(tab) {
@@ -7130,6 +7247,7 @@
             
             spinBtn.disabled = false;
             updateSpinButtonPrice();
+            spinBtn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс за <span id="spin-price">${spinPriceSpan.textContent}</span>`;
             
             // Обновляем кнопки открытия кейсов
             updateOpenCaseButtons();
@@ -7636,6 +7754,9 @@
             caseBatchInfo.style.display = 'none';
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Сохраняем состояние открытого кейса
+            saveOpenedCaseState();
         }
 
         function initItemsPreview(caseData) {
