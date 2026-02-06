@@ -1382,85 +1382,84 @@
             gap: 15px;
         }
 
-        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - УМЕНЬШЕН ДО 0.9 */
+        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - С НОВОЙ СТРЕЛКОЙ */
         .upgrade-wheel-container {
             position: relative;
-            width: 360px;
-            height: 360px;
+            width: 400px;
+            height: 400px;
             margin: 10px 0;
         }
 
         .upgrade-wheel {
-            width: 100%;
-            height: 100%;
+            width: 360px;
+            height: 360px;
             border-radius: 50%;
-            position: relative;
-            overflow: visible;
-            border: 12px solid transparent;
-            background: linear-gradient(45deg, var(--accent-color), var(--secondary-color)) padding-box,
-                        linear-gradient(45deg, #8847ff, #d32ee6) border-box;
-            box-shadow: 
-                0 0 25px rgba(136, 71, 255, 0.5),
-                inset 0 0 25px rgba(0, 0, 0, 0.5);
-            transform-style: preserve-3d;
-            perspective: 1000px;
-        }
-
-        .wheel-success-sector {
             position: absolute;
-            width: 100%;
-            height: 100%;
+            top: 20px;
+            left: 20px;
+            overflow: visible;
+            border: 20px solid #8847ff;
             background: conic-gradient(
                 #4CAF50 0deg,
                 #4CAF50 var(--success-degrees, 0deg),
                 #f44336 var(--success-degrees, 0deg),
                 #f44336 360deg
             );
-            border-radius: 50%;
+            box-shadow: 
+                0 0 30px rgba(136, 71, 255, 0.7),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
             z-index: 1;
         }
 
-        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - БОЛЬШИЙ РАДИУС 1.1 */
+        /* НОВАЯ СТРЕЛКА, КОТОРАЯ КРУТИТСЯ ВОКРУГ ФИОЛЕТОВОГО КРУГА */
+        .wheel-arrow-outer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 25;
+            pointer-events: none;
+        }
+
         .wheel-arrow-moving {
             position: absolute;
-            top: -60px;
+            top: -25px;
             left: 50%;
             transform: translateX(-50%) rotate(0deg);
+            transform-origin: center 200px;
             width: 40px;
-            height: 130px;
+            height: 80px;
             z-index: 25;
             transition: transform 0.1s linear;
-            transform-origin: center 190px;
         }
 
         .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 18px solid transparent;
-            border-right: 18px solid transparent;
-            border-top: 70px solid #ffd700;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 60px solid #ffd700;
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
         }
 
-        .wheel-percentages {
+        .arrow-inner::after {
+            content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
+            bottom: -60px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: #ffd700;
+            border-radius: 50%;
         }
 
         /* ПРОЦЕНТ ШАНСА В ЦЕНТРЕ КРУГА */
         .percent-display {
             position: absolute;
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             background: rgba(0, 0, 0, 0.8);
             border-radius: 50%;
             display: flex;
@@ -1476,7 +1475,7 @@
         }
 
         .percent-value {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             color: white;
             text-shadow: 0 2px 5px rgba(0,0,0,0.5);
@@ -1500,26 +1499,26 @@
         }
 
         .wheel-percentage-top {
-            top: 20px;
+            top: 40px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 20px;
+            right: 40px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 20px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 20px;
+            left: 40px;
             transform: translateY(-50%);
         }
 
@@ -2470,8 +2469,19 @@
             }
             
             .upgrade-wheel-container {
-                width: 320px;
-                height: 320px;
+                width: 350px;
+                height: 350px;
+            }
+            
+            .upgrade-wheel {
+                width: 310px;
+                height: 310px;
+                top: 20px;
+                left: 20px;
+            }
+            
+            .wheel-arrow-moving {
+                transform-origin: center 175px;
             }
         }
 
@@ -2572,8 +2582,19 @@
             }
             
             .upgrade-wheel-container {
+                width: 320px;
+                height: 320px;
+            }
+            
+            .upgrade-wheel {
                 width: 280px;
                 height: 280px;
+                top: 20px;
+                left: 20px;
+            }
+            
+            .wheel-arrow-moving {
+                transform-origin: center 160px;
             }
             
             .upgrade-selected-item,
@@ -2648,8 +2669,19 @@
             }
             
             .upgrade-wheel-container {
-                width: 250px;
-                height: 250px;
+                width: 280px;
+                height: 280px;
+            }
+            
+            .upgrade-wheel {
+                width: 240px;
+                height: 240px;
+                top: 20px;
+                left: 20px;
+            }
+            
+            .wheel-arrow-moving {
+                transform-origin: center 140px;
             }
             
             .upgrade-selected-item,
@@ -2711,8 +2743,19 @@
             }
             
             .upgrade-wheel-container {
-                width: 220px;
-                height: 220px;
+                width: 250px;
+                height: 250px;
+            }
+            
+            .upgrade-wheel {
+                width: 210px;
+                height: 210px;
+                top: 20px;
+                left: 20px;
+            }
+            
+            .wheel-arrow-moving {
+                transform-origin: center 125px;
             }
         }
 
@@ -3301,11 +3344,6 @@
             padding: 15px;
         }
         
-        .upgrade-wheel-container {
-            width: 300px;
-            height: 300px;
-        }
-        
         .upgrade-inventory-grid {
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         }
@@ -3488,7 +3526,7 @@
                 
                 <div class="case-opening-controls">
                     <button class="spin-btn" id="spin-btn">
-                        <i class="fas fa-box-open"></i> Открыть кейс за <span id="spin-price">2,500</span>
+                        <i class="fas fa-box-open"></i> Открыть кейс за <span id="spin-price">7,500</span>
                     </button>
                     
                     <!-- Выбор количества кейсов и кнопка быстрой прокрутки -->
@@ -3690,8 +3728,10 @@
                                     <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
                                     <div class="wheel-percentage-label wheel-percentage-left">75%</div>
                                 </div>
-                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
-                                    <div class="arrow-inner"></div>
+                                <div class="wheel-arrow-outer" id="wheel-arrow-outer">
+                                    <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="transform: translateX(-50%) rotate(0deg);">
+                                        <div class="arrow-inner"></div>
+                                    </div>
                                 </div>
                                 <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
                                 <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
@@ -3934,9 +3974,9 @@
                     <h3 style="margin-bottom: 30px; text-align: center; color: var(--primary-color);">Панель управления</h3>
                     
                     <div class="form-group">
-                        <label>Управление пользователями</label>
+                        <label>Управление балансом</label>
                         <div class="admin-users-list" id="admin-users-list">
-                            <!-- Список пользователей -->
+                            <!-- Список пользователей будет добавляться динамически -->
                         </div>
                     </div>
                     
@@ -4415,7 +4455,7 @@
             validPromocodes: ['начало']
         };
 
-        // Данные о скинах (увеличены в 3 раза)
+        // Данные о скинах
         const cs2Items = {
             common: [
                 { name: "Glock-18 | Бронзовые украшения", value: 60, rarity: 'common' },
@@ -4532,31 +4572,31 @@
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: Math.round(19 * 3)
+                price: 57 * 3 // 171
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: Math.round(68 * 3)
+                price: 204 // 68 * 3
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: Math.round(188 * 3)
+                price: 564 // 188 * 3
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: Math.round(450 * 3)
+                price: 1350 // 450 * 3
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: Math.round(1850 * 3)
+                price: 5550 // 1850 * 3
             }
         };
 
@@ -4824,9 +4864,6 @@
             
             initQuantitySelector();
             startOtherUsersDropsSimulation();
-            
-            // Инициализация стрелки колеса апгрейда
-            initWheelArrow();
         }
 
         // Восстановление открытого кейса при обновлении страницы
@@ -4872,16 +4909,6 @@
         // Очистка состояния открытого кейса
         function clearOpenedCaseState() {
             db.clearOpenedCaseState();
-        }
-
-        // Инициализация стрелки колеса
-        function initWheelArrow() {
-            if (wheelArrowMoving) {
-                wheelArrowMoving.style.display = 'block';
-                wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
-                wheelArrowMoving.style.transition = 'none';
-                gameState.wheelArrowInitialized = true;
-            }
         }
 
         // Восстановление последней вкладки
@@ -5539,11 +5566,6 @@
             resetUpgrade();
             loadUpgradeInventory();
             clearOpenedCaseState();
-            
-            // Инициализация стрелки при показе секции
-            if (!gameState.wheelArrowInitialized) {
-                initWheelArrow();
-            }
         }
 
         function showContractSection() {
@@ -5791,7 +5813,7 @@
             });
         }
 
-        // Запуск апгрейда
+        // Запуск апгрейда с новой стрелкой
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5839,7 +5861,7 @@
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
-                    wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                    wheelArrowMoving.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
                     animationId = requestAnimationFrame(animateSpin);
                 } else {
                     cancelAnimationFrame(animationId);
@@ -5848,7 +5870,7 @@
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
                     wheelArrowMoving.style.transition = 'transform 1s ease-out';
-                    wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                    wheelArrowMoving.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
                     
                     const upgradeState = db.getUpgradeState();
                     if (upgradeState) {
@@ -5861,8 +5883,12 @@
                         gameState.isWheelSpinning = false;
                         upgradeStartBtn.disabled = false;
                         upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                        // СТРЕЛКА СТАНОВИТСЯ СТАТИЧНОЙ ПОСЛЕ АНИМАЦИИ
-                        wheelArrowMoving.style.transition = 'none';
+                        
+                        // ТЕЛЕПОРТАЦИЯ СТРЕЛКИ НА МЕСТО БЕЗ АНИМАЦИИ
+                        setTimeout(() => {
+                            wheelArrowMoving.style.transition = 'none';
+                            wheelArrowMoving.style.transform = `translateX(-50%) rotate(0deg)`;
+                        }, 50);
                     }, 1000);
                 }
             };
@@ -6003,7 +6029,6 @@
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
-                wheelArrowMoving.style.display = 'block';
                 wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
                 wheelArrowMoving.style.transition = 'none';
                 percentValue.textContent = '0%';
@@ -6013,7 +6038,6 @@
             const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
             wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
             
-            wheelArrowMoving.style.display = 'block';
             wheelArrowMoving.style.transform = `translateX(-50%) rotate(0deg)`;
             wheelArrowMoving.style.transition = 'none';
             
@@ -7466,24 +7490,27 @@
             const users = db.getUsers();
             adminUsersList.innerHTML = '';
             
+            // Показываем только текущего пользователя и админов
             Object.keys(users).forEach(username => {
                 const user = users[username];
-                const userElement = document.createElement('div');
-                userElement.className = 'admin-user-item';
-                
-                userElement.innerHTML = `
-                    <div>
-                        <strong>${username}</strong>
-                        <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
-                            Баланс: ${user.balance} | Кейсов: ${user.casesOpened}
+                if (username === currentUser || user.isAdmin) {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'admin-user-item';
+                    
+                    userElement.innerHTML = `
+                        <div>
+                            <strong>${username} ${user.isAdmin ? '(Админ)' : ''}</strong>
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                                Баланс: ${user.balance} | Кейсов: ${user.casesOpened}
+                            </div>
                         </div>
-                    </div>
-                    <button class="admin-btn-submit edit-balance-btn" data-username="${username}" style="padding: 8px 15px;">
-                        <i class="fas fa-edit"></i> Изменить баланс
-                    </button>
-                `;
-                
-                adminUsersList.appendChild(userElement);
+                        <button class="admin-btn-submit edit-balance-btn" data-username="${username}" style="padding: 8px 15px;">
+                            <i class="fas fa-edit"></i> Изменить баланс
+                        </button>
+                    `;
+                    
+                    adminUsersList.appendChild(userElement);
+                }
             });
             
             document.querySelectorAll('.edit-balance-btn').forEach(btn => {
