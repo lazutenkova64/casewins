@@ -1472,26 +1472,26 @@
         }
 
         .wheel-percentage-top {
-            top: 20px;
+            top: 30px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 20px;
+            right: 30px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 20px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 20px;
+            left: 30px;
             transform: translateY(-50%);
         }
 
@@ -5347,7 +5347,7 @@
             }
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрое открытие кейсов
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрое открытие кейсов с плавной остановкой
         function fastCaseOpening() {
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
             
@@ -5417,7 +5417,7 @@
             return null;
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрая прокрутка кейса с правильным определением предмета
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Быстрая прокрутка кейса с правильным определением предмета и плавной остановкой
         function spinDynamicCaseFast(scrollIndex) {
             return new Promise((resolve) => {
                 const scrollData = gameState.dynamicScrolls[scrollIndex];
@@ -5429,13 +5429,15 @@
                 let targetPosition = Math.random() * 8000 + 4000;
                 let lastLoadedPosition = 0;
                 let animationId = null;
+                let isStopping = false;
                 
                 const animate = () => {
-                    speed *= deceleration;
-                    if (scrollPosition > targetPosition * 0.7) {
-                        deceleration = 0.95;
+                    if (!isStopping && scrollPosition > targetPosition * 0.8) {
+                        isStopping = true;
+                        deceleration = 0.9;
                     }
                     
+                    speed *= deceleration;
                     scrollPosition += speed;
                     
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
@@ -5445,44 +5447,48 @@
                         lastLoadedPosition = scrollPosition;
                     }
                     
-                    if (speed < 1 || scrollPosition >= targetPosition) {
+                    if (speed < 0.5 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                        // Плавная остановка
+                        dynamicScroll.style.transition = 'transform 1s ease-out';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
                         let centerItem = null;
                         let minDistance = Infinity;
                         
-                        dynamicItems.forEach((item) => {
-                            const rect = item.getBoundingClientRect();
-                            const wrapperRect = scrollData.wrapper.getBoundingClientRect();
-                            const itemCenter = rect.left + rect.width / 2;
-                            const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
-                            const distance = Math.abs(itemCenter - wrapperCenter);
+                        // Даем время на завершение анимации
+                        setTimeout(() => {
+                            dynamicItems.forEach((item) => {
+                                const rect = item.getBoundingClientRect();
+                                const wrapperRect = scrollData.wrapper.getBoundingClientRect();
+                                const itemCenter = rect.left + rect.width / 2;
+                                const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
+                                const distance = Math.abs(itemCenter - wrapperCenter);
+                                
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    centerItem = item;
+                                }
+                            });
                             
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                centerItem = item;
-                            }
-                        });
-                        
-                        if (centerItem) {
-                            centerItem.classList.add('active');
-                            
-                            try {
-                                const itemData = JSON.parse(centerItem.dataset.item);
-                                setTimeout(() => {
-                                    centerItem.classList.remove('active');
-                                    resolve(itemData);
-                                }, 500);
-                            } catch (e) {
+                            if (centerItem) {
+                                centerItem.classList.add('active');
+                                
+                                try {
+                                    const itemData = JSON.parse(centerItem.dataset.item);
+                                    setTimeout(() => {
+                                        centerItem.classList.remove('active');
+                                        resolve(itemData);
+                                    }, 800);
+                                } catch (e) {
+                                    resolve(getRandomItem(casesData[gameState.selectedCase]));
+                                }
+                            } else {
                                 resolve(getRandomItem(casesData[gameState.selectedCase]));
                             }
-                        } else {
-                            resolve(getRandomItem(casesData[gameState.selectedCase]));
-                        }
+                        }, 1000);
                         return;
                     }
                     
@@ -5492,16 +5498,17 @@
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
                 
+                // Таймаут на случай ошибок
                 setTimeout(() => {
                     if (animationId) {
                         cancelAnimationFrame(animationId);
                     }
-                    dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                    dynamicScroll.style.transition = 'transform 1s ease-out';
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                     
                     const itemUnderArrow = getItemUnderArrow(scrollIndex);
                     resolve(itemUnderArrow || getRandomItem(casesData[gameState.selectedCase]));
-                }, 1500);
+                }, 2500);
             });
         }
 
@@ -5537,6 +5544,7 @@
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
+                    // Вращение стрелки вокруг центра
                     wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                     animationId = requestAnimationFrame(animateSpin);
                 } else {
@@ -5545,8 +5553,9 @@
                     const finalRotation = rotation % 360;
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
+                    // Плавное завершение вращения
+                    wheelArrowMoving.style.transition = 'transform 1s ease-out';
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                     
                     db.saveUpgradeState({
                         username: currentUser,
@@ -5563,7 +5572,7 @@
                         upgradeStartBtn.disabled = false;
                         upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                         wheelArrowMoving.style.transition = 'transform 0.1s linear';
-                    }, 500);
+                    }, 1000);
                 }
             };
             
@@ -5577,8 +5586,8 @@
                 const finalRotation = rotation % 360;
                 const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                 
+                wheelArrowMoving.style.transition = 'transform 1s ease-out';
                 wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                 
                 db.saveUpgradeState({
                     username: currentUser,
@@ -5595,7 +5604,7 @@
                     upgradeStartBtn.disabled = false;
                     upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                     wheelArrowMoving.style.transition = 'transform 0.1s linear';
-                }, 500);
+                }, 1000);
             }, 1500);
         }
 
@@ -5656,6 +5665,7 @@
                     const easeOut = 1 - Math.pow(1 - t, 3);
                     rotation = easeOut * 360 * spinRotations;
                     
+                    // Вращение стрелки вокруг центра
                     wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                     animationId = requestAnimationFrame(animateSpin);
                 } else {
@@ -5664,8 +5674,8 @@
                     const finalRotation = rotation % 360;
                     const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
                     
+                    wheelArrowMoving.style.transition = 'transform 1s ease-out';
                     wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
                     
                     const upgradeState = db.getUpgradeState();
                     if (upgradeState) {
@@ -5679,7 +5689,7 @@
                         upgradeStartBtn.disabled = false;
                         upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                         wheelArrowMoving.style.transition = 'transform 0.1s linear';
-                    }, 500);
+                    }, 1000);
                 }
             };
             
@@ -5875,7 +5885,7 @@
             db.clearUpgradeState();
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Прокрутка кейса с увеличенным временем и плавностью
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Прокрутка кейса с одинаковым временем для всех кейсов
         function spinDynamicCase(scrollIndex) {
             return new Promise((resolve) => {
                 const scrollData = gameState.dynamicScrolls[scrollIndex];
@@ -5922,34 +5932,36 @@
                         let centerItem = null;
                         let minDistance = Infinity;
                         
-                        dynamicItems.forEach((item) => {
-                            const rect = item.getBoundingClientRect();
-                            const wrapperRect = scrollData.wrapper.getBoundingClientRect();
-                            const itemCenter = rect.left + rect.width / 2;
-                            const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
-                            const distance = Math.abs(itemCenter - wrapperCenter);
+                        setTimeout(() => {
+                            dynamicItems.forEach((item) => {
+                                const rect = item.getBoundingClientRect();
+                                const wrapperRect = scrollData.wrapper.getBoundingClientRect();
+                                const itemCenter = rect.left + rect.width / 2;
+                                const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
+                                const distance = Math.abs(itemCenter - wrapperCenter);
+                                
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    centerItem = item;
+                                }
+                            });
                             
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                centerItem = item;
-                            }
-                        });
-                        
-                        if (centerItem) {
-                            centerItem.classList.add('active');
-                            
-                            try {
-                                const itemData = JSON.parse(centerItem.dataset.item);
-                                setTimeout(() => {
-                                    centerItem.classList.remove('active');
-                                    resolve(itemData);
-                                }, 1500);
-                            } catch (e) {
+                            if (centerItem) {
+                                centerItem.classList.add('active');
+                                
+                                try {
+                                    const itemData = JSON.parse(centerItem.dataset.item);
+                                    setTimeout(() => {
+                                        centerItem.classList.remove('active');
+                                        resolve(itemData);
+                                    }, 1500);
+                                } catch (e) {
+                                    resolve(getRandomItem(casesData[gameState.selectedCase]));
+                                }
+                            } else {
                                 resolve(getRandomItem(casesData[gameState.selectedCase]));
                             }
-                        } else {
-                            resolve(getRandomItem(casesData[gameState.selectedCase]));
-                        }
+                        }, 1000);
                         return;
                     }
                     
@@ -6731,7 +6743,7 @@
             }
         }
 
-        // ФУНКЦИЯ: Одновременное открытие всех кейсов с УВЕЛИЧЕННОЙ СКОРОСТЬЮ
+        // ФУНКЦИЯ: Одновременное открытие всех кейсов с одинаковой плавностью
         function openAllCasesSimultaneously() {
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открытие ${gameState.caseQuantity} кейсов...`;
             
@@ -6771,14 +6783,27 @@
                 const dynamicScroll = scrollData.scroll;
                 
                 let scrollPosition = 0;
-                let speed = 60; // УВЕЛИЧЕНА СКОРОСТЬ С 40 ДО 60
-                let deceleration = 0.97;
-                let targetPosition = Math.random() * 8000 + 4000;
+                let speed = 25; // ОДИНАКОВАЯ СКОРОСТЬ КАК У 1 КЕЙСА
+                let acceleration = 1.05;
+                let maxSpeed = 40;
+                let decelerationStart = Math.random() * 8000 + 4000;
+                let targetPosition = decelerationStart + Math.random() * 3000 + 2000;
+                let deceleration = 0.98;
                 let lastLoadedPosition = 0;
                 let animationId = null;
                 
                 const animate = () => {
-                    speed *= deceleration;
+                    if (scrollPosition < decelerationStart && speed < maxSpeed) {
+                        speed *= acceleration;
+                        if (speed > maxSpeed) speed = maxSpeed;
+                    }
+                    else if (scrollPosition >= decelerationStart) {
+                        speed *= deceleration;
+                        if (scrollPosition > targetPosition * 0.9) {
+                            deceleration = 0.95;
+                        }
+                    }
+                    
                     scrollPosition += speed;
                     
                     dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
@@ -6788,44 +6813,46 @@
                         lastLoadedPosition = scrollPosition;
                     }
                     
-                    if (speed < 0.5 || scrollPosition >= targetPosition) {
+                    if (speed < 0.3 || scrollPosition >= targetPosition) {
                         cancelAnimationFrame(animationId);
                         
-                        dynamicScroll.style.transition = 'transform 0.5s ease-out';
+                        dynamicScroll.style.transition = 'transform 1s ease-out';
                         dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
                         
                         const dynamicItems = dynamicScroll.querySelectorAll('.dynamic-item');
                         let centerItem = null;
                         let minDistance = Infinity;
                         
-                        dynamicItems.forEach((item) => {
-                            const rect = item.getBoundingClientRect();
-                            const wrapperRect = scrollData.wrapper.getBoundingClientRect();
-                            const itemCenter = rect.left + rect.width / 2;
-                            const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
-                            const distance = Math.abs(itemCenter - wrapperCenter);
+                        setTimeout(() => {
+                            dynamicItems.forEach((item) => {
+                                const rect = item.getBoundingClientRect();
+                                const wrapperRect = scrollData.wrapper.getBoundingClientRect();
+                                const itemCenter = rect.left + rect.width / 2;
+                                const wrapperCenter = wrapperRect.left + wrapperRect.width / 2;
+                                const distance = Math.abs(itemCenter - wrapperCenter);
+                                
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    centerItem = item;
+                                }
+                            });
                             
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                centerItem = item;
-                            }
-                        });
-                        
-                        if (centerItem) {
-                            centerItem.classList.add('active');
-                            
-                            try {
-                                const itemData = JSON.parse(centerItem.dataset.item);
-                                setTimeout(() => {
-                                    centerItem.classList.remove('active');
-                                    resolve(itemData);
-                                }, 500);
-                            } catch (e) {
+                            if (centerItem) {
+                                centerItem.classList.add('active');
+                                
+                                try {
+                                    const itemData = JSON.parse(centerItem.dataset.item);
+                                    setTimeout(() => {
+                                        centerItem.classList.remove('active');
+                                        resolve(itemData);
+                                    }, 1500);
+                                } catch (e) {
+                                    resolve(getRandomItem(casesData[gameState.selectedCase]));
+                                }
+                            } else {
                                 resolve(getRandomItem(casesData[gameState.selectedCase]));
                             }
-                        } else {
-                            resolve(getRandomItem(casesData[gameState.selectedCase]));
-                        }
+                        }, 1000);
                         return;
                     }
                     
