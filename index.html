@@ -3368,6 +3368,39 @@
         #upgrade-balance-input {
             display: none !important;
         }
+
+/* Фаст-кнопка для апгрейда */
+.fast-upgrade-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    color: rgba(255, 255, 255, 0.7);
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 24px;
+    margin: 15px auto;
+}
+
+.fast-upgrade-btn:hover {
+    background: rgba(76, 175, 80, 0.2);
+    transform: translateY(-2px);
+}
+
+.fast-upgrade-btn.active {
+    background: linear-gradient(45deg, #4caf50, #2e7d32);
+    color: white;
+    border-color: #4caf50;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+}
+
+.fast-upgrade-btn.active:hover {
+    background: linear-gradient(45deg, #2e7d32, #4caf50);
+}
     </style>
 </head>
 <body>
@@ -3692,30 +3725,34 @@
                         </div>
                         
                         <div class="upgrade-center">
-                            <div class="upgrade-wheel-container">
-                                <div class="upgrade-wheel" id="upgrade-wheel">
-                                    <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <div class="wheel-percentage-label wheel-percentage-top">100%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-right">25%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-left">75%</div>
-                                </div>
-                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
-                                    <div class="arrow-inner"></div>
-                                </div>
-                                <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
-                                <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
-                                <div class="percent-display" id="percent-display">
-                                    <div class="percent-value" id="percent-value">0%</div>
-                                    <div class="percent-label">Шанс</div>
-                                </div>
-                            </div>
-                            
-                            <!-- КНОПКА НАЧАТЬ АПГРЕЙД ПЕРЕМЕЩЕНА ВЫШЕ -->
-                            <button class="upgrade-start-btn" id="upgrade-start-btn" disabled>
-                                <i class="fas fa-play"></i> Начать апгрейд
-                            </button>
-                        </div>
+    <div class="upgrade-wheel-container">
+        <div class="upgrade-wheel" id="upgrade-wheel">
+            <div class="wheel-success-sector" id="wheel-success-sector"></div>
+            <div class="wheel-percentage-label wheel-percentage-top">100%</div>
+            <div class="wheel-percentage-label wheel-percentage-right">25%</div>
+            <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
+            <div class="wheel-percentage-label wheel-percentage-left">75%</div>
+        </div>
+        <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
+            <div class="arrow-inner"></div>
+        </div>
+        <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
+        <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
+        <div class="percent-display" id="percent-display">
+            <div class="percent-value" id="percent-value">0%</div>
+            <div class="percent-label">Шанс</div>
+        </div>
+    </div>
+    
+    <!-- ДОБАВЛЯЕМ ФАСТ-КНОПКУ -->
+    <div class="fast-upgrade-btn" id="fast-upgrade-btn" title="Быстрый апгрейд">
+        <i class="fas fa-forward"></i>
+    </div>
+    
+    <button class="upgrade-start-btn" id="upgrade-start-btn" disabled>
+        <i class="fas fa-play"></i> Начать апгрейд
+    </button>
+</div>
                         
                         <div class="upgrade-right">
                             <div class="upgrade-result-item empty" id="upgrade-result-item">
@@ -4656,6 +4693,9 @@
         const maskLeft = document.getElementById('mask-left');
         const maskRight = document.getElementById('mask-right');
         const caseOpeningContainer = document.getElementById('case-opening-container');
+
+        // Фаст-кнопка апгрейда
+        const fastUpgradeBtn = document.getElementById('fast-upgrade-btn');
         
         // Профиль элементы
         const backToMainFromProfile = document.getElementById('back-to-main-from-profile');
@@ -5195,6 +5235,11 @@
             
             upgradeBalanceInput.addEventListener('input', updateUpgradeChance);
             upgradeStartBtn.addEventListener('click', startUpgrade);
+
+// ДОБАВЛЕННЫЙ КОД
+fastUpgradeBtn.addEventListener('click', () => {
+    fastUpgrade();
+});
             
             document.querySelectorAll('.chance-option').forEach(option => {
                 option.addEventListener('click', function() {
@@ -5514,27 +5559,50 @@
         }
 
         function showOtherProfileSection(username) {
-            gameState.viewingOtherProfile = username;
-            
-            caseOpeningSection.classList.remove('active');
-            caseSelection.style.display = 'none';
-            profileSection.style.display = 'none';
-            upgradeSection.style.display = 'none';
-            contractSection.style.display = 'none';
-            otherProfileSection.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            resetCaseOpeningView();
-            caseBatchInfo.style.display = 'none';
-            
-            loadOtherProfile(username);
-            clearOpenedCaseState();
-        }
+    gameState.viewingOtherProfile = username;
+    
+    caseOpeningSection.classList.remove('active');
+    caseSelection.style.display = 'none';
+    profileSection.style.display = 'none';
+    upgradeSection.style.display = 'none';
+    contractSection.style.display = 'none';
+    otherProfileSection.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    resetCaseOpeningView();
+    caseBatchInfo.style.display = 'none';
+    
+    loadOtherProfile(username);
+    clearOpenedCaseState();
+}
 
-        function showUpgradeSection() {
-            if (!currentUser) {
-                authModal.style.display = 'flex';
-                return;
-            }
+function showUpgradeSection() {
+    if (!currentUser) {
+        authModal.style.display = 'flex';
+        return;
+    }
+    
+    caseOpeningSection.classList.remove('active');
+    caseSelection.style.display = 'none';
+    profileSection.style.display = 'none';
+    otherProfileSection.style.display = 'none';
+    contractSection.style.display = 'none';
+    upgradeSection.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    resetCaseOpeningView();
+    caseBatchInfo.style.display = 'none';
+    
+    resetUpgrade();
+    loadUpgradeInventory();
+    clearOpenedCaseState();
+    
+    // Инициализация стрелки при показе секции
+    if (!gameState.wheelArrowInitialized) {
+        initWheelArrow();
+    }
+    
+    // Сбрасываем фаст-кнопку
+    fastUpgradeBtn.classList.remove('active');
+}
             
             caseOpeningSection.classList.remove('active');
             caseSelection.style.display = 'none';
@@ -6031,6 +6099,56 @@
             const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(gameState.upgradeBalanceAmount / 100));
             percentValue.textContent = `${effectiveChance}%`;
         }
+
+// Функция быстрого апгрейда
+function fastUpgrade() {
+    if (!currentUser || !gameState.selectedUpgradeItem || 
+        !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
+    
+    const user = db.getUser(currentUser);
+    const balanceAmount = gameState.upgradeBalanceAmount;
+    
+    if (balanceAmount > 0 && user.balance < balanceAmount) {
+        alert('Недостаточно средств!');
+        return;
+    }
+    
+    // Мгновенное списание денег
+    if (balanceAmount > 0) {
+        user.balance -= balanceAmount;
+        db.saveUser(currentUser, user);
+        updateUserDisplay();
+    }
+    
+    gameState.isWheelSpinning = true;
+    upgradeStartBtn.disabled = true;
+    upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрый апгрейд...`;
+    
+    // Мгновенный расчет результата
+    const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + 
+        Math.floor(gameState.upgradeBalanceAmount / 100));
+    
+    const isSuccess = Math.random() * 100 < effectiveChance;
+    
+    // Быстрая анимация стрелки
+    wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+    const resultAngle = isSuccess ? 45 : 315;
+    wheelArrowMoving.style.transform = `translateX(-50%) rotate(${resultAngle}deg)`;
+    
+    setTimeout(() => {
+        processUpgradeResult(isSuccess);
+        gameState.isWheelSpinning = false;
+        upgradeStartBtn.disabled = false;
+        upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+        
+        // Возвращаем стрелку в исходное положение
+        setTimeout(() => {
+            wheelArrowMoving.style.transition = 'none';
+            wheelArrowMoving.style.transform = `translateX(-50%) rotate(0deg)`;
+        }, 500);
+        
+    }, 800);
+}
 
         // Обработка результата апгрейда
         function processUpgradeResult(isSuccess) {
@@ -7995,19 +8113,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
