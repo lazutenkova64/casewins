@@ -3420,12 +3420,14 @@
             scrollbar-width: none;
         }
 
-        /* Скрываем только центральный процент */
+        /* ВАЖНО: УБРАТЬ СКРЫТИЕ ЦЕНТРАЛЬНОГО ПРОЦЕНТА В АПГРЕЙДЕ */
+        /* УДАЛИТЬ ЭТИ СТРОКИ: 
         .percent-display {
             display: none !important;
         }
+        */
 
-        /* Скрываем поле для добавления монет в апгрейде */
+        /* Убрать поле для добавления монет в апгрейде */
         #upgrade-balance-input {
             display: none !important;
         }
@@ -7071,7 +7073,19 @@
 
         // Одновременное открытие всех кейсов с одинаковой плавностью
         function openAllCasesSimultaneously() {
+            if (gameState.caseQuantity <= 1) {
+                openNextCase();
+                return;
+            }
+            
             spinBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Открытие ${gameState.caseQuantity} кейсов...`;
+            
+            // Останавливаем все предыдущие анимации
+            gameState.dynamicScrolls.forEach(scrollData => {
+                if (scrollData.animationId) {
+                    cancelAnimationFrame(scrollData.animationId);
+                }
+            });
             
             const promises = [];
             for (let i = 0; i < gameState.caseQuantity; i++) {
@@ -7103,9 +7117,15 @@
             });
         }
 
+        // Исправленная функция для одновременной прокрутки
         function spinDynamicCaseSimultaneously(scrollIndex) {
             return new Promise((resolve) => {
                 const scrollData = gameState.dynamicScrolls[scrollIndex];
+                if (!scrollData) {
+                    resolve(getRandomItem(casesData[gameState.selectedCase]));
+                    return;
+                }
+                
                 const dynamicScroll = scrollData.scroll;
                 
                 let scrollPosition = 0;
@@ -7188,6 +7208,18 @@
                 
                 animationId = requestAnimationFrame(animate);
                 scrollData.animationId = animationId;
+                
+                // Таймаут на случай если анимация застрянет
+                setTimeout(() => {
+                    if (animationId) {
+                        cancelAnimationFrame(animationId);
+                    }
+                    dynamicScroll.style.transition = 'transform 1s ease-out';
+                    dynamicScroll.style.transform = `translateX(-${scrollPosition}px)`;
+                    
+                    const itemUnderArrow = getItemUnderArrow(scrollIndex);
+                    resolve(itemUnderArrow || getRandomItem(casesData[gameState.selectedCase]));
+                }, 10000);
             });
         }
 
@@ -7244,7 +7276,7 @@
             
             let totalValue = 0;
             
-            gameState.batchResults.forEach((item, index) {
+            gameState.batchResults.forEach((item, index) => {
                 if (!item) return;
                 
                 totalValue += item.value;
