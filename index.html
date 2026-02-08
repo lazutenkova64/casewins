@@ -4459,7 +4459,7 @@
             defaultBalance: 0,
             promocodeValue: 10000,
             maxPromocodeBalance: 10000,
-            validPromocodes: ['начало']
+            validPromocodes: ['начало', 'максим']
         };
 
         // Данные о скинах (увеличены в 3 раза)
@@ -6379,22 +6379,71 @@ function fastUpgrade() {
         }
 
         function activatePromocode() {
-            if (!currentUser) {
-                authModal.style.display = 'flex';
-                return;
-            }
-            
-            const promocode = promocodeInput.value.trim().toLowerCase();
-            const validPromocodes = ['начало'];
-            
-            promocodeSuccess.style.display = 'none';
-            promocodeError.style.display = 'none';
-            
-            if (!promocode) {
-                promocodeError.textContent = 'Введите промокод';
-                promocodeError.style.display = 'block';
-                return;
-            }
+    if (!currentUser) {
+        authModal.style.display = 'flex';
+        return;
+    }
+    
+    const promocode = promocodeInput.value.trim().toLowerCase();
+    const validPromocodes = ['начало'];
+    
+    promocodeSuccess.style.display = 'none';
+    promocodeError.style.display = 'none';
+    
+    if (!promocode) {
+        promocodeError.textContent = 'Введите промокод';
+        promocodeError.style.display = 'block';
+        return;
+    }
+    
+    // ПРОВЕРКА ПРОМОКОДА "МАКСИМ"
+    if (promocode === 'максим') {
+        const user = db.getUser(currentUser);
+        if (user.balance >= 10000) {
+            promocodeError.textContent = 'Баланс ≥ 10,000! Промокод не работает';
+            promocodeError.style.display = 'block';
+            return;
+        }
+        user.balance += 1000;
+        db.saveUser(currentUser, user);
+        promocodeSuccess.textContent = 'Максим +1000 монет!';
+        promocodeSuccess.style.display = 'block';
+        promocodeInput.value = '';
+        updateUserDisplay();
+        return;
+    }
+    
+    if (!validPromocodes.includes(promocode)) {
+        promocodeError.textContent = 'Неверный промокод';
+        promocodeError.style.display = 'block';
+        return;
+    }
+    
+    const usedPromocodes = db.getUsedPromocodes(currentUser);
+    if (usedPromocodes.includes(promocode)) {
+        promocodeError.textContent = 'Этот промокод больше не получиться использовать';
+        promocodeError.style.display = 'block';
+        return;
+    }
+    
+    const user = db.getUser(currentUser);
+    if (user.balance >= systemSettings.maxPromocodeBalance) {
+        promocodeError.textContent = 'Больше промокод ввести временно не получится';
+        promocodeError.style.display = 'block';
+        return;
+    }
+    
+    user.balance += systemSettings.promocodeValue;
+    db.saveUser(currentUser, user);
+    db.addUsedPromocode(currentUser, promocode);
+    
+    promocodeSuccess.textContent = `Промокод успешно активирован! +${systemSettings.promocodeValue} монет`;
+    promocodeSuccess.style.display = 'block';
+    promocodeInput.value = '';
+    
+    updateUserDisplay();
+    loadProfile();
+}
             
             if (!validPromocodes.includes(promocode)) {
                 promocodeError.textContent = 'Неверный промокод';
