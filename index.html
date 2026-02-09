@@ -4208,7 +4208,7 @@
                     localStorage.setItem('openedCaseState', JSON.stringify(null));
                 }
                 
-                // Админ аккаунт
+                // Только админ аккаунт (убраны демо-пользователи)
                 const users = this.getUsers();
                 if (!users['k1lame']) {
                     users['k1lame'] = {
@@ -4224,23 +4224,6 @@
                     this.saveUsers(users);
                 }
                 
-                const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
-                demoUsers.forEach(username => {
-                    if (!users[username]) {
-                        users[username] = {
-                            password: 'demo123',
-                            balance: 0,
-                            casesOpened: Math.floor(Math.random() * 500) + 50,
-                            totalValue: Math.floor(Math.random() * 100000) + 50000,
-                            bestItem: 'Нет',
-                            createdAt: new Date().toLocaleDateString(),
-                            isAdmin: false,
-                            inventory: []
-                        };
-                    }
-                });
-                this.saveUsers(users);
-                
                 const otherUsersDrops = this.getOtherUsersDrops();
                 if (otherUsersDrops.length === 0) {
                     const items = [
@@ -4254,6 +4237,8 @@
                     
                     const times = ['2 мин назад', '5 мин назад', '10 мин назад', '15 мин назад', '20 мин назад', '25 мин назад', '30 мин назад'];
                     
+                    // Генерируем дропы только для визуализации в боковой панели
+                    const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
                     for (let i = 0; i < 20; i++) {
                         const randomItem = items[Math.floor(Math.random() * items.length)];
                         const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
@@ -4610,31 +4595,36 @@
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: Math.round(19 * 7)
+                price: Math.round(19 * 7),
+                profitability: 0.7 // 70% окупаемость
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: Math.round(68 * 7)
+                price: Math.round(68 * 7),
+                profitability: 0.75 // 75% окупаемость
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: Math.round(188 * 7)
+                price: Math.round(188 * 7),
+                profitability: 0.8 // 80% окупаемость
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: Math.round(450 * 7)
+                price: Math.round(450 * 7),
+                profitability: 0.85 // 85% окупаемость
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: Math.round(1850 * 7)
+                price: Math.round(1850 * 7),
+                profitability: 0.9 // 90% окупаемость
             }
         };
 
@@ -5911,17 +5901,53 @@
             upgradeStartBtn.disabled = true;
             
             if (gameState.fastUpgrade) {
-                // Быстрый апгрейд
+                // Быстрый апгрейд с анимацией стрелки
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
                 
+                const spinDuration = Math.random() * 700 + 500; // 0.5-1.2 секунды
                 const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
                 
-                setTimeout(() => {
-                    processUpgradeResult(isSuccess);
-                    gameState.isWheelSpinning = false;
-                    upgradeStartBtn.disabled = false;
-                    upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                }, 1000);
+                let startTime = null;
+                let rotation = 0;
+                let animationId = null;
+                
+                const animateSpin = (timestamp) => {
+                    if (!startTime) startTime = timestamp;
+                    const progress = timestamp - startTime;
+                    
+                    if (progress < spinDuration) {
+                        const t = progress / spinDuration;
+                        const easeOut = 1 - Math.pow(1 - t, 3);
+                        rotation = easeOut * 360 * 2;
+                        
+                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                        animationId = requestAnimationFrame(animateSpin);
+                    } else {
+                        cancelAnimationFrame(animationId);
+                        
+                        const finalRotation = rotation % 360;
+                        const finalSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
+                        
+                        wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                        
+                        const upgradeState = db.getUpgradeState();
+                        if (upgradeState) {
+                            upgradeState.isSuccess = finalSuccess;
+                            db.saveUpgradeState(upgradeState);
+                        }
+                        
+                        setTimeout(() => {
+                            processUpgradeResult(finalSuccess);
+                            gameState.isWheelSpinning = false;
+                            upgradeStartBtn.disabled = false;
+                            upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                            wheelArrowMoving.style.transition = 'none';
+                        }, 500);
+                    }
+                };
+                
+                animationId = requestAnimationFrame(animateSpin);
             } else {
                 // Обычный апгрейд с анимацией
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
@@ -5964,7 +5990,6 @@
                             gameState.isWheelSpinning = false;
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            // СТРЕЛКА СТАНОВИТСЯ СТАТИЧНОЙ ПОСЛЕ АНИМАЦИИ
                             wheelArrowMoving.style.transition = 'none';
                         }, 1000);
                     }
@@ -5974,7 +5999,7 @@
             }
         }
 
-        // Контракт с высокой суммой
+        // Контракт с балансировкой окупаемости
         function executeContract() {
             if (!currentUser || gameState.contractItemsCount < 3) return;
             
@@ -5989,14 +6014,19 @@
                     db.removeFromInventory(currentUser, item.id);
                 });
                 
+                // Балансировка окупаемости контракта: 50% шанс на окупаемость
+                const shouldBeProfitable = Math.random() < 0.5;
+                
                 let winValue;
-                if (totalValue > 1000000) {
-                    const minWin = Math.floor(totalValue / 4);
-                    const maxWin = Math.floor(totalValue * 1.2);
+                if (shouldBeProfitable) {
+                    // Окупаемый контракт: выигрыш больше суммы
+                    const minWin = Math.floor(totalValue * 1.1); // +10%
+                    const maxWin = Math.floor(totalValue * 2.0); // +100%
                     winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
                 } else {
-                    const minWin = Math.floor(totalValue / 5);
-                    const maxWin = totalValue * 3;
+                    // Неокупаемый контракт: выигрыш меньше суммы
+                    const minWin = Math.floor(totalValue * 0.3); // -70%
+                    const maxWin = Math.floor(totalValue * 0.9); // -10%
                     winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
                 }
                 
@@ -6051,7 +6081,7 @@
             }, 2000);
         }
 
-        // Обработка результата кейса с мгновенным добавлением в инвентарь
+        // Обработка результата кейса с учетом окупаемости
         function processCaseResult(item, index) {
             if (!item) return;
             
@@ -6955,14 +6985,9 @@
             contractTotalValue.textContent = totalValue;
             
             if (itemsCount >= 3) {
-                let minWin, maxWin;
-                if (totalValue > 1000000) {
-                    minWin = Math.floor(totalValue / 4);
-                    maxWin = Math.floor(totalValue * 1.2);
-                } else {
-                    minWin = Math.floor(totalValue / 4);
-                    maxWin = totalValue * 4;
-                }
+                // Показываем реальный диапазон выигрыша (может быть как больше, так и меньше суммы)
+                const minWin = Math.floor(totalValue * 0.3); // -70% минимум
+                const maxWin = Math.floor(totalValue * 2.0); // +100% максимум
                 contractPossibleWin.textContent = `${minWin} - ${maxWin}`;
                 
                 contractTradeupBtn.disabled = false;
@@ -7362,8 +7387,29 @@
             spinBtn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс за <span id="spin-price">${spinPriceSpan.textContent}</span>`;
         }
 
+        // Получение случайного предмета с учетом окупаемости кейса
         function getRandomItem(caseData) {
             const items = caseData.items;
+            const profitability = caseData.profitability || 0.8; // 80% окупаемость по умолчанию
+            
+            // Определяем, будет ли этот конкретный кейс окупаемым
+            const isProfitable = Math.random() < profitability;
+            
+            if (isProfitable) {
+                // Окупаемый кейс: выбираем предмет стоимостью больше или равной цене кейса
+                const profitableItems = items.filter(item => item.value >= caseData.price);
+                if (profitableItems.length > 0) {
+                    return profitableItems[Math.floor(Math.random() * profitableItems.length)];
+                }
+            } else {
+                // Неокупаемый кейс: выбираем предмет стоимостью меньше цены кейса
+                const unprofitableItems = items.filter(item => item.value < caseData.price);
+                if (unprofitableItems.length > 0) {
+                    return unprofitableItems[Math.floor(Math.random() * unprofitableItems.length)];
+                }
+            }
+            
+            // Если не нашли подходящих предметов, возвращаем случайный
             return items[Math.floor(Math.random() * items.length)];
         }
 
@@ -7453,15 +7499,7 @@
         }
 
         function simulateOtherUserDrop() {
-            const users = db.getUsers();
-            const otherUsers = Object.keys(users).filter(username => 
-                username !== currentUser && !users[username].isAdmin
-            );
-            
-            if (otherUsers.length === 0) return;
-            
-            const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
-            const allItems = [
+            const items = [
                 ...cs2Items.common,
                 ...cs2Items.uncommon,
                 ...cs2Items.rare,
@@ -7470,10 +7508,14 @@
                 ...cs2Items.ancient
             ];
             
-            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+            const randomItem = items[Math.floor(Math.random() * items.length)];
             
             const times = ['Только что', '1 мин назад', '2 мин назад', '3 мин назад'];
             const randomTime = times[Math.floor(Math.random() * times.length)];
+            
+            // Используем демо-пользователей только для визуализации
+            const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
+            const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
             
             const drop = {
                 user: randomUser,
@@ -7483,14 +7525,6 @@
             };
             
             db.addOtherUsersDrop(drop);
-            
-            const user = users[randomUser];
-            user.casesOpened++;
-            user.totalValue += randomItem.value;
-            if (user.bestItem === "Нет" || randomItem.value > getItemValue(user.bestItem)) {
-                user.bestItem = randomItem.name;
-            }
-            db.saveUsers(users);
             
             if (!gameState.viewingOtherProfile || gameState.viewingOtherProfile !== randomUser) {
                 addDropToSidebar(drop);
@@ -7595,7 +7629,12 @@
             const users = db.getUsers();
             adminUsersList.innerHTML = '';
             
+            // Показываем только реальных пользователей (без демо-ботов)
             Object.keys(users).forEach(username => {
+                // Пропускаем демо-пользователей
+                const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
+                if (demoUsers.includes(username)) return;
+                
                 const user = users[username];
                 const userElement = document.createElement('div');
                 userElement.className = 'admin-user-item';
