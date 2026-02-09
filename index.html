@@ -1382,11 +1382,11 @@
             gap: 15px;
         }
 
-        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА */
+        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - УМЕНЬШЕН ДО 0.9 */
         .upgrade-wheel-container {
             position: relative;
-            width: 380px;
-            height: 380px;
+            width: 360px;
+            height: 360px;
             margin: 10px 0;
         }
 
@@ -1408,54 +1408,39 @@
 
         .wheel-success-sector {
             position: absolute;
-            width: calc(100% - 24px);
-            height: calc(100% - 24px);
-            top: 12px;
-            left: 12px;
-            border-radius: 50%;
+            width: 100%;
+            height: 100%;
             background: conic-gradient(
                 #4CAF50 0deg,
                 #4CAF50 var(--success-degrees, 0deg),
                 #f44336 var(--success-degrees, 0deg),
                 #f44336 360deg
             );
+            border-radius: 50%;
             z-index: 1;
         }
 
-        /* СТРЕЛКА С КОНЧИКОМ НА ГРАДИЕНТНОЙ ОБВОДКЕ */
+        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - БОЛЬШИЙ РАДИУС 1.1 */
         .wheel-arrow-moving {
             position: absolute;
-            top: -90px;
-            left: 50%;
+            top: -60px;
+            left: 51%;
             transform: translateX(-50%) rotate(0deg);
-            width: 50px;
-            height: 220px;
+            width: 40px;
+            height: 130px;
             z-index: 25;
             transition: transform 0.1s linear;
-            transform-origin: 50% 180px;
+            transform-origin: 1% 210px;
         }
 
         .arrow-inner {
             width: 0;
             height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 100px solid #ffd700;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 70px solid #ffd700;
             filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
             position: relative;
-        }
-
-        /* КОНЧИК СТРЕЛКИ НА ГРАДИЕНТНОЙ ОБВОДКЕ */
-        .arrow-tip {
-            position: absolute;
-            top: -40px;
-            left: -6px;
-            width: 12px;
-            height: 12px;
-            background: #ffd700;
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-            z-index: 30;
         }
 
         .wheel-percentages {
@@ -1515,26 +1500,26 @@
         }
 
         .wheel-percentage-top {
-            top: 30px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-right {
             top: 50%;
-            right: 30px;
+            right: 20px;
             transform: translateY(-50%);
         }
 
         .wheel-percentage-bottom {
-            bottom: 30px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .wheel-percentage-left {
             top: 50%;
-            left: 30px;
+            left: 20px;
             transform: translateY(-50%);
         }
 
@@ -3773,8 +3758,6 @@
                                 </div>
                                 <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
                                     <div class="arrow-inner"></div>
-                                    <!-- КОНЧИК СТРЕЛКИ НА ГРАДИЕНТНОЙ ОБВОДКЕ -->
-                                    <div class="arrow-tip"></div>
                                 </div>
                                 <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
                                 <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
@@ -3784,7 +3767,7 @@
                                 </div>
                             </div>
                             
-                            <!-- КНОПКА НАЧАТЬ АПГРЕЙД -->
+                            <!-- КНОПКА НАЧАТЬ АПГРЕЙД ПЕРЕМЕЩЕНА ВЫШЕ -->
                             <button class="upgrade-start-btn" id="upgrade-start-btn" disabled>
                                 <i class="fas fa-play"></i> Начать апгрейд
                             </button>
@@ -3798,7 +3781,7 @@
                         </div>
                     </div>
                     
-                    <!-- СКИНЫ ДЛЯ АПГРЕЙДА -->
+                    <!-- СКИНЫ ДЛЯ АПГРЕЙДА ПЕРЕМЕЩЕНЫ ВЫШЕ -->
                     <div class="upgrade-inventory">
                         <h3 class="upgrade-inventory-header">
                             <i class="fas fa-box-open"></i> Ваши скины для апгрейда
@@ -4951,12 +4934,6 @@
                 wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
                 wheelArrowMoving.style.transition = 'none';
                 gameState.wheelArrowInitialized = true;
-                
-                // Убедимся, что кончик стрелки отображается
-                const arrowTip = wheelArrowMoving.querySelector('.arrow-tip');
-                if (arrowTip) {
-                    arrowTip.style.display = 'block';
-                }
             }
         }
 
@@ -5877,7 +5854,7 @@
             });
         }
 
-        // ЗАПУСК АПГРЕЙДА С КОНЧИКОМ СТРЕЛКИ НА ГРАДИЕНТНОЙ ОБВОДКЕ
+        // ЗАПУСК АПГРЕЙДА С ИСПРАВЛЕННОЙ МЕХАНИКОЙ
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5946,7 +5923,7 @@
                         const easeOut = 1 - Math.pow(1 - t, 3);
                         const rotation = easeOut * finalRotation;
                         
-                        wheelArrowMoving.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateFastSpin);
                         gameState.upgradeArrowAnimationId = animationId;
@@ -5955,7 +5932,7 @@
                         
                         // Финальная позиция
                         wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
-                        wheelArrowMoving.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
+                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
                         
                         const upgradeState = db.getUpgradeState();
                         if (upgradeState) {
@@ -6011,7 +5988,7 @@
                         const easeOut = 1 - Math.pow(1 - t, 3);
                         const rotation = easeOut * finalRotation;
                         
-                        wheelArrowMoving.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateSpin);
                         gameState.upgradeArrowAnimationId = animationId;
@@ -6020,7 +5997,7 @@
                         
                         // Финальная позиция
                         wheelArrowMoving.style.transition = 'transform 1s ease-out';
-                        wheelArrowMoving.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
+                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
                         
                         const upgradeState = db.getUpgradeState();
                         if (upgradeState) {
