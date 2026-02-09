@@ -4652,8 +4652,7 @@
             currentWonItem: null,
             wheelArrowInitialized: false,
             contractInventoryPage: 1,
-            contractItemsPerPage: 20,
-            upgradeArrowAnimationId: null
+            contractItemsPerPage: 20
         };
 
         // DOM элементы
@@ -5854,7 +5853,7 @@
             });
         }
 
-        // ЗАПУСК АПГРЕЙДА С ИСПРАВЛЕННОЙ МЕХАНИКОЙ
+        // Запуск апгрейда с исправленным временем анимации
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5885,30 +5884,18 @@
             gameState.isWheelSpinning = true;
             upgradeStartBtn.disabled = true;
             
-            // ВЫЧИСЛЯЕМ РЕЗУЛЬТАТ ДО АНИМАЦИИ
-            const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-            
             if (gameState.fastUpgrade) {
                 // Быстрый апгрейд: от 0.3 до 1.2 секунды, 1-2 оборота
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
                 
+                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+                
+                // Вычисляем параметры для быстрой прокрутки
                 const spinDuration = 300 + Math.random() * 900; // 0.3 - 1.2 секунды
                 const spinRotations = 1 + Math.random(); // 1-2 оборота
-                
-                // Вычисляем финальную позицию стрелки на основе результата
-                let finalRotation;
-                if (isSuccess) {
-                    // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = Math.random() * successZone;
-                } else {
-                    // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = successZone + Math.random() * (360 - successZone);
-                }
-                
-                // Добавляем полные обороты
-                finalRotation += spinRotations * 360;
+                const finalRotation = isSuccess ? 
+                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
+                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
                 
                 // Анимация быстрой прокрутки
                 let startTime = null;
@@ -5921,12 +5908,11 @@
                     if (progress < spinDuration) {
                         const t = progress / spinDuration;
                         const easeOut = 1 - Math.pow(1 - t, 3);
-                        const rotation = easeOut * finalRotation;
+                        const rotation = easeOut * 360 * spinRotations;
                         
                         wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateFastSpin);
-                        gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
@@ -5945,36 +5931,23 @@
                             gameState.isWheelSpinning = false;
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            // Стрелка остается на месте - НЕТ ВОЗВРАТА НАЗАД
+                            // Убираем обратную прокрутку - стрелка остается на месте
                             wheelArrowMoving.style.transition = 'none';
-                            gameState.upgradeArrowAnimationId = null;
                         }, 500);
                     }
                 };
                 
                 animationId = requestAnimationFrame(animateFastSpin);
-                gameState.upgradeArrowAnimationId = animationId;
             } else {
                 // Обычный апгрейд: от 3 до 6 секунд, 4-8 оборотов
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
                 
                 const spinDuration = 3000 + Math.random() * 3000; // 3-6 секунд
                 const spinRotations = 4 + Math.random() * 4; // 4-8 оборотов
-                
-                // Вычисляем финальную позицию стрелки на основе результата
-                let finalRotation;
-                if (isSuccess) {
-                    // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = Math.random() * successZone;
-                } else {
-                    // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = successZone + Math.random() * (360 - successZone);
-                }
-                
-                // Добавляем полные обороты
-                finalRotation += spinRotations * 360;
+                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+                const finalRotation = isSuccess ? 
+                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
+                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
                 
                 let startTime = null;
                 let animationId = null;
@@ -5986,12 +5959,11 @@
                     if (progress < spinDuration) {
                         const t = progress / spinDuration;
                         const easeOut = 1 - Math.pow(1 - t, 3);
-                        const rotation = easeOut * finalRotation;
+                        const rotation = easeOut * 360 * spinRotations;
                         
                         wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateSpin);
-                        gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
@@ -6010,15 +5982,13 @@
                             gameState.isWheelSpinning = false;
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            // Стрелка остается на месте - НЕТ ВОЗВРАТА НАЗАД
+                            // Убираем обратную прокрутку - стрелка остается на месте
                             wheelArrowMoving.style.transition = 'none';
-                            gameState.upgradeArrowAnimationId = null;
                         }, 1000);
                     }
                 };
                 
                 animationId = requestAnimationFrame(animateSpin);
-                gameState.upgradeArrowAnimationId = animationId;
             }
         }
 
