@@ -1382,7 +1382,7 @@
             gap: 15px;
         }
 
-        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - С БЕЛОЙ ТОЧКОЙ В ЦЕНТРЕ */
+        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - УМЕНЬШЕН ДО 0.9 */
         .upgrade-wheel-container {
             position: relative;
             width: 360px;
@@ -1420,31 +1420,17 @@
             z-index: 1;
         }
 
-        /* МАЛЕНЬКАЯ БЕЛАЯ ТОЧКА В ЦЕНТРЕ КРУГА */
-        .wheel-center-point {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            background-color: white;
-            border-radius: 50%;
-            z-index: 20;
-            box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.5);
-        }
-
-        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - ВРАЩАЕТСЯ ВОКРУГ ТОЧКИ */
+        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - БОЛЬШИЙ РАДИУС 1.1 */
         .wheel-arrow-moving {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(0deg);
+            top: -60px;
+            left: 51%;
+            transform: translateX(-50%) rotate(0deg);
             width: 40px;
             height: 130px;
             z-index: 25;
             transition: transform 0.1s linear;
-            transform-origin: 20px 65px; /* Центр стрелки для вращения вокруг центра круга */
+            transform-origin: 1% 210px;
         }
 
         .arrow-inner {
@@ -3765,14 +3751,12 @@
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
                                     <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <!-- МАЛЕНЬКАЯ БЕЛАЯ ТОЧКА В ЦЕНТРЕ КРУГА -->
-                                    <div class="wheel-center-point"></div>
                                     <div class="wheel-percentage-label wheel-percentage-top">100%</div>
                                     <div class="wheel-percentage-label wheel-percentage-right">25%</div>
                                     <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
                                     <div class="wheel-percentage-label wheel-percentage-left">75%</div>
                                 </div>
-                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translate(-50%, -50%) rotate(0deg);">
+                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
                                     <div class="arrow-inner"></div>
                                 </div>
                                 <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
@@ -4947,7 +4931,7 @@
         function initWheelArrow() {
             if (wheelArrowMoving) {
                 wheelArrowMoving.style.display = 'block';
-                wheelArrowMoving.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+                wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
                 wheelArrowMoving.style.transition = 'none';
                 gameState.wheelArrowInitialized = true;
             }
@@ -6172,7 +6156,7 @@
             if (gameState.upgradeSelectedChance === 0) {
                 wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
                 wheelArrowMoving.style.display = 'block';
-                wheelArrowMoving.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+                wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
                 wheelArrowMoving.style.transition = 'none';
                 percentValue.textContent = '0%';
                 return;
@@ -6182,7 +6166,7 @@
             wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
             
             wheelArrowMoving.style.display = 'block';
-            wheelArrowMoving.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+            wheelArrowMoving.style.transform = `translateX(-50%) rotate(0deg)`;
             wheelArrowMoving.style.transition = 'none';
             
             // Обновляем процент в центре круга
