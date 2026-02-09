@@ -5901,105 +5901,113 @@
             upgradeStartBtn.disabled = true;
             
             if (gameState.fastUpgrade) {
-                // Быстрый апгрейд с анимацией стрелки
-                upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
-                
-                const spinDuration = Math.random() * 700 + 500; // 0.5-1.2 секунды
-                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-                
-                let startTime = null;
-                let rotation = 0;
-                let animationId = null;
-                
-                const animateSpin = (timestamp) => {
-                    if (!startTime) startTime = timestamp;
-                    const progress = timestamp - startTime;
-                    
-                    if (progress < spinDuration) {
-                        const t = progress / spinDuration;
-                        const easeOut = 1 - Math.pow(1 - t, 3);
-                        rotation = easeOut * 360 * 2;
-                        
-                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-                        animationId = requestAnimationFrame(animateSpin);
-                    } else {
-                        cancelAnimationFrame(animationId);
-                        
-                        const finalRotation = rotation % 360;
-                        const finalSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
-                        
-                        wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
-                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                        
-                        const upgradeState = db.getUpgradeState();
-                        if (upgradeState) {
-                            upgradeState.isSuccess = finalSuccess;
-                            db.saveUpgradeState(upgradeState);
-                        }
-                        
-                        setTimeout(() => {
-                            processUpgradeResult(finalSuccess);
-                            gameState.isWheelSpinning = false;
-                            upgradeStartBtn.disabled = false;
-                            upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            wheelArrowMoving.style.transition = 'none';
-                        }, 500);
-                    }
-                };
-                
-                animationId = requestAnimationFrame(animateSpin);
-            } else {
-                // Обычный апгрейд с анимацией
-                upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
-                
-                const spinDuration = 4000 + Math.random() * 2000;
-                const spinRotations = 5 + Math.random() * 3;
-                
-                let startTime = null;
-                let rotation = 0;
-                let animationId = null;
-                
-                const animateSpin = (timestamp) => {
-                    if (!startTime) startTime = timestamp;
-                    const progress = timestamp - startTime;
-                    
-                    if (progress < spinDuration) {
-                        const t = progress / spinDuration;
-                        const easeOut = 1 - Math.pow(1 - t, 3);
-                        rotation = easeOut * 360 * spinRotations;
-                        
-                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-                        animationId = requestAnimationFrame(animateSpin);
-                    } else {
-                        cancelAnimationFrame(animationId);
-                        
-                        const finalRotation = rotation % 360;
-                        const isSuccess = finalRotation < (gameState.upgradeSelectedChance / 100) * 360;
-                        
-                        wheelArrowMoving.style.transition = 'transform 1s ease-out';
-                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-                        
-                        const upgradeState = db.getUpgradeState();
-                        if (upgradeState) {
-                            upgradeState.isSuccess = isSuccess;
-                            db.saveUpgradeState(upgradeState);
-                        }
-                        
-                        setTimeout(() => {
-                            processUpgradeResult(isSuccess);
-                            gameState.isWheelSpinning = false;
-                            upgradeStartBtn.disabled = false;
-                            upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            wheelArrowMoving.style.transition = 'none';
-                        }, 1000);
-                    }
-                };
-                
-                animationId = requestAnimationFrame(animateSpin);
+    // Быстрый апгрейд с разнообразной анимацией
+    upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
+    
+    // Рандомные параметры для разнообразия (0.3-1.2 сек, 1-2 оборота)
+    const spinDuration = Math.random() * 900 + 300; // 0.3-1.2 секунды
+    const spinRotations = 1 + Math.random() * 1; // 1-2 оборота
+    
+    // Реальное определение успеха по шансу
+    const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+    const isSuccess = Math.random() * 100 < effectiveChance;
+    
+    let startTime = null;
+    let rotation = 0;
+    let animationId = null;
+    
+    const animateSpin = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        
+        if (progress < spinDuration) {
+            const t = progress / spinDuration;
+            const easeOut = 1 - Math.pow(1 - t, 3);
+            rotation = easeOut * 360 * spinRotations;
+            
+            wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+            animationId = requestAnimationFrame(animateSpin);
+        } else {
+            cancelAnimationFrame(animationId);
+            
+            // Останавливаем стрелку в случайном положении
+            const finalRotation = rotation % 360;
+            
+            const upgradeState = db.getUpgradeState();
+            if (upgradeState) {
+                upgradeState.isSuccess = isSuccess;
+                db.saveUpgradeState(upgradeState);
             }
+            
+            // Плавная остановка
+            wheelArrowMoving.style.transition = 'transform 0.3s ease-out';
+            wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+            
+            setTimeout(() => {
+                processUpgradeResult(isSuccess);
+                gameState.isWheelSpinning = false;
+                upgradeStartBtn.disabled = false;
+                upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                wheelArrowMoving.style.transition = 'none';
+            }, 300);
         }
-
-        // Контракт с балансировкой окупаемости
+    };
+    
+    animationId = requestAnimationFrame(animateSpin);
+} else {
+    // Обычный апгрейд с анимацией
+    upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
+    
+    // Более разнообразные параметры (3-6 сек, 4-8 оборотов)
+    const spinDuration = 3000 + Math.random() * 3000; // 3-6 секунд
+    const spinRotations = 4 + Math.random() * 4; // 4-8 оборотов
+    
+    let startTime = null;
+    let rotation = 0;
+    let animationId = null;
+    
+    const animateSpin = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        
+        if (progress < spinDuration) {
+            const t = progress / spinDuration;
+            const easeOut = 1 - Math.pow(1 - t, 3);
+            rotation = easeOut * 360 * spinRotations;
+            
+            wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+            animationId = requestAnimationFrame(animateSpin);
+        } else {
+            cancelAnimationFrame(animationId);
+            
+            const finalRotation = rotation % 360;
+            
+            // Реальное определение успеха по шансу
+            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+            const isSuccess = Math.random() * 100 < effectiveChance;
+            
+            const upgradeState = db.getUpgradeState();
+            if (upgradeState) {
+                upgradeState.isSuccess = isSuccess;
+                db.saveUpgradeState(upgradeState);
+            }
+            
+            wheelArrowMoving.style.transition = 'transform 1s ease-out';
+            wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+            
+            setTimeout(() => {
+                processUpgradeResult(isSuccess);
+                gameState.isWheelSpinning = false;
+                upgradeStartBtn.disabled = false;
+                upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                wheelArrowMoving.style.transition = 'none';
+            }, 1000);
+        }
+    };
+    
+    animationId = requestAnimationFrame(animateSpin);
+}
+ // Контракт с балансировкой окупаемости
         function executeContract() {
             if (!currentUser || gameState.contractItemsCount < 3) return;
             
@@ -8153,3 +8161,4 @@
     </script>
 </body>
 </html>
+
