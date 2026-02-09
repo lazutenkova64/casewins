@@ -1382,11 +1382,11 @@
             gap: 15px;
         }
 
-        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - УМЕНЬШЕН ДО 0.9 */
+        /* НОВЫЙ ДИЗАЙН КРУГА АПГРЕЙДА */
         .upgrade-wheel-container {
             position: relative;
-            width: 360px;
-            height: 360px;
+            width: 380px;
+            height: 380px;
             margin: 10px 0;
         }
 
@@ -1396,131 +1396,87 @@
             border-radius: 50%;
             position: relative;
             overflow: visible;
-            border: 12px solid transparent;
+            border: 8px solid transparent;
             background: linear-gradient(45deg, var(--accent-color), var(--secondary-color)) padding-box,
-                        linear-gradient(45deg, #8847ff, #d32ee6) border-box;
+                        linear-gradient(45deg, #4CAF50, #f44336) border-box;
             box-shadow: 
-                0 0 25px rgba(136, 71, 255, 0.5),
-                inset 0 0 25px rgba(0, 0, 0, 0.5);
+                0 0 30px rgba(76, 175, 80, 0.4),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
             transform-style: preserve-3d;
             perspective: 1000px;
         }
 
-        .wheel-success-sector {
+        /* Сектора круга */
+        .wheel-sectors {
             position: absolute;
             width: 100%;
             height: 100%;
-            background: conic-gradient(
-                #4CAF50 0deg,
-                #4CAF50 var(--success-degrees, 0deg),
-                #f44336 var(--success-degrees, 0deg),
-                #f44336 360deg
-            );
             border-radius: 50%;
-            z-index: 1;
+            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%);
         }
 
-        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - БОЛЬШИЙ РАДИУС 1.1 */
-        .wheel-arrow-moving {
+        /* НОВАЯ СТРЕЛКА НАД КРУГОМ */
+        .wheel-arrow {
             position: absolute;
-            top: -60px;
-            left: 51%;
+            top: -40px;
+            left: 50%;
             transform: translateX(-50%) rotate(0deg);
-            width: 40px;
-            height: 130px;
+            width: 30px;
+            height: 50px;
             z-index: 25;
+            transform-origin: 50% 220px;
             transition: transform 0.1s linear;
-            transform-origin: 1% 210px;
         }
 
-        .arrow-inner {
-            width: 0;
-            height: 0;
-            border-left: 18px solid transparent;
-            border-right: 18px solid transparent;
-            border-top: 70px solid #ffd700;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
-            position: relative;
-        }
-
-        .wheel-percentages {
+        .arrow-body {
             position: absolute;
             top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 50px solid #ff4655;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
         }
 
-        /* ПРОЦЕНТ ШАНСА В ЦЕНТРЕ КРУГА */
-        .percent-display {
+        .arrow-tip {
             position: absolute;
-            width: 120px;
-            height: 120px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 15;
-            border: 4px solid var(--gold-color);
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 20px;
+            background: #ff0000;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        .wheel-center {
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 0 20px rgba(255, 70, 85, 0.8);
+            z-index: 20;
         }
 
-        .percent-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: white;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        .percent-label {
-            font-size: 14px;
-            color: rgba(255,255,255,0.8);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ */
-        .wheel-percentage-label {
+        .wheel-percent-text {
             position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             color: white;
             font-weight: 800;
-            font-size: 24px;
+            font-size: 20px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            z-index: 10;
-        }
-
-        .wheel-percentage-top {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .wheel-percentage-right {
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-        }
-
-        .wheel-percentage-bottom {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .wheel-percentage-left {
-            top: 50%;
-            left: 20px;
-            transform: translateY(-50%);
+            z-index: 21;
         }
 
         /* ПЕРЕМЕЩЕННЫЙ ВЫБОР ШАНСОВ ВЛЕВО */
@@ -1581,7 +1537,7 @@
             margin-top: 15px;
         }
 
-        /* КНОПКА НАЧАТЬ АПГРЕЙД ПЕРЕМЕЩЕНА ВЫШЕ */
+        /* КНОПКА НАЧАТЬ АПГРЕЙД */
         .upgrade-start-btn {
             background: linear-gradient(45deg, #8847ff, #d32ee6);
             color: white;
@@ -1609,7 +1565,7 @@
             cursor: not-allowed;
         }
 
-        /* СКИНЫ ДЛЯ АПГРЕЙДА ПЕРЕМЕЩЕНЫ ВЫШЕ */
+        /* СКИНЫ ДЛЯ АПГРЕЙДА */
         .upgrade-inventory {
             margin-top: 20px;
             padding-top: 20px;
@@ -1635,21 +1591,29 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 24px;
+            font-size: 36px;
             font-weight: 800;
             z-index: 25;
             opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid;
         }
 
         .upgrade-success {
             color: #4CAF50;
+            border-color: #4CAF50;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
         }
 
         .upgrade-failure {
             color: #f44336;
+            border-color: #f44336;
+            box-shadow: 0 0 30px rgba(244, 67, 54, 0.6);
         }
 
         /* Контракты секция */
@@ -2014,6 +1978,12 @@
             background: linear-gradient(45deg, rgba(235, 75, 75, 0.2), rgba(200, 50, 50, 0.2));
             color: #eb4b4b;
             border: 1px solid #eb4b4b;
+        }
+
+        .rarity-premium {
+            background: linear-gradient(45deg, rgba(255, 0, 255, 0.2), rgba(200, 0, 200, 0.2));
+            color: #ff00ff;
+            border: 1px solid #ff00ff;
         }
 
         .modal-actions {
@@ -2936,6 +2906,28 @@
             text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
         }
         
+        .case-premium {
+            background: linear-gradient(45deg, #ff00ff, #ff1493);
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+        }
+        
+        .case-premium::before {
+            content: 'ПРЕМИУМ';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 800;
+            font-size: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
         /* Стили для картинок предметов */
         .item-img {
             width: 100px;
@@ -2978,6 +2970,10 @@
         
         .item-ancient {
             background: linear-gradient(45deg, #ff0000, #ff6b6b);
+        }
+        
+        .item-premium {
+            background: linear-gradient(45deg, #ff00ff, #ff1493);
         }
         
         /* Новые стили для апгрейда */
@@ -3419,6 +3415,39 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* Новый стиль для процентов на круге */
+        .chance-display {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            border: 4px solid var(--gold-color);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .chance-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .chance-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
@@ -3748,26 +3777,25 @@
                         </div>
                         
                         <div class="upgrade-center">
+                            <!-- НОВЫЙ КРУГ АПГРЕЙДА С СТРЕЛКОЙ НАД НИМ -->
                             <div class="upgrade-wheel-container">
                                 <div class="upgrade-wheel" id="upgrade-wheel">
-                                    <div class="wheel-success-sector" id="wheel-success-sector"></div>
-                                    <div class="wheel-percentage-label wheel-percentage-top">100%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-right">25%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-bottom">50%</div>
-                                    <div class="wheel-percentage-label wheel-percentage-left">75%</div>
+                                    <!-- Круг будет рисоваться через JavaScript -->
                                 </div>
-                                <div class="wheel-arrow-moving" id="wheel-arrow-moving" style="display: block; transform: translateX(-50%) rotate(0deg);">
-                                    <div class="arrow-inner"></div>
+                                <div class="wheel-arrow" id="wheel-arrow">
+                                    <div class="arrow-body"></div>
+                                    <div class="arrow-tip"></div>
+                                </div>
+                                <div class="wheel-center"></div>
+                                <div class="chance-display">
+                                    <div class="chance-value" id="chance-value">0%</div>
+                                    <div class="chance-label">Шанс</div>
                                 </div>
                                 <div class="upgrade-result-status upgrade-success" id="upgrade-success-text">Успешно!</div>
                                 <div class="upgrade-result-status upgrade-failure" id="upgrade-failure-text">Неудача</div>
-                                <div class="percent-display" id="percent-display">
-                                    <div class="percent-value" id="percent-value">0%</div>
-                                    <div class="percent-label">Шанс</div>
-                                </div>
                             </div>
                             
-                            <!-- КНОПКА НАЧАТЬ АПГРЕЙД ПЕРЕМЕЩЕНА ВЫШЕ -->
+                            <!-- КНОПКА НАЧАТЬ АПГРЕЙД -->
                             <button class="upgrade-start-btn" id="upgrade-start-btn" disabled>
                                 <i class="fas fa-play"></i> Начать апгрейд
                             </button>
@@ -3781,7 +3809,7 @@
                         </div>
                     </div>
                     
-                    <!-- СКИНЫ ДЛЯ АПГРЕЙДА ПЕРЕМЕЩЕНЫ ВЫШЕ -->
+                    <!-- СКИНЫ ДЛЯ АПГРЕЙДА -->
                     <div class="upgrade-inventory">
                         <h3 class="upgrade-inventory-header">
                             <i class="fas fa-box-open"></i> Ваши скины для апгрейда
@@ -4575,10 +4603,37 @@
                 { name: "AWP | Медуза", value: 16200, rarity: 'ancient' },
                 { name: "Нож алмазный | Фольга", value: 21000, rarity: 'ancient' },
                 { name: "AK-47 | Неоновая революция", value: 17400, rarity: 'ancient' }
+            ],
+            
+            // НОВЫЙ ПРЕМИУМ КЕЙС
+            premium: [
+                // 15 вещей от 300,000 до 4,000,000
+                { name: "AK-47 | Галактический дракон", value: 300000, rarity: 'premium' },
+                { name: "AWP | Квантовая угроза", value: 450000, rarity: 'premium' },
+                { name: "M4A1-S | Ночной охотник", value: 600000, rarity: 'premium' },
+                { name: "Перчатки | Космические", value: 750000, rarity: 'premium' },
+                { name: "Desert Eagle | Вулкан", value: 900000, rarity: 'premium' },
+                { name: "Нож-бабочка | Неоновый взрыв", value: 1200000, rarity: 'premium' },
+                { name: "AWP | Черная дыра", value: 1500000, rarity: 'premium' },
+                { name: "AK-47 | Золотой феникс", value: 1800000, rarity: 'premium' },
+                { name: "Перчатки | Драконьи чешуйки", value: 2100000, rarity: 'premium' },
+                { name: "M4A4 | Астральный воин", value: 2400000, rarity: 'premium' },
+                { name: "Нож карамбут | Кристаллический", value: 2700000, rarity: 'premium' },
+                { name: "AWP | Полярное сияние", value: 3000000, rarity: 'premium' },
+                { name: "AK-47 | Императорский", value: 3300000, rarity: 'premium' },
+                { name: "Перчатки | Королевские", value: 3600000, rarity: 'premium' },
+                { name: "Нож флип | Огненный тигр", value: 4000000, rarity: 'premium' },
+                
+                // 5 вещей от 8,000,000 до 13,000,000
+                { name: "Нож сапфировый | Легендарный", value: 8000000, rarity: 'premium' },
+                { name: "Перчатки | Бриллиантовые", value: 9500000, rarity: 'premium' },
+                { name: "AK-47 | Легенда вселенной", value: 11000000, rarity: 'premium' },
+                { name: "AWP | Бог войны", value: 12500000, rarity: 'premium' },
+                { name: "Нож рубиновый | Божественный", value: 13000000, rarity: 'premium' }
             ]
         };
 
-        // Данные о кейсах (увеличены в 3 раза)
+        // Данные о кейсах (добавлен новый премиум кейс)
         const casesData = {
             1: {
                 name: "Армейское",
@@ -4609,6 +4664,12 @@
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
                 price: Math.round(1850 * 7)
+            },
+            6: {
+                name: "Премиум",
+                items: cs2Items.premium,
+                color: '#ff00ff',
+                price: 10000000
             }
         };
 
@@ -4653,7 +4714,9 @@
             wheelArrowInitialized: false,
             contractInventoryPage: 1,
             contractItemsPerPage: 20,
-            upgradeArrowAnimationId: null
+            upgradeArrowAnimationId: null,
+            wheelCanvas: null,
+            wheelCtx: null
         };
 
         // DOM элементы
@@ -4737,16 +4800,12 @@
         const upgradeSelectedItem = document.getElementById('upgrade-selected-item');
         const upgradeResultItem = document.getElementById('upgrade-result-item');
         const upgradeWheel = document.getElementById('upgrade-wheel');
-        const wheelArrowMoving = document.getElementById('wheel-arrow-moving');
-        const wheelSuccessSector = document.getElementById('wheel-success-sector');
-        const upgradeStatus = document.getElementById('upgrade-status');
-        const chanceSelector = document.getElementById('chance-selector');
-        const upgradeBalanceInput = document.getElementById('upgrade-balance-input');
+        const wheelArrow = document.getElementById('wheel-arrow');
         const upgradeStartBtn = document.getElementById('upgrade-start-btn');
         const upgradeInventoryGrid = document.getElementById('upgrade-inventory-grid');
-        const percentValue = document.getElementById('percent-value');
         const upgradeSuccessText = document.getElementById('upgrade-success-text');
         const upgradeFailureText = document.getElementById('upgrade-failure-text');
+        const chanceValue = document.getElementById('chance-value');
         
         // Контракты элементы
         const contractSlotsGrid = document.getElementById('contract-slots-grid');
@@ -4878,8 +4937,119 @@
             initQuantitySelector();
             startOtherUsersDropsSimulation();
             
-            // Инициализация стрелки колеса апгрейда
-            initWheelArrow();
+            // Инициализация круга апгрейда
+            initWheel();
+        }
+
+        // Инициализация круга апгрейда
+        function initWheel() {
+            const wheelContainer = document.getElementById('upgrade-wheel');
+            if (!wheelContainer) return;
+            
+            // Создаем canvas для круга
+            const canvas = document.createElement('canvas');
+            canvas.width = 380;
+            canvas.height = 380;
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.position = 'absolute';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.zIndex = '1';
+            
+            wheelContainer.appendChild(canvas);
+            
+            gameState.wheelCanvas = canvas;
+            gameState.wheelCtx = canvas.getContext('2d');
+            
+            // Начальная отрисовка круга
+            drawWheel(0);
+        }
+
+        // Отрисовка круга с секторами
+        function drawWheel(successChance) {
+            const ctx = gameState.wheelCtx;
+            const canvas = gameState.wheelCanvas;
+            if (!ctx || !canvas) return;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+            
+            // Очищаем canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Вычисляем углы для секторов
+            const successAngle = (successChance / 100) * 2 * Math.PI;
+            const failureAngle = 2 * Math.PI - successAngle;
+            
+            // Рисуем зеленый сектор (успех)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, -Math.PI/2, -Math.PI/2 + successAngle);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.7)';
+            ctx.fill();
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Рисуем красный сектор (неудача)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, -Math.PI/2 + successAngle, -Math.PI/2 + 2 * Math.PI);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(244, 67, 54, 0.7)';
+            ctx.fill();
+            ctx.strokeStyle = '#f44336';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Рисуем границу круга
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#ff4655';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+            
+            // Рисуем деления
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 360; i += 10) {
+                const angle = (i * Math.PI) / 180 - Math.PI/2;
+                ctx.beginPath();
+                ctx.moveTo(centerX + (radius - 10) * Math.cos(angle), centerY + (radius - 10) * Math.sin(angle));
+                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+                ctx.stroke();
+            }
+            
+            // Подписываем проценты
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Подпись для зеленого сектора
+            if (successChance > 0) {
+                const midAngle = -Math.PI/2 + successAngle/2;
+                const textRadius = radius * 0.7;
+                ctx.save();
+                ctx.translate(centerX + textRadius * Math.cos(midAngle), centerY + textRadius * Math.sin(midAngle));
+                ctx.rotate(midAngle + Math.PI/2);
+                ctx.fillText(`${successChance}%`, 0, 0);
+                ctx.restore();
+            }
+            
+            // Подпись для красного сектора
+            if (successChance < 100) {
+                const midAngle = -Math.PI/2 + successAngle + failureAngle/2;
+                const textRadius = radius * 0.7;
+                ctx.save();
+                ctx.translate(centerX + textRadius * Math.cos(midAngle), centerY + textRadius * Math.sin(midAngle));
+                ctx.rotate(midAngle + Math.PI/2);
+                ctx.fillText(`${100 - successChance}%`, 0, 0);
+                ctx.restore();
+            }
         }
 
         // Восстановление открытого кейса при обновлении страницы
@@ -4925,16 +5095,6 @@
         // Очистка состояния открытого кейса
         function clearOpenedCaseState() {
             db.clearOpenedCaseState();
-        }
-
-        // Инициализация стрелки колеса
-        function initWheelArrow() {
-            if (wheelArrowMoving) {
-                wheelArrowMoving.style.display = 'block';
-                wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
-                wheelArrowMoving.style.transition = 'none';
-                gameState.wheelArrowInitialized = true;
-            }
         }
 
         // Восстановление последней вкладки
@@ -5603,9 +5763,9 @@
             loadUpgradeInventory();
             clearOpenedCaseState();
             
-            // Инициализация стрелки при показе секции
-            if (!gameState.wheelArrowInitialized) {
-                initWheelArrow();
+            // Инициализация круга при показе секции
+            if (!gameState.wheelCanvas) {
+                initWheel();
             }
         }
 
@@ -5854,7 +6014,7 @@
             });
         }
 
-        // ЗАПУСК АПГРЕЙДА С ИСПРАВЛЕННОЙ МЕХАНИКОЙ
+        // ЗАПУСК АПГРЕЙДА С НОВОЙ МЕХАНИКОЙ
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5886,7 +6046,10 @@
             upgradeStartBtn.disabled = true;
             
             // ВЫЧИСЛЯЕМ РЕЗУЛЬТАТ ДО АНИМАЦИИ
-            const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+            const randomResult = Math.random() * 100; // От 0 до 100
+            
+            const isSuccess = randomResult < effectiveChance;
             
             if (gameState.fastUpgrade) {
                 // Быстрый апгрейд: от 0.3 до 1.2 секунды, 1-2 оборота
@@ -5899,12 +6062,15 @@
                 let finalRotation;
                 if (isSuccess) {
                     // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
+                    const successZone = (effectiveChance / 100) * 360;
+                    // Равномерное распределение в зеленой зоне
                     finalRotation = Math.random() * successZone;
                 } else {
                     // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = successZone + Math.random() * (360 - successZone);
+                    const successZone = (effectiveChance / 100) * 360;
+                    const failureZone = 360 - successZone;
+                    // Равномерное распределение в красной зоне
+                    finalRotation = successZone + Math.random() * failureZone;
                 }
                 
                 // Добавляем полные обороты
@@ -5923,16 +6089,16 @@
                         const easeOut = 1 - Math.pow(1 - t, 3);
                         const rotation = easeOut * finalRotation;
                         
-                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-                        wheelArrowMoving.style.transition = 'none';
+                        wheelArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                        wheelArrow.style.transition = 'none';
                         animationId = requestAnimationFrame(animateFastSpin);
                         gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
                         // Финальная позиция
-                        wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
-                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                        wheelArrow.style.transition = 'transform 0.5s ease-out';
+                        wheelArrow.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
                         
                         const upgradeState = db.getUpgradeState();
                         if (upgradeState) {
@@ -5946,7 +6112,7 @@
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                             // Стрелка остается на месте - НЕТ ВОЗВРАТА НАЗАД
-                            wheelArrowMoving.style.transition = 'none';
+                            wheelArrow.style.transition = 'none';
                             gameState.upgradeArrowAnimationId = null;
                         }, 500);
                     }
@@ -5965,12 +6131,15 @@
                 let finalRotation;
                 if (isSuccess) {
                     // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
+                    const successZone = (effectiveChance / 100) * 360;
+                    // Равномерное распределение в зеленой зоне
                     finalRotation = Math.random() * successZone;
                 } else {
                     // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
-                    const successZone = (gameState.upgradeSelectedChance / 100) * 360;
-                    finalRotation = successZone + Math.random() * (360 - successZone);
+                    const successZone = (effectiveChance / 100) * 360;
+                    const failureZone = 360 - successZone;
+                    // Равномерное распределение в красной зоне
+                    finalRotation = successZone + Math.random() * failureZone;
                 }
                 
                 // Добавляем полные обороты
@@ -5988,16 +6157,16 @@
                         const easeOut = 1 - Math.pow(1 - t, 3);
                         const rotation = easeOut * finalRotation;
                         
-                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-                        wheelArrowMoving.style.transition = 'none';
+                        wheelArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                        wheelArrow.style.transition = 'none';
                         animationId = requestAnimationFrame(animateSpin);
                         gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
                         // Финальная позиция
-                        wheelArrowMoving.style.transition = 'transform 1s ease-out';
-                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                        wheelArrow.style.transition = 'transform 1s ease-out';
+                        wheelArrow.style.transform = `translateX(-50%) rotate(${finalRotation}deg)`;
                         
                         const upgradeState = db.getUpgradeState();
                         if (upgradeState) {
@@ -6011,7 +6180,7 @@
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
                             // Стрелка остается на месте - НЕТ ВОЗВРАТА НАЗАД
-                            wheelArrowMoving.style.transition = 'none';
+                            wheelArrow.style.transition = 'none';
                             gameState.upgradeArrowAnimationId = null;
                         }, 1000);
                     }
@@ -6038,7 +6207,7 @@
                 });
                 
                 let winValue;
-                if (totalValue > 50000) {
+                if (totalValue > 1000000) {
                     const minWin = Math.floor(totalValue / 4);
                     const maxWin = Math.floor(totalValue * 1.2);
                     winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
@@ -6151,27 +6320,24 @@
             }
         }
 
-        // Обновление отображения стрелки апгрейда
+        // Обновление отображения круга апгрейда
         function updateWheelVisual() {
             if (gameState.upgradeSelectedChance === 0) {
-                wheelSuccessSector.style.setProperty('--success-degrees', '0deg');
-                wheelArrowMoving.style.display = 'block';
-                wheelArrowMoving.style.transform = 'translateX(-50%) rotate(0deg)';
-                wheelArrowMoving.style.transition = 'none';
-                percentValue.textContent = '0%';
+                drawWheel(0);
+                wheelArrow.style.transform = 'translateX(-50%) rotate(0deg)';
+                wheelArrow.style.transition = 'none';
+                chanceValue.textContent = '0%';
                 return;
             }
             
-            const successDegrees = (gameState.upgradeSelectedChance / 100) * 360;
-            wheelSuccessSector.style.setProperty('--success-degrees', `${successDegrees}deg`);
+            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(gameState.upgradeBalanceAmount / 100));
+            drawWheel(effectiveChance);
             
-            wheelArrowMoving.style.display = 'block';
-            wheelArrowMoving.style.transform = `translateX(-50%) rotate(0deg)`;
-            wheelArrowMoving.style.transition = 'none';
+            wheelArrow.style.transform = `translateX(-50%) rotate(0deg)`;
+            wheelArrow.style.transition = 'none';
             
             // Обновляем процент в центре круга
-            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(gameState.upgradeBalanceAmount / 100));
-            percentValue.textContent = `${effectiveChance}%`;
+            chanceValue.textContent = `${effectiveChance}%`;
         }
 
         // Обработка результата апгрейда
@@ -6719,9 +6885,9 @@
         }
 
         function getNextRarity(currentRarity) {
-            const rarityOrder = ['common', 'uncommon', 'rare', 'mythical', 'legendary', 'ancient'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'mythical', 'legendary', 'ancient', 'premium'];
             const currentIndex = rarityOrder.indexOf(currentRarity);
-            return currentIndex < rarityOrder.length - 1 ? rarityOrder[currentIndex + 1] : 'ancient';
+            return currentIndex < rarityOrder.length - 1 ? rarityOrder[currentIndex + 1] : 'premium';
         }
 
         function resetUpgrade() {
@@ -6769,7 +6935,7 @@
             }
             
             const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-            percentValue.textContent = `${effectiveChance}%`;
+            chanceValue.textContent = `${effectiveChance}%`;
             upgradeStartBtn.disabled = false;
             
             generatePossibleWin();
@@ -7004,7 +7170,7 @@
             
             if (itemsCount >= 3) {
                 let minWin, maxWin;
-                if (totalValue > 50000) {
+                if (totalValue > 1000000) {
                     minWin = Math.floor(totalValue / 4);
                     maxWin = Math.floor(totalValue * 1.2);
                 } else {
@@ -7412,6 +7578,23 @@
 
         function getRandomItem(caseData) {
             const items = caseData.items;
+            
+            // Для премиум кейса создаем специальную логику окупаемости
+            if (caseData.name === "Премиум") {
+                // 1-2 раза в 5-14 кейсов окупаемость
+                const shouldBeProfitable = Math.random() < 0.15; // ~15% шанс на окупаемость
+                
+                if (shouldBeProfitable) {
+                    // Выбираем дорогой предмет (от 8,000,000 до 13,000,000)
+                    const expensiveItems = items.slice(15); // Последние 5 предметов
+                    return expensiveItems[Math.floor(Math.random() * expensiveItems.length)];
+                } else {
+                    // Выбираем обычный предмет (от 300,000 до 4,000,000)
+                    const normalItems = items.slice(0, 15); // Первые 15 предметов
+                    return normalItems[Math.floor(Math.random() * normalItems.length)];
+                }
+            }
+            
             return items[Math.floor(Math.random() * items.length)];
         }
 
@@ -7854,6 +8037,7 @@
                     case '3': caseImage = '<div class="case-secret"></div>'; break;
                     case '4': caseImage = '<div class="case-classified"></div>'; break;
                     case '5': caseImage = '<div class="case-knife"></div>'; break;
+                    case '6': caseImage = '<div class="case-premium"></div>'; break;
                 }
                 
                 caseCard.innerHTML = `
@@ -7977,193 +8161,204 @@
         function updateAvatar(username, imgElement) {
             const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
             const colorIndex = username.length % colors.length;
-            const avatarColor = colors[colorIndex];
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 100;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = avatarColor;
-            ctx.fillRect(0, 0, 100, 100);
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 40px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            const initials = username.substring(0, 2).toUpperCase();
-            ctx.fillText(initials, 50, 50);
-            
-            const avatarUrl = canvas.toDataURL();
-            imgElement.src = avatarUrl;
-        }
+            const avatarColor =
+                        const canvas = document.createElement('canvas');
+        canvas.width = 45;
+        canvas.height = 45;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = avatarColor;
+        ctx.fillRect(0, 0, 45, 45);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const initials = username.substring(0, 2).toUpperCase();
+        ctx.fillText(initials, 22.5, 22.5);
+        
+        imgElement.src = canvas.toDataURL();
+    }
 
-        function updateOnlineCount() {
-            const count = Math.floor(Math.random() * 100) + 152;
-            onlineCount.textContent = count;
-        }
+    function getAvatarColor(username) {
+        const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
+        const colorIndex = username.length % colors.length;
+        return colors[colorIndex];
+    }
 
-        function updateOpenCaseButtons() {
-            const isLoggedIn = currentUser !== null;
-            
-            document.querySelectorAll('.open-case-btn').forEach(btn => {
-                if (isLoggedIn) {
-                    btn.disabled = false;
-                    btn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс`;
-                } else {
-                    btn.disabled = true;
-                    btn.innerHTML = `<i class="fas fa-lock"></i> Войдите для открытия`;
-                }
-            });
-            
-            spinBtn.disabled = !isLoggedIn;
-        }
-
-        function login() {
-            const username = loginUsername.value.trim();
-            const password = loginPassword.value;
-            
-            if (!username || !password) {
-                loginError.textContent = "Введите логин и пароль";
-                loginError.style.display = 'block';
-                return;
-            }
-            
-            const user = db.getUser(username);
-            
-            if (user && user.password === password) {
-                currentUser = username;
-                db.setCurrentUser(username);
-                
-                updateUserDisplay();
-                updateOpenCaseButtons();
-                authModal.style.display = 'none';
-                loginUsername.value = '';
-                loginPassword.value = '';
-                loginError.style.display = 'none';
-                
-                profileTab.style.display = 'flex';
-                if (user.isAdmin) {
-                    adminBtn.classList.add('visible');
-                }
-                
-                checkPendingCaseItems();
-                checkPendingUpgrade();
-                
-                alert('Вы успешно вошли в аккаунт!');
+    function updateOpenCaseButtons() {
+        document.querySelectorAll('.open-case-btn').forEach(btn => {
+            if (currentUser) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс`;
             } else {
-                loginError.textContent = "Неверный логин или пароль";
-                loginError.style.display = 'block';
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-lock"></i> Войдите для открытия`;
             }
+        });
+    }
+
+    function getRarityColor(rarity) {
+        switch(rarity) {
+            case 'common': return var('--common-color');
+            case 'uncommon': return var('--uncommon-color');
+            case 'rare': return var('--rare-color');
+            case 'mythical': return var('--mythical-color');
+            case 'legendary': return var('--legendary-color');
+            case 'ancient': return var('--ancient-color');
+            case 'premium': return '#ff00ff';
+            default: return '#ffffff';
         }
+    }
 
-        function register() {
-            const username = registerUsername.value.trim();
-            const password = registerPassword.value;
-            const confirm = registerConfirm.value;
-            
-            if (!username || !password || !confirm) {
-                registerError.textContent = "Заполните все поля";
-                registerError.style.display = 'block';
-                return;
-            }
-            
-            if (password !== confirm) {
-                registerError.textContent = "Пароли не совпадают";
-                registerError.style.display = 'block';
-                return;
-            }
-            
-            if (username.length < 3) {
-                registerError.textContent = "Логин должен быть не менее 3 символов";
-                registerError.style.display = 'block';
-                return;
-            }
-            
-            if (password.length < 6) {
-                registerError.textContent = "Пароль должен быть не менее 6 символов";
-                registerError.style.display = 'block';
-                return;
-            }
-            
-            if (db.getUser(username)) {
-                registerError.textContent = "Логин уже занят";
-                registerError.style.display = 'block';
-                return;
-            }
-            
-            const userData = {
-                password: password,
-                balance: systemSettings.defaultBalance,
-                casesOpened: 0,
-                totalValue: 0,
-                bestItem: "Нет",
-                createdAt: new Date().toLocaleDateString(),
-                isAdmin: false,
-                inventory: []
-            };
-            
-            db.saveUser(username, userData);
-            currentUser = username;
-            db.setCurrentUser(username);
-            
-            updateUserDisplay();
-            updateOpenCaseButtons();
-            authModal.style.display = 'none';
-            registerUsername.value = '';
-            registerPassword.value = '';
-            registerConfirm.value = '';
-            registerError.style.display = 'none';
-            
-            profileTab.style.display = 'flex';
-            
-            alert('Аккаунт успешно создан! Вы вошли в систему.');
-            loginTab.click();
+    function getRarityName(rarity) {
+        switch(rarity) {
+            case 'common': return 'Обычный';
+            case 'uncommon': return 'Необычный';
+            case 'rare': return 'Редкий';
+            case 'mythical': return 'Мифический';
+            case 'legendary': return 'Легендарный';
+            case 'ancient': return 'Древний';
+            case 'premium': return 'Премиум';
+            default: return 'Неизвестно';
         }
+    }
 
-        function getAvatarColor(username) {
-            const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
-            const index = username.length % colors.length;
-            return colors[index];
+    function var(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name);
+    }
+
+    function getItemValue(itemName) {
+        const allItems = [
+            ...cs2Items.common,
+            ...cs2Items.uncommon,
+            ...cs2Items.rare,
+            ...cs2Items.mythical,
+            ...cs2Items.legendary,
+            ...cs2Items.ancient,
+            ...cs2Items.premium
+        ];
+        const item = allItems.find(i => i.name === itemName);
+        return item ? item.value : 0;
+    }
+
+    function login() {
+        const username = loginUsername.value.trim();
+        const password = loginPassword.value.trim();
+        
+        if (!username || !password) {
+            loginError.textContent = 'Введите логин и пароль';
+            loginError.style.display = 'block';
+            return;
         }
-
-        function getRarityColor(rarity) {
-            const colors = {
-                'common': '#5e98d9',
-                'uncommon': '#4b69ff',
-                'rare': '#8847ff',
-                'mythical': '#d32ee6',
-                'legendary': '#ffd700',
-                'ancient': '#eb4b4b'
-            };
-            return colors[rarity] || '#969696';
+        
+        const user = db.getUser(username);
+        
+        if (!user || user.password !== password) {
+            loginError.textContent = 'Неверный логин или пароль';
+            loginError.style.display = 'block';
+            return;
         }
-
-        function getRarityName(rarity) {
-            const names = {
-                'common': 'Армейское',
-                'uncommon': 'Запрещенное',
-                'rare': 'Засекреченное',
-                'mythical': 'Тайное',
-                'legendary': 'Ножевое',
-                'ancient': 'Древнее'
-            };
-            return names[rarity] || rarity;
+        
+        currentUser = username;
+        db.setCurrentUser(username);
+        updateUserDisplay();
+        
+        profileTab.style.display = 'flex';
+        if (user.isAdmin) {
+            adminBtn.classList.add('visible');
         }
+        
+        updateOpenCaseButtons();
+        
+        authModal.style.display = 'none';
+        loginUsername.value = '';
+        loginPassword.value = '';
+        loginError.style.display = 'none';
+        
+        // Восстанавливаем последнюю вкладку
+        restoreLastTab();
+    }
 
-        function getItemValue(itemName) {
-            for (const rarity in cs2Items) {
-                const item = cs2Items[rarity].find(i => i.name === itemName);
-                if (item) return item.value;
-            }
-            return 0;
+    function register() {
+        const username = registerUsername.value.trim();
+        const password = registerPassword.value.trim();
+        const confirm = registerConfirm.value.trim();
+        
+        if (!username || !password || !confirm) {
+            registerError.textContent = 'Заполните все поля';
+            registerError.style.display = 'block';
+            return;
         }
+        
+        if (username.length < 3) {
+            registerError.textContent = 'Логин должен содержать минимум 3 символа';
+            registerError.style.display = 'block';
+            return;
+        }
+        
+        if (password.length < 6) {
+            registerError.textContent = 'Пароль должен содержать минимум 6 символов';
+            registerError.style.display = 'block';
+            return;
+        }
+        
+        if (password !== confirm) {
+            registerError.textContent = 'Пароли не совпадают';
+            registerError.style.display = 'block';
+            return;
+        }
+        
+        const existingUser = db.getUser(username);
+        if (existingUser) {
+            registerError.textContent = 'Логин уже занят';
+            registerError.style.display = 'block';
+            return;
+        }
+        
+        const newUser = {
+            password: password,
+            balance: systemSettings.defaultBalance,
+            casesOpened: 0,
+            totalValue: 0,
+            bestItem: "Нет",
+            createdAt: new Date().toLocaleDateString(),
+            isAdmin: false,
+            inventory: []
+        };
+        
+        db.saveUser(username, newUser);
+        
+        currentUser = username;
+        db.setCurrentUser(username);
+        updateUserDisplay();
+        
+        profileTab.style.display = 'flex';
+        
+        updateOpenCaseButtons();
+        
+        authModal.style.display = 'none';
+        registerUsername.value = '';
+        registerPassword.value = '';
+        registerConfirm.value = '';
+        registerError.style.display = 'none';
+        
+        alert('Регистрация успешна! Добро пожаловать, ' + username);
+        
+        // Показываем главную страницу после регистрации
+        showMainPage();
+        setActiveTab(casesTab);
+    }
 
-        document.addEventListener('DOMContentLoaded', init);
-        window.addEventListener('resize', updateOnlineCount);
-        setInterval(updateOnlineCount, 30000);
-        updateOnlineCount();
-    </script>
-</body>
-</html>
+    function updateOnlineCount() {
+        let count = Math.floor(Math.random() * 100) + 100;
+        onlineCount.textContent = count;
+    }
 
+    // Инициализируем онлайн-счетчик
+    updateOnlineCount();
+    setInterval(updateOnlineCount, 30000);
+
+    // Запускаем приложение
+    init();
+</script>
