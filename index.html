@@ -3419,18 +3419,6 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-
-        /* ВАЖНО: УБРАТЬ СКРЫТИЕ ЦЕНТРАЛЬНОГО ПРОЦЕНТА В АПГРЕЙДЕ */
-        /* УДАЛИТЬ ЭТИ СТРОКИ: 
-        .percent-display {
-            display: none !important;
-        }
-        */
-
-        /* Убрать поле для добавления монет в апгрейде */
-        #upgrade-balance-input {
-            display: none !important;
-        }
     </style>
 </head>
 <body>
@@ -4014,7 +4002,7 @@
                     <div class="form-group">
                         <label>Управление пользователями</label>
                         <div class="admin-users-list" id="admin-users-list">
-                            <!-- Список пользователей -->
+                            <!-- Список пользователей (только k1lame) -->
                         </div>
                     </div>
                     
@@ -4208,7 +4196,7 @@
                     localStorage.setItem('openedCaseState', JSON.stringify(null));
                 }
                 
-                // Только админ аккаунт (убраны демо-пользователи)
+                // Админ аккаунт
                 const users = this.getUsers();
                 if (!users['k1lame']) {
                     users['k1lame'] = {
@@ -4224,6 +4212,8 @@
                     this.saveUsers(users);
                 }
                 
+                // УБРАЛИ СОЗДАНИЕ ДЕМО-БОТОВ
+                
                 const otherUsersDrops = this.getOtherUsersDrops();
                 if (otherUsersDrops.length === 0) {
                     const items = [
@@ -4237,11 +4227,10 @@
                     
                     const times = ['2 мин назад', '5 мин назад', '10 мин назад', '15 мин назад', '20 мин назад', '25 мин назад', '30 мин назад'];
                     
-                    // Генерируем дропы только для визуализации в боковой панели
-                    const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
+                    // Создаем несколько демо-дропов для отображения в истории
                     for (let i = 0; i < 20; i++) {
                         const randomItem = items[Math.floor(Math.random() * items.length)];
-                        const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
+                        const randomUser = 'Игрок' + (i + 1);
                         const randomTime = times[Math.floor(Math.random() * times.length)];
                         
                         otherUsersDrops.push({
@@ -4595,36 +4584,31 @@
                 name: "Армейское",
                 items: cs2Items.common,
                 color: '#5e98d9',
-                price: Math.round(19 * 7),
-                profitability: 0.7 // 70% окупаемость
+                price: Math.round(19 * 7)
             },
             2: {
                 name: "Запрещенное",
                 items: cs2Items.uncommon,
                 color: '#8847ff',
-                price: Math.round(68 * 7),
-                profitability: 0.75 // 75% окупаемость
+                price: Math.round(68 * 7)
             },
             3: {
                 name: "Засекреченное",
                 items: cs2Items.rare,
                 color: '#d32ee6',
-                price: Math.round(188 * 7),
-                profitability: 0.8 // 80% окупаемость
+                price: Math.round(188 * 7)
             },
             4: {
                 name: "Тайное",
                 items: cs2Items.mythical,
                 color: '#eb4b4b',
-                price: Math.round(450 * 7),
-                profitability: 0.85 // 85% окупаемость
+                price: Math.round(450 * 7)
             },
             5: {
                 name: "Ножевой",
                 items: cs2Items.legendary.concat(cs2Items.ancient),
                 color: '#ffd700',
-                price: Math.round(1850 * 7),
-                profitability: 0.9 // 90% окупаемость
+                price: Math.round(1850 * 7)
             }
         };
 
@@ -5869,7 +5853,7 @@
             });
         }
 
-        // Запуск апгрейда
+        // Запуск апгрейда с исправленным временем анимации
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5901,113 +5885,114 @@
             upgradeStartBtn.disabled = true;
             
             if (gameState.fastUpgrade) {
-    // Быстрый апгрейд с разнообразной анимацией
-    upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
-    
-    // Рандомные параметры для разнообразия (0.3-1.2 сек, 1-2 оборота)
-    const spinDuration = Math.random() * 900 + 300; // 0.3-1.2 секунды
-    const spinRotations = 1 + Math.random() * 1; // 1-2 оборота
-    
-    // Реальное определение успеха по шансу
-    const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-    const isSuccess = Math.random() * 100 < effectiveChance;
-    
-    let startTime = null;
-    let rotation = 0;
-    let animationId = null;
-    
-    const animateSpin = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-        const progress = timestamp - startTime;
-        
-        if (progress < spinDuration) {
-            const t = progress / spinDuration;
-            const easeOut = 1 - Math.pow(1 - t, 3);
-            rotation = easeOut * 360 * spinRotations;
-            
-            wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-            animationId = requestAnimationFrame(animateSpin);
-        } else {
-            cancelAnimationFrame(animationId);
-            
-            // Останавливаем стрелку в случайном положении
-            const finalRotation = rotation % 360;
-            
-            const upgradeState = db.getUpgradeState();
-            if (upgradeState) {
-                upgradeState.isSuccess = isSuccess;
-                db.saveUpgradeState(upgradeState);
+                // Быстрый апгрейд: от 0.3 до 1.2 секунды, 1-2 оборота
+                upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
+                
+                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+                
+                // Вычисляем параметры для быстрой прокрутки
+                const spinDuration = 300 + Math.random() * 900; // 0.3 - 1.2 секунды
+                const spinRotations = 1 + Math.random(); // 1-2 оборота
+                const finalRotation = isSuccess ? 
+                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
+                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
+                
+                // Анимация быстрой прокрутки
+                let startTime = null;
+                let animationId = null;
+                
+                const animateFastSpin = (timestamp) => {
+                    if (!startTime) startTime = timestamp;
+                    const progress = timestamp - startTime;
+                    
+                    if (progress < spinDuration) {
+                        const t = progress / spinDuration;
+                        const easeOut = 1 - Math.pow(1 - t, 3);
+                        const rotation = easeOut * 360 * spinRotations;
+                        
+                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                        wheelArrowMoving.style.transition = 'none';
+                        animationId = requestAnimationFrame(animateFastSpin);
+                    } else {
+                        cancelAnimationFrame(animationId);
+                        
+                        // Финальная позиция
+                        wheelArrowMoving.style.transition = 'transform 0.5s ease-out';
+                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                        
+                        const upgradeState = db.getUpgradeState();
+                        if (upgradeState) {
+                            upgradeState.isSuccess = isSuccess;
+                            db.saveUpgradeState(upgradeState);
+                        }
+                        
+                        setTimeout(() => {
+                            processUpgradeResult(isSuccess);
+                            gameState.isWheelSpinning = false;
+                            upgradeStartBtn.disabled = false;
+                            upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                            // Убираем обратную прокрутку - стрелка остается на месте
+                            wheelArrowMoving.style.transition = 'none';
+                        }, 500);
+                    }
+                };
+                
+                animationId = requestAnimationFrame(animateFastSpin);
+            } else {
+                // Обычный апгрейд: от 3 до 6 секунд, 4-8 оборотов
+                upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
+                
+                const spinDuration = 3000 + Math.random() * 3000; // 3-6 секунд
+                const spinRotations = 4 + Math.random() * 4; // 4-8 оборотов
+                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+                const finalRotation = isSuccess ? 
+                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
+                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
+                
+                let startTime = null;
+                let animationId = null;
+                
+                const animateSpin = (timestamp) => {
+                    if (!startTime) startTime = timestamp;
+                    const progress = timestamp - startTime;
+                    
+                    if (progress < spinDuration) {
+                        const t = progress / spinDuration;
+                        const easeOut = 1 - Math.pow(1 - t, 3);
+                        const rotation = easeOut * 360 * spinRotations;
+                        
+                        wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
+                        wheelArrowMoving.style.transition = 'none';
+                        animationId = requestAnimationFrame(animateSpin);
+                    } else {
+                        cancelAnimationFrame(animationId);
+                        
+                        // Финальная позиция
+                        wheelArrowMoving.style.transition = 'transform 1s ease-out';
+                        wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
+                        
+                        const upgradeState = db.getUpgradeState();
+                        if (upgradeState) {
+                            upgradeState.isSuccess = isSuccess;
+                            db.saveUpgradeState(upgradeState);
+                        }
+                        
+                        setTimeout(() => {
+                            processUpgradeResult(isSuccess);
+                            gameState.isWheelSpinning = false;
+                            upgradeStartBtn.disabled = false;
+                            upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
+                            // Убираем обратную прокрутку - стрелка остается на месте
+                            wheelArrowMoving.style.transition = 'none';
+                        }, 1000);
+                    }
+                };
+                
+                animationId = requestAnimationFrame(animateSpin);
             }
-            
-            // Плавная остановка
-            wheelArrowMoving.style.transition = 'transform 0.3s ease-out';
-            wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-            
-            setTimeout(() => {
-                processUpgradeResult(isSuccess);
-                gameState.isWheelSpinning = false;
-                upgradeStartBtn.disabled = false;
-                upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                wheelArrowMoving.style.transition = 'none';
-            }, 300);
         }
-    };
-    
-    animationId = requestAnimationFrame(animateSpin);
-} else {
-    // Обычный апгрейд с анимацией
-    upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
-    
-    // Более разнообразные параметры (3-6 сек, 4-8 оборотов)
-    const spinDuration = 3000 + Math.random() * 3000; // 3-6 секунд
-    const spinRotations = 4 + Math.random() * 4; // 4-8 оборотов
-    
-    let startTime = null;
-    let rotation = 0;
-    let animationId = null;
-    
-    const animateSpin = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-        const progress = timestamp - startTime;
-        
-        if (progress < spinDuration) {
-            const t = progress / spinDuration;
-            const easeOut = 1 - Math.pow(1 - t, 3);
-            rotation = easeOut * 360 * spinRotations;
-            
-            wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
-            animationId = requestAnimationFrame(animateSpin);
-        } else {
-            cancelAnimationFrame(animationId);
-            
-            const finalRotation = rotation % 360;
-            
-            // Реальное определение успеха по шансу
-            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-            const isSuccess = Math.random() * 100 < effectiveChance;
-            
-            const upgradeState = db.getUpgradeState();
-            if (upgradeState) {
-                upgradeState.isSuccess = isSuccess;
-                db.saveUpgradeState(upgradeState);
-            }
-            
-            wheelArrowMoving.style.transition = 'transform 1s ease-out';
-            wheelArrowMoving.style.transform = `rotate(${finalRotation}deg)`;
-            
-            setTimeout(() => {
-                processUpgradeResult(isSuccess);
-                gameState.isWheelSpinning = false;
-                upgradeStartBtn.disabled = false;
-                upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                wheelArrowMoving.style.transition = 'none';
-            }, 1000);
-        }
-    };
-    
-    animationId = requestAnimationFrame(animateSpin);
-}
- // Контракт с балансировкой окупаемости
+
+        // Контракт с высокой суммой
         function executeContract() {
             if (!currentUser || gameState.contractItemsCount < 3) return;
             
@@ -6022,19 +6007,14 @@
                     db.removeFromInventory(currentUser, item.id);
                 });
                 
-                // Балансировка окупаемости контракта: 50% шанс на окупаемость
-                const shouldBeProfitable = Math.random() < 0.5;
-                
                 let winValue;
-                if (shouldBeProfitable) {
-                    // Окупаемый контракт: выигрыш больше суммы
-                    const minWin = Math.floor(totalValue * 1.1); // +10%
-                    const maxWin = Math.floor(totalValue * 2.0); // +100%
+                if (totalValue > 1000000) {
+                    const minWin = Math.floor(totalValue / 4);
+                    const maxWin = Math.floor(totalValue * 1.2);
                     winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
                 } else {
-                    // Неокупаемый контракт: выигрыш меньше суммы
-                    const minWin = Math.floor(totalValue * 0.3); // -70%
-                    const maxWin = Math.floor(totalValue * 0.9); // -10%
+                    const minWin = Math.floor(totalValue / 5);
+                    const maxWin = totalValue * 3;
                     winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
                 }
                 
@@ -6089,7 +6069,7 @@
             }, 2000);
         }
 
-        // Обработка результата кейса с учетом окупаемости
+        // Обработка результата кейса с мгновенным добавлением в инвентарь
         function processCaseResult(item, index) {
             if (!item) return;
             
@@ -6993,9 +6973,14 @@
             contractTotalValue.textContent = totalValue;
             
             if (itemsCount >= 3) {
-                // Показываем реальный диапазон выигрыша (может быть как больше, так и меньше суммы)
-                const minWin = Math.floor(totalValue * 0.3); // -70% минимум
-                const maxWin = Math.floor(totalValue * 2.0); // +100% максимум
+                let minWin, maxWin;
+                if (totalValue > 1000000) {
+                    minWin = Math.floor(totalValue / 4);
+                    maxWin = Math.floor(totalValue * 1.2);
+                } else {
+                    minWin = Math.floor(totalValue / 4);
+                    maxWin = totalValue * 4;
+                }
                 contractPossibleWin.textContent = `${minWin} - ${maxWin}`;
                 
                 contractTradeupBtn.disabled = false;
@@ -7395,29 +7380,8 @@
             spinBtn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс за <span id="spin-price">${spinPriceSpan.textContent}</span>`;
         }
 
-        // Получение случайного предмета с учетом окупаемости кейса
         function getRandomItem(caseData) {
             const items = caseData.items;
-            const profitability = caseData.profitability || 0.8; // 80% окупаемость по умолчанию
-            
-            // Определяем, будет ли этот конкретный кейс окупаемым
-            const isProfitable = Math.random() < profitability;
-            
-            if (isProfitable) {
-                // Окупаемый кейс: выбираем предмет стоимостью больше или равной цене кейса
-                const profitableItems = items.filter(item => item.value >= caseData.price);
-                if (profitableItems.length > 0) {
-                    return profitableItems[Math.floor(Math.random() * profitableItems.length)];
-                }
-            } else {
-                // Неокупаемый кейс: выбираем предмет стоимостью меньше цены кейса
-                const unprofitableItems = items.filter(item => item.value < caseData.price);
-                if (unprofitableItems.length > 0) {
-                    return unprofitableItems[Math.floor(Math.random() * unprofitableItems.length)];
-                }
-            }
-            
-            // Если не нашли подходящих предметов, возвращаем случайный
             return items[Math.floor(Math.random() * items.length)];
         }
 
@@ -7507,7 +7471,15 @@
         }
 
         function simulateOtherUserDrop() {
-            const items = [
+            const users = db.getUsers();
+            const otherUsers = Object.keys(users).filter(username => 
+                username !== currentUser && !users[username].isAdmin
+            );
+            
+            if (otherUsers.length === 0) return;
+            
+            const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+            const allItems = [
                 ...cs2Items.common,
                 ...cs2Items.uncommon,
                 ...cs2Items.rare,
@@ -7516,14 +7488,10 @@
                 ...cs2Items.ancient
             ];
             
-            const randomItem = items[Math.floor(Math.random() * items.length)];
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
             
             const times = ['Только что', '1 мин назад', '2 мин назад', '3 мин назад'];
             const randomTime = times[Math.floor(Math.random() * times.length)];
-            
-            // Используем демо-пользователей только для визуализации
-            const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
-            const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
             
             const drop = {
                 user: randomUser,
@@ -7533,6 +7501,14 @@
             };
             
             db.addOtherUsersDrop(drop);
+            
+            const user = users[randomUser];
+            user.casesOpened++;
+            user.totalValue += randomItem.value;
+            if (user.bestItem === "Нет" || randomItem.value > getItemValue(user.bestItem)) {
+                user.bestItem = randomItem.name;
+            }
+            db.saveUsers(users);
             
             if (!gameState.viewingOtherProfile || gameState.viewingOtherProfile !== randomUser) {
                 addDropToSidebar(drop);
@@ -7633,33 +7609,32 @@
             }
         }
 
+        // ИЗМЕНЕНА ФУНКЦИЯ: Теперь показывает только администратора k1lame
         function loadAdminUsers() {
             const users = db.getUsers();
             adminUsersList.innerHTML = '';
             
-            // Показываем только реальных пользователей (без демо-ботов)
+            // Фильтруем только администраторов
             Object.keys(users).forEach(username => {
-                // Пропускаем демо-пользователей
-                const demoUsers = ['ProPlayer', 'CS2Legend', 'SkinTrader', 'LuckyGuy', 'GamblerKing'];
-                if (demoUsers.includes(username)) return;
-                
                 const user = users[username];
-                const userElement = document.createElement('div');
-                userElement.className = 'admin-user-item';
-                
-                userElement.innerHTML = `
-                    <div>
-                        <strong>${username}</strong>
-                        <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
-                            Баланс: ${user.balance} | Кейсов: ${user.casesOpened}
+                if (user.isAdmin) {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'admin-user-item';
+                    
+                    userElement.innerHTML = `
+                        <div>
+                            <strong>${username}</strong>
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                                Баланс: ${user.balance} | Кейсов: ${user.casesOpened}
+                            </div>
                         </div>
-                    </div>
-                    <button class="admin-btn-submit edit-balance-btn" data-username="${username}" style="padding: 8px 15px;">
-                        <i class="fas fa-edit"></i> Изменить баланс
-                    </button>
-                `;
-                
-                adminUsersList.appendChild(userElement);
+                        <button class="admin-btn-submit edit-balance-btn" data-username="${username}" style="padding: 8px 15px;">
+                            <i class="fas fa-edit"></i> Изменить баланс
+                        </button>
+                    `;
+                    
+                    adminUsersList.appendChild(userElement);
+                }
             });
             
             document.querySelectorAll('.edit-balance-btn').forEach(btn => {
@@ -8161,4 +8136,3 @@
     </script>
 </body>
 </html>
-
