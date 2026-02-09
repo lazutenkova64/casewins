@@ -8158,207 +8158,202 @@
             updateAvatar(currentUser, userAvatarBtn.querySelector('img'));
         }
 
-        function updateAvatar(username, imgElement) {
-            const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
-            const colorIndex = username.length % colors.length;
-            const avatarColor =
-                        const canvas = document.createElement('canvas');
-        canvas.width = 45;
-        canvas.height = 45;
-        const ctx = canvas.getContext('2d');
-        
-        ctx.fillStyle = avatarColor;
-        ctx.fillRect(0, 0, 45, 45);
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const initials = username.substring(0, 2).toUpperCase();
-        ctx.fillText(initials, 22.5, 22.5);
-        
-        imgElement.src = canvas.toDataURL();
-    }
+       function updateAvatar(username, imgElement) {
+    const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
+    const colorIndex = username.length % colors.length;
+    const avatarColor = colors[colorIndex];
 
-    function getAvatarColor(username) {
-        const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
-        const colorIndex = username.length % colors.length;
-        return colors[colorIndex];
-    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 45;
+    canvas.height = 45;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = avatarColor;
+    ctx.fillRect(0, 0, 45, 45);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const initials = username.substring(0, 2).toUpperCase();
+    ctx.fillText(initials, 22.5, 22.5);
+    
+    imgElement.src = canvas.toDataURL();
+}
 
-    function updateOpenCaseButtons() {
-        document.querySelectorAll('.open-case-btn').forEach(btn => {
-            if (currentUser) {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс`;
-            } else {
-                btn.disabled = true;
-                btn.innerHTML = `<i class="fas fa-lock"></i> Войдите для открытия`;
-            }
-        });
-    }
+function getAvatarColor(username) {
+    const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#EF476F'];
+    const colorIndex = username.length % colors.length;
+    return colors[colorIndex];
+}
 
-    function getRarityColor(rarity) {
-        switch(rarity) {
-            case 'common': return var('--common-color');
-            case 'uncommon': return var('--uncommon-color');
-            case 'rare': return var('--rare-color');
-            case 'mythical': return var('--mythical-color');
-            case 'legendary': return var('--legendary-color');
-            case 'ancient': return var('--ancient-color');
-            case 'premium': return '#ff00ff';
-            default: return '#ffffff';
+function updateOpenCaseButtons() {
+    document.querySelectorAll('.open-case-btn').forEach(btn => {
+        if (currentUser) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-box-open"></i> Открыть кейс`;
+        } else {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-lock"></i> Войдите для открытия`;
         }
+    });
+}
+
+function getRarityColor(rarity) {
+    switch(rarity) {
+        case 'common': return '#5e98d9';
+        case 'uncommon': return '#4b69ff';
+        case 'rare': return '#8847ff';
+        case 'mythical': return '#d32ee6';
+        case 'legendary': return '#ffd700';
+        case 'ancient': return '#eb4b4b';
+        case 'premium': return '#ff00ff';
+        default: return '#ffffff';
     }
+}
 
-    function getRarityName(rarity) {
-        switch(rarity) {
-            case 'common': return 'Обычный';
-            case 'uncommon': return 'Необычный';
-            case 'rare': return 'Редкий';
-            case 'mythical': return 'Мифический';
-            case 'legendary': return 'Легендарный';
-            case 'ancient': return 'Древний';
-            case 'premium': return 'Премиум';
-            default: return 'Неизвестно';
-        }
+function getRarityName(rarity) {
+    switch(rarity) {
+        case 'common': return 'Обычный';
+        case 'uncommon': return 'Необычный';
+        case 'rare': return 'Редкий';
+        case 'mythical': return 'Мифический';
+        case 'legendary': return 'Легендарный';
+        case 'ancient': return 'Древний';
+        case 'premium': return 'Премиум';
+        default: return 'Неизвестно';
     }
+}
 
-    function var(name) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name);
+function getItemValue(itemName) {
+    const allItems = [
+        ...cs2Items.common,
+        ...cs2Items.uncommon,
+        ...cs2Items.rare,
+        ...cs2Items.mythical,
+        ...cs2Items.legendary,
+        ...cs2Items.ancient,
+        ...cs2Items.premium
+    ];
+    const item = allItems.find(i => i.name === itemName);
+    return item ? item.value : 0;
+}
+
+function login() {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value.trim();
+    
+    if (!username || !password) {
+        loginError.textContent = 'Введите логин и пароль';
+        loginError.style.display = 'block';
+        return;
     }
-
-    function getItemValue(itemName) {
-        const allItems = [
-            ...cs2Items.common,
-            ...cs2Items.uncommon,
-            ...cs2Items.rare,
-            ...cs2Items.mythical,
-            ...cs2Items.legendary,
-            ...cs2Items.ancient,
-            ...cs2Items.premium
-        ];
-        const item = allItems.find(i => i.name === itemName);
-        return item ? item.value : 0;
+    
+    const user = db.getUser(username);
+    
+    if (!user || user.password !== password) {
+        loginError.textContent = 'Неверный логин или пароль';
+        loginError.style.display = 'block';
+        return;
     }
-
-    function login() {
-        const username = loginUsername.value.trim();
-        const password = loginPassword.value.trim();
-        
-        if (!username || !password) {
-            loginError.textContent = 'Введите логин и пароль';
-            loginError.style.display = 'block';
-            return;
-        }
-        
-        const user = db.getUser(username);
-        
-        if (!user || user.password !== password) {
-            loginError.textContent = 'Неверный логин или пароль';
-            loginError.style.display = 'block';
-            return;
-        }
-        
-        currentUser = username;
-        db.setCurrentUser(username);
-        updateUserDisplay();
-        
-        profileTab.style.display = 'flex';
-        if (user.isAdmin) {
-            adminBtn.classList.add('visible');
-        }
-        
-        updateOpenCaseButtons();
-        
-        authModal.style.display = 'none';
-        loginUsername.value = '';
-        loginPassword.value = '';
-        loginError.style.display = 'none';
-        
-        // Восстанавливаем последнюю вкладку
-        restoreLastTab();
+    
+    currentUser = username;
+    db.setCurrentUser(username);
+    updateUserDisplay();
+    
+    profileTab.style.display = 'flex';
+    if (user.isAdmin) {
+        adminBtn.classList.add('visible');
     }
+    
+    updateOpenCaseButtons();
+    
+    authModal.style.display = 'none';
+    loginUsername.value = '';
+    loginPassword.value = '';
+    loginError.style.display = 'none';
+    
+    restoreLastTab();
+}
 
-    function register() {
-        const username = registerUsername.value.trim();
-        const password = registerPassword.value.trim();
-        const confirm = registerConfirm.value.trim();
-        
-        if (!username || !password || !confirm) {
-            registerError.textContent = 'Заполните все поля';
-            registerError.style.display = 'block';
-            return;
-        }
-        
-        if (username.length < 3) {
-            registerError.textContent = 'Логин должен содержать минимум 3 символа';
-            registerError.style.display = 'block';
-            return;
-        }
-        
-        if (password.length < 6) {
-            registerError.textContent = 'Пароль должен содержать минимум 6 символов';
-            registerError.style.display = 'block';
-            return;
-        }
-        
-        if (password !== confirm) {
-            registerError.textContent = 'Пароли не совпадают';
-            registerError.style.display = 'block';
-            return;
-        }
-        
-        const existingUser = db.getUser(username);
-        if (existingUser) {
-            registerError.textContent = 'Логин уже занят';
-            registerError.style.display = 'block';
-            return;
-        }
-        
-        const newUser = {
-            password: password,
-            balance: systemSettings.defaultBalance,
-            casesOpened: 0,
-            totalValue: 0,
-            bestItem: "Нет",
-            createdAt: new Date().toLocaleDateString(),
-            isAdmin: false,
-            inventory: []
-        };
-        
-        db.saveUser(username, newUser);
-        
-        currentUser = username;
-        db.setCurrentUser(username);
-        updateUserDisplay();
-        
-        profileTab.style.display = 'flex';
-        
-        updateOpenCaseButtons();
-        
-        authModal.style.display = 'none';
-        registerUsername.value = '';
-        registerPassword.value = '';
-        registerConfirm.value = '';
-        registerError.style.display = 'none';
-        
-        alert('Регистрация успешна! Добро пожаловать, ' + username);
-        
-        // Показываем главную страницу после регистрации
-        showMainPage();
-        setActiveTab(casesTab);
+function register() {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value.trim();
+    const confirm = registerConfirm.value.trim();
+    
+    if (!username || !password || !confirm) {
+        registerError.textContent = 'Заполните все поля';
+        registerError.style.display = 'block';
+        return;
     }
-
-    function updateOnlineCount() {
-        let count = Math.floor(Math.random() * 100) + 100;
-        onlineCount.textContent = count;
+    
+    if (username.length < 3) {
+        registerError.textContent = 'Логин должен содержать минимум 3 символа';
+        registerError.style.display = 'block';
+        return;
     }
+    
+    if (password.length < 6) {
+        registerError.textContent = 'Пароль должен содержать минимум 6 символов';
+        registerError.style.display = 'block';
+        return;
+    }
+    
+    if (password !== confirm) {
+        registerError.textContent = 'Пароли не совпадают';
+        registerError.style.display = 'block';
+        return;
+    }
+    
+    const existingUser = db.getUser(username);
+    if (existingUser) {
+        registerError.textContent = 'Логин уже занят';
+        registerError.style.display = 'block';
+        return;
+    }
+    
+    const newUser = {
+        password: password,
+        balance: 0,
+        casesOpened: 0,
+        totalValue: 0,
+        bestItem: "Нет",
+        createdAt: new Date().toLocaleDateString(),
+        isAdmin: false,
+        inventory: []
+    };
+    
+    db.saveUser(username, newUser);
+    
+    currentUser = username;
+    db.setCurrentUser(username);
+    updateUserDisplay();
+    
+    profileTab.style.display = 'flex';
+    
+    updateOpenCaseButtons();
+    
+    authModal.style.display = 'none';
+    registerUsername.value = '';
+    registerPassword.value = '';
+    registerConfirm.value = '';
+    registerError.style.display = 'none';
+    
+    alert('Регистрация успешна! Добро пожаловать, ' + username + '\nИспользуйте промокоды "начало", "максим", "андрей" для получения монет.');
+    
+    showMainPage();
+    setActiveTab(casesTab);
+}
 
-    // Инициализируем онлайн-счетчик
-    updateOnlineCount();
-    setInterval(updateOnlineCount, 30000);
+function updateOnlineCount() {
+    let count = Math.floor(Math.random() * 100) + 100;
+    onlineCount.textContent = count;
+}
 
-    // Запускаем приложение
-    init();
+updateOnlineCount();
+setInterval(updateOnlineCount, 30000);
+
+init();
 </script>
+</body>
+</html>
