@@ -1382,7 +1382,7 @@
             gap: 15px;
         }
 
-        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА - УМЕНЬШЕН ДО 0.9 */
+        /* ИСПРАВЛЕННЫЙ ДИЗАЙН КРУГА АПГРЕЙДА */
         .upgrade-wheel-container {
             position: relative;
             width: 360px;
@@ -1420,17 +1420,17 @@
             z-index: 1;
         }
 
-        /* ИСПРАВЛЕННАЯ СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА - БОЛЬШИЙ РАДИУС 1.1 */
+        /* СТРЕЛКА ДЛЯ КРУГА АПГРЕЙДА */
         .wheel-arrow-moving {
             position: absolute;
             top: -60px;
-            left: 51%;
+            left: 50%;
             transform: translateX(-50%) rotate(0deg);
             width: 40px;
             height: 130px;
             z-index: 25;
             transition: transform 0.1s linear;
-            transform-origin: 1% 210px;
+            transform-origin: 20px 210px;
         }
 
         .arrow-inner {
@@ -1489,7 +1489,7 @@
             letter-spacing: 1px;
         }
 
-        /* ИСПРАВЛЕННЫЕ ПРОЦЕНТЫ НА КРУГЕ */
+        /* ПРОЦЕНТЫ НА КРУГЕ */
         .wheel-percentage-label {
             position: absolute;
             color: white;
@@ -1581,7 +1581,7 @@
             margin-top: 15px;
         }
 
-        /* КНОПКА НАЧАТЬ АПГРЕЙД ПЕРЕМЕЩЕНА ВЫШЕ */
+        /* КНОПКА НАЧАТЬ АПГРЕЙД */
         .upgrade-start-btn {
             background: linear-gradient(45deg, #8847ff, #d32ee6);
             color: white;
@@ -1609,7 +1609,7 @@
             cursor: not-allowed;
         }
 
-        /* СКИНЫ ДЛЯ АПГРЕЙДА ПЕРЕМЕЩЕНЫ ВЫШЕ */
+        /* СКИНЫ ДЛЯ АПГРЕЙДА */
         .upgrade-inventory {
             margin-top: 20px;
             padding-top: 20px;
@@ -1635,21 +1635,28 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 24px;
+            font-size: 36px;
             font-weight: 800;
             z-index: 25;
             opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
         }
 
         .upgrade-success {
             color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
         }
 
         .upgrade-failure {
             color: #f44336;
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
         }
 
         /* Контракты секция */
@@ -4212,8 +4219,6 @@
                     this.saveUsers(users);
                 }
                 
-                // УБРАЛИ СОЗДАНИЕ ДЕМО-БОТОВ
-                
                 const otherUsersDrops = this.getOtherUsersDrops();
                 if (otherUsersDrops.length === 0) {
                     const items = [
@@ -4652,7 +4657,8 @@
             currentWonItem: null,
             wheelArrowInitialized: false,
             contractInventoryPage: 1,
-            contractItemsPerPage: 20
+            contractItemsPerPage: 20,
+            upgradeArrowAnimationId: null
         };
 
         // DOM элементы
@@ -5853,7 +5859,7 @@
             });
         }
 
-        // Запуск апгрейда с исправленным временем анимации
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ АПГРЕЙДА
         function startUpgrade() {
             if (!currentUser || !gameState.selectedUpgradeItem || !gameState.upgradeResultItem || gameState.isWheelSpinning) return;
             
@@ -5872,6 +5878,7 @@
                 updateUserDisplay();
             }
             
+            // Сохраняем состояние апгрейда
             db.saveUpgradeState({
                 username: currentUser,
                 selectedItem: gameState.selectedUpgradeItem,
@@ -5884,18 +5891,34 @@
             gameState.isWheelSpinning = true;
             upgradeStartBtn.disabled = true;
             
+            // Вычисляем эффективный шанс
+            const effectiveChance = Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
+            
+            // Генерируем случайное число для определения результата
+            const randomValue = Math.random() * 100;
+            const isSuccess = randomValue < effectiveChance;
+            
             if (gameState.fastUpgrade) {
                 // Быстрый апгрейд: от 0.3 до 1.2 секунды, 1-2 оборота
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Быстрая прокрутка...`;
                 
-                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-                
-                // Вычисляем параметры для быстрой прокрутки
                 const spinDuration = 300 + Math.random() * 900; // 0.3 - 1.2 секунды
                 const spinRotations = 1 + Math.random(); // 1-2 оборота
-                const finalRotation = isSuccess ? 
-                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
-                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
+                
+                // Вычисляем финальную позицию стрелки на основе результата
+                let finalRotation;
+                if (isSuccess) {
+                    // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
+                    const successZone = (effectiveChance / 100) * 360;
+                    finalRotation = Math.random() * successZone;
+                } else {
+                    // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
+                    const successZone = (effectiveChance / 100) * 360;
+                    finalRotation = successZone + Math.random() * (360 - successZone);
+                }
+                
+                // Добавляем полные обороты
+                finalRotation += spinRotations * 360;
                 
                 // Анимация быстрой прокрутки
                 let startTime = null;
@@ -5908,11 +5931,12 @@
                     if (progress < spinDuration) {
                         const t = progress / spinDuration;
                         const easeOut = 1 - Math.pow(1 - t, 3);
-                        const rotation = easeOut * 360 * spinRotations;
+                        const rotation = easeOut * finalRotation;
                         
                         wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateFastSpin);
+                        gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
@@ -5931,23 +5955,35 @@
                             gameState.isWheelSpinning = false;
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            // Убираем обратную прокрутку - стрелка остается на месте
                             wheelArrowMoving.style.transition = 'none';
+                            gameState.upgradeArrowAnimationId = null;
                         }, 500);
                     }
                 };
                 
                 animationId = requestAnimationFrame(animateFastSpin);
+                gameState.upgradeArrowAnimationId = animationId;
             } else {
                 // Обычный апгрейд: от 3 до 6 секунд, 4-8 оборотов
                 upgradeStartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Крутим...`;
                 
                 const spinDuration = 3000 + Math.random() * 3000; // 3-6 секунд
                 const spinRotations = 4 + Math.random() * 4; // 4-8 оборотов
-                const isSuccess = Math.random() * 100 < Math.min(95, gameState.upgradeSelectedChance + Math.floor(balanceAmount / 100));
-                const finalRotation = isSuccess ? 
-                    Math.random() * (gameState.upgradeSelectedChance / 100) * 360 : 
-                    gameState.upgradeSelectedChance * 3.6 + Math.random() * (360 - gameState.upgradeSelectedChance * 3.6);
+                
+                // Вычисляем финальную позицию стрелки на основе результата
+                let finalRotation;
+                if (isSuccess) {
+                    // Для успеха: стрелка должна остановиться в зеленой зоне (0° до шанса)
+                    const successZone = (effectiveChance / 100) * 360;
+                    finalRotation = Math.random() * successZone;
+                } else {
+                    // Для неудачи: стрелка должна остановиться в красной зоне (от шанса до 360°)
+                    const successZone = (effectiveChance / 100) * 360;
+                    finalRotation = successZone + Math.random() * (360 - successZone);
+                }
+                
+                // Добавляем полные обороты
+                finalRotation += spinRotations * 360;
                 
                 let startTime = null;
                 let animationId = null;
@@ -5959,11 +5995,12 @@
                     if (progress < spinDuration) {
                         const t = progress / spinDuration;
                         const easeOut = 1 - Math.pow(1 - t, 3);
-                        const rotation = easeOut * 360 * spinRotations;
+                        const rotation = easeOut * finalRotation;
                         
                         wheelArrowMoving.style.transform = `rotate(${rotation}deg)`;
                         wheelArrowMoving.style.transition = 'none';
                         animationId = requestAnimationFrame(animateSpin);
+                        gameState.upgradeArrowAnimationId = animationId;
                     } else {
                         cancelAnimationFrame(animationId);
                         
@@ -5982,13 +6019,14 @@
                             gameState.isWheelSpinning = false;
                             upgradeStartBtn.disabled = false;
                             upgradeStartBtn.innerHTML = `<i class="fas fa-play"></i> Начать апгрейд`;
-                            // Убираем обратную прокрутку - стрелка остается на месте
                             wheelArrowMoving.style.transition = 'none';
+                            gameState.upgradeArrowAnimationId = null;
                         }, 1000);
                     }
                 };
                 
                 animationId = requestAnimationFrame(animateSpin);
+                gameState.upgradeArrowAnimationId = animationId;
             }
         }
 
@@ -6149,7 +6187,14 @@
             const user = db.getUser(currentUser);
             const item = gameState.selectedUpgradeItem;
             
+            // Показываем результат
             if (isSuccess) {
+                upgradeSuccessText.style.opacity = '1';
+                upgradeSuccessText.style.display = 'block';
+                upgradeFailureText.style.opacity = '0';
+                upgradeFailureText.style.display = 'none';
+                
+                // Успех: удаляем старый предмет, добавляем новый
                 db.removeFromInventory(currentUser, item.id);
                 const newItem = db.addToInventory(currentUser, gameState.upgradeResultItem);
                 
@@ -6168,30 +6213,39 @@
                 db.addRecentDrop(drop);
                 db.addOtherUsersDrop(drop);
                 addDropToSidebar(drop);
-                
-                upgradeSuccessText.style.opacity = '1';
-                setTimeout(() => {
-                    upgradeSuccessText.style.opacity = '0';
-                }, 2000);
             } else {
+                upgradeFailureText.style.opacity = '1';
+                upgradeFailureText.style.display = 'block';
+                upgradeSuccessText.style.opacity = '0';
+                upgradeSuccessText.style.display = 'none';
+                
+                // Неудача: удаляем предмет, возвращаем часть стоимости
                 db.removeFromInventory(currentUser, item.id);
                 
                 const refund = Math.floor(item.value * 0.01);
                 user.balance += refund;
-                
-                upgradeFailureText.style.opacity = '1';
-                setTimeout(() => {
-                    upgradeFailureText.style.opacity = '0';
-                }, 2000);
             }
             
             db.saveUser(currentUser, user);
             updateUserDisplay();
-            loadProfile();
-            loadInventoryPage();
-            resetUpgrade();
             
-            db.clearUpgradeState();
+            // Показываем результат 2 секунды, затем скрываем
+            setTimeout(() => {
+                upgradeSuccessText.style.opacity = '0';
+                upgradeFailureText.style.opacity = '0';
+                setTimeout(() => {
+                    upgradeSuccessText.style.display = 'none';
+                    upgradeFailureText.style.display = 'none';
+                    
+                    // Перезагружаем страницы
+                    loadProfile();
+                    loadInventoryPage();
+                    resetUpgrade();
+                    
+                    // Очищаем состояние
+                    db.clearUpgradeState();
+                }, 500);
+            }, 2000);
         }
 
         // Прокрутка кейса с одинаковым временем для всех кейсов
