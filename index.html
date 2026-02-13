@@ -5974,76 +5974,7 @@
             }
         }
 
-        // ОПРЕДЕЛЯЕМ ШАНСЫ: 30% окупаемый, 70% неокупаемый
-const randomValue = Math.random() * 100; // Случайное число от 0 до 100
-
-let winValue;
-let isProfitable = false;
-
-if (randomValue < 30) {
-    // 30% - Окупаемый контракт (выше средней стоимости)
-    isProfitable = true;
-    const minWin = Math.floor(totalValue * 1.5);  // Минимум +50% от вложений
-    const maxWin = Math.floor(totalValue * 3.0);  // Максимум +200% от вложений
-    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
-} else {
-    // 70% - Неокупаемый контракт (ниже стоимости вложений)
-    isProfitable = false;
-    const minWin = Math.floor(totalValue * 0.1);  // Минимум 10% от вложений
-    const maxWin = Math.floor(totalValue * 0.8);  // Максимум 80% от вложений
-    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
-}
-                
-                const allItems = [
-                    ...cs2Items.common,
-                    ...cs2Items.uncommon,
-                    ...cs2Items.rare,
-                    ...cs2Items.mythical,
-                    ...cs2Items.legendary,
-                    ...cs2Items.ancient
-                ];
-                
-                let winItem = allItems[Math.floor(Math.random() * allItems.length)];
-                winItem = { ...winItem, value: winValue };
-                
-                const newItem = db.addToInventory(currentUser, winItem);
-                gameState.contractResult = newItem;
-                
-                const user = db.getUser(currentUser);
-                user.totalValue += winValue;
-                if (winValue > getItemValue(user.bestItem)) {
-                    user.bestItem = winItem.name;
-                }
-                db.saveUser(currentUser, user);
-                
-                const drop = {
-                    user: currentUser,
-                    item: winItem,
-                    time: "Только что",
-                    timestamp: Date.now()
-                };
-                
-                db.addRecentDrop(drop);
-                db.addOtherUsersDrop(drop);
-                addDropToSidebar(drop);
-                
-                showContractResultModal(winItem);
-                
-                for (let i = 1; i <= 10; i++) {
-                    gameState.contractSlots[i] = null;
-                }
-                
-                updateUserDisplay();
-                loadProfile();
-                loadInventoryPage();
-                loadContractSlots();
-                loadContractInventory();
-                updateContractInfo();
-                
-                contractTradeupBtn.disabled = false;
-                contractTradeupBtn.innerHTML = `<i class="fas fa-exchange-alt"></i> Создать контракт`;
-            }, 2000);
-        }
+        executeContract()
 
         // Обработка результата кейса с мгновенным добавлением в инвентарь
         function processCaseResult(item, index) {
@@ -8108,4 +8039,5 @@ if (randomValue < 30) {
     </script>
 </body>
 </html>
+
 
