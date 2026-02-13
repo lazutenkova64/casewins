@@ -5974,31 +5974,25 @@
             }
         }
 
-        // Контракт с высокой суммой
-        function executeContract() {
-            if (!currentUser || gameState.contractItemsCount < 3) return;
-            
-            const items = Object.values(gameState.contractSlots).filter(item => item !== null);
-            const totalValue = gameState.contractTotalValue;
-            
-            contractTradeupBtn.disabled = true;
-            contractTradeupBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Создание...`;
-            
-            setTimeout(() => {
-                items.forEach(item => {
-                    db.removeFromInventory(currentUser, item.id);
-                });
-                
-                let winValue;
-                if (totalValue > 1000000) {
-                    const minWin = Math.floor(totalValue / 4);
-                    const maxWin = Math.floor(totalValue * 1.2);
-                    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
-                } else {
-                    const minWin = Math.floor(totalValue / 5);
-                    const maxWin = totalValue * 3;
-                    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
-                }
+        // ОПРЕДЕЛЯЕМ ШАНСЫ: 30% окупаемый, 70% неокупаемый
+const randomValue = Math.random() * 100; // Случайное число от 0 до 100
+
+let winValue;
+let isProfitable = false;
+
+if (randomValue < 30) {
+    // 30% - Окупаемый контракт (выше средней стоимости)
+    isProfitable = true;
+    const minWin = Math.floor(totalValue * 1.5);  // Минимум +50% от вложений
+    const maxWin = Math.floor(totalValue * 3.0);  // Максимум +200% от вложений
+    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
+} else {
+    // 70% - Неокупаемый контракт (ниже стоимости вложений)
+    isProfitable = false;
+    const minWin = Math.floor(totalValue * 0.1);  // Минимум 10% от вложений
+    const maxWin = Math.floor(totalValue * 0.8);  // Максимум 80% от вложений
+    winValue = Math.floor(Math.random() * (maxWin - minWin + 1)) + minWin;
+}
                 
                 const allItems = [
                     ...cs2Items.common,
@@ -8114,3 +8108,4 @@
     </script>
 </body>
 </html>
+
