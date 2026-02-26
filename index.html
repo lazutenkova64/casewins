@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web - Публичные чаты</title>
+    <title>Telegram Web - Полностью Рабочая Версия</title>
     <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.4.0.min.js"></script>
     <style>
-        /* Все стили без изменений, как в предыдущей версии */
         * {
             margin: 0;
             padding: 0;
@@ -45,7 +44,6 @@
             background-color: var(--bg-primary);
         }
 
-        /* Sidebar */
         .sidebar {
             width: 350px;
             background-color: var(--bg-secondary);
@@ -75,10 +73,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s;
-        }
-
-        .avatar:hover {
-            opacity: 0.9;
         }
 
         .profile-info {
@@ -246,7 +240,6 @@
             margin-left: 4px;
         }
 
-        /* Main chat area */
         .chat-area {
             flex: 1;
             display: flex;
@@ -306,11 +299,6 @@
             transition: background-color 0.2s;
         }
 
-        .action-btn:hover {
-            background-color: var(--bg-tertiary);
-        }
-
-        /* Messages */
         .messages-container {
             flex: 1;
             overflow-y: auto;
@@ -376,7 +364,6 @@
             margin-left: 8px;
         }
 
-        /* Input area */
         .message-input-container {
             padding: 16px 20px;
             background-color: var(--bg-secondary);
@@ -448,7 +435,6 @@
             flex-shrink: 0;
         }
 
-        /* Modals */
         .modal {
             display: none;
             position: fixed;
@@ -589,7 +575,6 @@
                 <button class="modal-btn" style="flex: 1;" onclick="switchAuthMode('register')" id="registerTabBtn">Регистрация</button>
             </div>
 
-            <!-- Login Form -->
             <div id="loginForm">
                 <input type="text" class="modal-input" id="loginUsername" placeholder="Имя пользователя" autocomplete="off">
                 <div class="password-input-container">
@@ -598,12 +583,11 @@
                 </div>
                 <div class="remember-checkbox">
                     <input type="checkbox" id="rememberMe" checked>
-                    <label for="rememberMe">Запомнить меня на этом устройстве</label>
+                    <label for="rememberMe">Запомнить меня</label>
                 </div>
                 <button class="modal-btn" onclick="login()">Войти</button>
             </div>
 
-            <!-- Register Form -->
             <div id="registerForm" style="display: none;">
                 <input type="text" class="modal-input" id="registerUsername" placeholder="Имя пользователя" maxlength="20">
                 <div class="password-input-container">
@@ -616,7 +600,7 @@
                 </div>
                 <div class="remember-checkbox">
                     <input type="checkbox" id="rememberMeRegister" checked>
-                    <label for="rememberMeRegister">Запомнить меня на этом устройстве</label>
+                    <label for="rememberMeRegister">Запомнить меня</label>
                 </div>
                 <button class="modal-btn" onclick="register()">Зарегистрироваться</button>
             </div>
@@ -625,7 +609,6 @@
 
     <!-- Main App -->
     <div class="app-container" id="appContainer" style="display: none;">
-        <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="avatar" id="profileAvatar" onclick="openProfileModal()">👤</div>
@@ -653,7 +636,6 @@
             </div>
         </div>
 
-        <!-- Main Chat Area -->
         <div class="chat-area">
             <div class="chat-header">
                 <button class="back-button" onclick="toggleSidebar()">←</button>
@@ -671,7 +653,7 @@
 
             <div class="messages-container" id="messagesContainer">
                 <div style="text-align: center; color: var(--text-secondary); padding: 40px;">
-                    👈 Выберите чат из списка или создайте новый
+                    👈 Выберите чат из списка слева
                 </div>
             </div>
 
@@ -690,7 +672,7 @@
                     <textarea 
                         class="message-input" 
                         id="messageInput" 
-                        placeholder="Сообщение..."
+                        placeholder="Напишите сообщение..."
                         rows="1"
                         onkeydown="handleKeyPress(event)"
                     ></textarea>
@@ -715,7 +697,7 @@
         </div>
     </div>
 
-    <!-- Join Chat Modal (for password protected) -->
+    <!-- Join Chat Modal -->
     <div class="modal" id="joinChatModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeJoinChatModal()">×</button>
@@ -761,20 +743,30 @@
         let currentTab = 'chats';
         let pendingChatToJoin = null;
 
-        // Check for saved session on load
+        // Check for saved session
         function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
+                    
+                    // Load user's chats
+                    myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
+                    
+                    // Subscribe to all chat channels user is in
+                    setTimeout(() => {
+                        if (pubnub) {
+                            myChats.forEach(chat => {
+                                pubnub.subscribe({ channels: [`chat-${chat.id}`] });
+                            });
+                        }
+                    }, 1000);
+                    
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
                     document.getElementById('profileName').textContent = currentUser.name;
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
-                    
-                    // Load my chats from public chats
-                    myChats = publicChats.filter(chat => chat.members?.includes(currentUser.id));
                     
                     initPubNub();
                 } catch (e) {
@@ -788,6 +780,8 @@
 
         // Initialize PubNub
         function initPubNub() {
+            if (!currentUser) return;
+            
             pubnub = new PubNub({
                 publishKey: PUBNUB_KEYS.publishKey,
                 subscribeKey: PUBNUB_KEYS.subscribeKey,
@@ -796,8 +790,13 @@
                 presenceTimeout: 60
             });
 
-            // Subscribe to channels
             const channels = ['global-users', 'global-chats'];
+            
+            // Subscribe to user's chat channels
+            myChats.forEach(chat => {
+                channels.push(`chat-${chat.id}`);
+            });
+            
             pubnub.subscribe({
                 channels: channels,
                 withPresence: true
@@ -828,7 +827,7 @@
             updateChatsList();
         }
 
-        // Handle incoming messages - FIXED VERSION
+        // Handle incoming messages
         function handleMessage(event) {
             const message = event.message;
             
@@ -839,7 +838,7 @@
                     messages[chatId] = [];
                 }
                 
-                // Check if message already exists (prevent duplicates)
+                // Check if message already exists
                 const exists = messages[chatId].some(m => m.id === message.id);
                 if (!exists) {
                     messages[chatId].push({
@@ -852,7 +851,6 @@
                         type: message.sender === currentUser.id ? 'out' : 'in'
                     });
                     
-                    // Save messages
                     localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chatId) {
@@ -863,7 +861,6 @@
                 }
                 
             } else if (message.type === 'new-public-chat') {
-                // Add new chat to public list
                 if (!publicChats.find(c => c.id === message.chat.id)) {
                     publicChats.push(message.chat);
                     localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -898,7 +895,7 @@
             }
         }
 
-        // Login function
+        // Login
         function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -909,10 +906,8 @@
                 return;
             }
             
-            // Check if user exists
             const userKey = username.toLowerCase();
             if (users[userKey] && users[userKey].password === password) {
-                // Login successful
                 currentUser = {
                     id: users[userKey].id,
                     name: users[userKey].name,
@@ -924,7 +919,7 @@
                 }
                 
                 // Load user's chats
-                myChats = publicChats.filter(chat => chat.members?.includes(currentUser.id));
+                myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
                 
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
@@ -936,7 +931,7 @@
             }
         }
 
-        // Register function
+        // Register
         function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
@@ -964,7 +959,6 @@
                 return;
             }
             
-            // Create new user
             const newUser = {
                 id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
                 name: username,
@@ -999,7 +993,9 @@
             localStorage.removeItem('currentUser');
             currentUser = null;
             currentChat = null;
-            pubnub?.unsubscribeAll();
+            if (pubnub) {
+                pubnub.unsubscribeAll();
+            }
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
             
@@ -1011,7 +1007,7 @@
             document.getElementById('registerConfirmPassword').value = '';
         }
 
-        // Switch between login and register forms
+        // Switch auth mode
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -1031,7 +1027,7 @@
             }
         }
 
-        // Create public chat - FIXED
+        // Create public chat
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
@@ -1059,6 +1055,11 @@
             // Add to my chats
             myChats.push(newChat);
             
+            // Subscribe to new chat channel
+            pubnub.subscribe({
+                channels: [`chat-${newChat.id}`]
+            });
+            
             // Broadcast new chat
             pubnub.publish({
                 channel: 'global-chats',
@@ -1068,15 +1069,17 @@
                 }
             });
             
-            // Join the chat
+            // Join the chat immediately
             joinChat(newChat);
             closeCreateChatModal();
         }
 
         // Join chat - FIXED
         function joinChat(chat) {
-            // Check if chat needs password
-            if (chat.password && !chat.members?.includes(currentUser.id)) {
+            if (!chat) return;
+            
+            // Check if chat needs password and user is not a member
+            if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
                 pendingChatToJoin = chat;
                 document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
                 document.getElementById('joinChatModal').classList.add('active');
@@ -1095,13 +1098,19 @@
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
             }
             
-            // Subscribe to chat channel
-            pubnub.subscribe({
-                channels: [`chat-${chat.id}`]
-            });
+            // Subscribe to chat channel if not already
+            try {
+                pubnub.subscribe({
+                    channels: [`chat-${chat.id}`]
+                });
+            } catch (e) {
+                console.log('Already subscribed');
+            }
             
-            // Set as current chat
+            // Set as current chat - THIS IS THE KEY FIX
             currentChat = chat;
+            
+            // Update UI
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
             `;
@@ -1115,16 +1124,22 @@
             renderMessages();
             updateChatsList();
             
+            // Close sidebar on mobile
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('active');
             }
         }
 
-        // Join protected chat - FIXED
+        // Join protected chat
         function joinProtectedChat() {
             const password = document.getElementById('joinPasswordInput').value;
             
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
+                // Add user to members
+                if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
+                pendingChatToJoin.members.push(currentUser.id);
+                localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
             } else {
@@ -1138,6 +1153,7 @@
             const text = input.value.trim();
             const fileInput = document.getElementById('fileInput');
             
+            // Check if chat is selected
             if (!currentChat) {
                 alert('Сначала выберите чат из списка');
                 return;
@@ -1170,7 +1186,6 @@
                     type: 'out'
                 });
                 
-                // Save messages
                 localStorage.setItem('messages', JSON.stringify(messages));
                 
                 pubnub.publish({
@@ -1210,7 +1225,6 @@
                             type: 'out'
                         });
                         
-                        // Save messages
                         localStorage.setItem('messages', JSON.stringify(messages));
                         
                         pubnub.publish({
@@ -1235,7 +1249,12 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
             
-            if (!currentChat || !messages[currentChat.id] || messages[currentChat.id].length === 0) {
+            if (!currentChat) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 40px;">👈 Выберите чат из списка слева</div>';
+                return;
+            }
+            
+            if (!messages[currentChat.id] || messages[currentChat.id].length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 40px;">Нет сообщений. Напишите что-нибудь!</div>';
                 return;
             }
@@ -1267,7 +1286,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Update chats list - FIXED
+        // Update chats list
         function updateChatsList() {
             const list = document.getElementById('chatsList');
             list.innerHTML = '';
@@ -1301,7 +1320,6 @@
                 element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
                 
                 if (currentTab === 'users') {
-                    // User item
                     element.onclick = () => createPrivateChat(item);
                     element.innerHTML = `
                         <div class="chat-avatar">${item.avatar || '👤'}</div>
@@ -1314,12 +1332,11 @@
                         </div>
                     `;
                 } else {
-                    // Chat item
                     const lastMsg = messages[item.id]?.slice(-1)[0];
                     
                     element.onclick = () => joinChat(item);
                     element.innerHTML = `
-                        <div class="chat-avatar">${item.name?.charAt(0) || '?'}</div>
+                        <div class="chat-avatar">${(item.name || '?').charAt(0)}</div>
                         <div class="chat-details">
                             <div class="chat-name">
                                 ${item.name || 'Без названия'}
@@ -1433,7 +1450,6 @@
                     localStorage.setItem('telegram_users', JSON.stringify(users));
                 }
                 
-                // Update saved session
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
             }
             closeProfileModal();
