@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web - Реальное время</title>
-    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.4.0.min.js"></script>
+    <title>Telegram Web - Полная синхронизация</title>
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         * {
             margin: 0;
@@ -600,12 +600,6 @@
             margin-left: 8px;
         }
 
-        .user-status {
-            font-size: 11px;
-            color: var(--accent-green);
-            margin-left: auto;
-        }
-
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -628,7 +622,6 @@
             }
         }
 
-        /* Mobile styles */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -667,7 +660,6 @@
             }
         }
 
-        /* Small phones */
         @media (max-width: 480px) {
             .chat-avatar {
                 width: 40px;
@@ -851,13 +843,23 @@
     </div>
 
     <script>
-        // PubNub Configuration
-        const PUBNUB_KEYS = {
-            publishKey: 'pub-c-5a6d7e8f-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            subscribeKey: 'sub-c-9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d'
-        };
+        // ============================================================
+        // ⚡⚡⚡ ВСТАВЬТЕ СВОЙ ABLY API KEY СЮДА ⚡⚡⚡
+        // ============================================================
+        // 1. Зайдите в Ably Dashboard (https://ably.com)
+        // 2. Нажмите на ваше приложение "Ток"
+        // 3. В левом меню выберите "API Keys"
+        // 4. Скопируйте первый ключ (с полным доступом)
+        // 5. Вставьте его вместо строки ниже между кавычек
+        // ============================================================
+        
+        const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
+        
+        // ============================================================
+        // Пример: const ABLY_API_KEY = "pYHewv.VrFP9Q:ваш_секретный_ключ";
+        // ============================================================
 
-        let pubnub;
+        let ably;
         let currentUser = null;
         
         // Data structures
@@ -869,7 +871,7 @@
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
-        let messageHistory = {}; // Store full message history per chat
+        let channels = {};
 
         // Initialize demo chats if empty
         if (publicChats.length === 0) {
@@ -915,7 +917,7 @@
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     
                     setTimeout(() => {
-                        initPubNub();
+                        initAbly();
                         // Check URL for chat ID
                         checkUrlForChat();
                     }, 100);
@@ -954,242 +956,145 @@
         // Call on load
         checkSavedSession();
 
-        // Initialize PubNub
-        function initPubNub() {
+        // Initialize Ably
+        function initAbly() {
             if (!currentUser) return;
             
-            pubnub = new PubNub({
-                publishKey: PUBNUB_KEYS.publishKey,
-                subscribeKey: PUBNUB_KEYS.subscribeKey,
-                userId: currentUser.id,
-                heartbeatInterval: 30,
-                presenceTimeout: 60
+            // Проверка наличия ключа API
+            if (ABLY_API_KEY === "ВСТАВЬТЕ_СЮДА_ВАШ_ABLY_API_КЛЮЧ") {
+                alert("⚠️ ВНИМАНИЕ: Вставьте ваш Ably API ключ в код! Смотрите комментарии в начале скрипта.");
+                return;
+            }
+            
+            ably = new Ably.Realtime({
+                key: ABLY_API_KEY,
+                clientId: currentUser.id
             });
 
-            // Set user state
-            pubnub.setState({
-                channels: ['global-users'],
-                state: {
-                    name: currentUser.name,
-                    avatar: currentUser.avatar || '👤',
-                    online: true
-                }
-            });
-
-            // Subscribe to channels
-            pubnub.subscribe({
-                channels: ['global-users', 'global-chats'],
-                withPresence: true
-            });
-
-            // Subscribe to all chat channels
-            publicChats.forEach(chat => {
-                pubnub.subscribe({
-                    channels: [`chat-${chat.id}`]
+            ably.connection.on('connected', () => {
+                console.log('Connected to Ably');
+                
+                // Subscribe to global presence
+                const globalChannel = ably.channels.get('global-users');
+                globalChannel.presence.enter({ 
+                    name: currentUser.name, 
+                    avatar: currentUser.avatar || '👤' 
                 });
-            });
-
-            pubnub.addListener({
-                message: (event) => {
-                    handleMessage(event);
-                },
-                presence: (event) => {
-                    handlePresence(event);
-                }
-            });
-
-            // Broadcast user online
-            setTimeout(() => {
-                pubnub.publish({
-                    channel: 'global-users',
-                    message: {
-                        type: 'user-online',
-                        user: {
-                            id: currentUser.id,
-                            name: currentUser.name,
-                            avatar: currentUser.avatar || '👤'
-                        }
+                
+                globalChannel.presence.subscribe('enter', (member) => {
+                    if (member.clientId !== currentUser.id) {
+                        onlineUsers[member.clientId] = {
+                            id: member.clientId,
+                            name: member.data.name,
+                            avatar: member.data.avatar || '👤',
+                            online: true
+                        };
+                        if (currentTab === 'users') updateChatsList();
                     }
                 });
-
-                // Request all users
-                pubnub.hereNow({
-                    channels: ['global-users'],
-                    includeUUIDs: true,
-                    includeState: true
-                }).then((response) => {
-                    const occupants = response.channels['global-users'].occupants;
-                    occupants.forEach(occ => {
-                        if (occ.uuid !== currentUser.id) {
-                            onlineUsers[occ.uuid] = {
-                                id: occ.uuid,
-                                name: occ.state?.name || occ.uuid,
-                                avatar: occ.state?.avatar || '👤',
+                
+                globalChannel.presence.subscribe('leave', (member) => {
+                    if (onlineUsers[member.clientId]) {
+                        onlineUsers[member.clientId].online = false;
+                        if (currentTab === 'users') updateChatsList();
+                    }
+                });
+                
+                // Get current members
+                globalChannel.presence.get((err, members) => {
+                    members.forEach(member => {
+                        if (member.clientId !== currentUser.id) {
+                            onlineUsers[member.clientId] = {
+                                id: member.clientId,
+                                name: member.data.name,
+                                avatar: member.data.avatar || '👤',
                                 online: true
                             };
                         }
                     });
-                    updateChatsList();
+                    if (currentTab === 'users') updateChatsList();
                 });
-            }, 500);
+            });
+
+            // Subscribe to global chats channel
+            const chatsChannel = ably.channels.get('global-chats');
+            chatsChannel.subscribe('new-chat', (message) => {
+                if (!publicChats.find(c => c.id === message.data.chat.id)) {
+                    publicChats.push(message.data.chat);
+                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                    
+                    // Subscribe to new chat channel
+                    const chatChannel = ably.channels.get(`chat-${message.data.chat.id}`);
+                    chatChannel.subscribe('message', handleChatMessage);
+                    
+                    // Get history for this chat
+                    chatChannel.history({ limit: 100 }, (err, resultPage) => {
+                        if (resultPage && resultPage.items.length > 0) {
+                            if (!messages[message.data.chat.id]) messages[message.data.chat.id] = [];
+                            resultPage.items.forEach(item => {
+                                const msg = item.data;
+                                if (!messages[message.data.chat.id].find(m => m.id === msg.id)) {
+                                    messages[message.data.chat.id].push({
+                                        ...msg,
+                                        type: msg.sender === currentUser.id ? 'out' : 'in'
+                                    });
+                                }
+                            });
+                            localStorage.setItem('messages', JSON.stringify(messages));
+                            if (currentChat?.id === message.data.chat.id) renderMessages();
+                        }
+                    });
+                    
+                    if (currentTab === 'public') updateChatsList();
+                }
+            });
+
+            // Subscribe to all existing chats
+            publicChats.forEach(chat => {
+                const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                chatChannel.subscribe('message', handleChatMessage);
+                
+                // Get history for this chat
+                chatChannel.history({ limit: 100 }, (err, resultPage) => {
+                    if (resultPage && resultPage.items.length > 0) {
+                        if (!messages[chat.id]) messages[chat.id] = [];
+                        resultPage.items.forEach(item => {
+                            const msg = item.data;
+                            if (!messages[chat.id].find(m => m.id === msg.id)) {
+                                messages[chat.id].push({
+                                    ...msg,
+                                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                                });
+                            }
+                        });
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        if (currentChat?.id === chat.id) renderMessages();
+                    }
+                });
+            });
 
             updateChatsList();
         }
 
-        // Handle incoming messages
-        function handleMessage(event) {
-            const message = event.message;
-            const channel = event.channel;
+        // Handle chat messages
+        function handleChatMessage(message) {
+            const msg = message.data;
+            const chatId = msg.chatId;
             
-            if (message.type === 'chat-message') {
-                const chatId = message.chatId;
-                
-                if (!messages[chatId]) {
-                    messages[chatId] = [];
-                }
-                
-                // Check if message already exists
-                const exists = messages[chatId].some(m => m.id === message.id);
-                if (!exists) {
-                    messages[chatId].push({
-                        id: message.id,
-                        text: message.text,
-                        media: message.media,
-                        sender: message.sender,
-                        senderName: message.senderName,
-                        time: message.time,
-                        type: message.sender === currentUser.id ? 'out' : 'in'
-                    });
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
-                    if (currentChat && currentChat.id === chatId) {
-                        renderMessages();
-                    }
-                    
-                    updateChatsList();
-                }
-                
-            } else if (message.type === 'new-chat') {
-                // New chat created
-                if (!publicChats.find(c => c.id === message.chat.id)) {
-                    publicChats.push(message.chat);
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                    
-                    // Subscribe to new chat channel
-                    pubnub.subscribe({
-                        channels: [`chat-${message.chat.id}`]
-                    });
-                    
-                    if (currentTab === 'public') {
-                        updateChatsList();
-                    }
-                    
-                    showNotification(`Новый чат: ${message.chat.name}`);
-                }
-                
-            } else if (message.type === 'user-online') {
-                // User came online
-                if (message.user.id !== currentUser.id) {
-                    onlineUsers[message.user.id] = {
-                        id: message.user.id,
-                        name: message.user.name,
-                        avatar: message.user.avatar || '👤',
-                        online: true
-                    };
-                    
-                    if (currentTab === 'users') {
-                        updateChatsList();
-                    }
-                }
-                
-            } else if (message.type === 'request-chat-history') {
-                // Someone requested chat history
-                const chatId = message.chatId;
-                if (messages[chatId] && messages[chatId].length > 0) {
-                    // Send message history
-                    messages[chatId].forEach(msg => {
-                        pubnub.publish({
-                            channel: `user-${message.from}`,
-                            message: {
-                                type: 'chat-message',
-                                ...msg
-                            }
-                        });
-                    });
-                }
-            }
-        }
-
-        // Show notification
-        function showNotification(text) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--accent-blue);
-                color: white;
-                padding: 12px 20px;
-                border-radius: 12px;
-                z-index: 3000;
-                animation: slideIn 0.3s ease;
-                box-shadow: var(--shadow);
-            `;
-            notification.textContent = text;
-            document.body.appendChild(notification);
+            if (!messages[chatId]) messages[chatId] = [];
             
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Handle presence
-        function handlePresence(event) {
-            if (event.channel === 'global-users') {
-                if (event.action === 'join') {
-                    // User joined
-                    if (event.uuid !== currentUser.id) {
-                        onlineUsers[event.uuid] = {
-                            id: event.uuid,
-                            name: event.state?.name || event.uuid,
-                            avatar: event.state?.avatar || '👤',
-                            online: true
-                        };
-                        
-                        // Send them all public chats
-                        setTimeout(() => {
-                            publicChats.forEach(chat => {
-                                pubnub.publish({
-                                    channel: `user-${event.uuid}`,
-                                    message: {
-                                        type: 'new-chat',
-                                        chat: chat
-                                    }
-                                });
-                            });
-                        }, 500);
-                    }
-                } else if (event.action === 'leave' || event.action === 'timeout') {
-                    // User left
-                    if (onlineUsers[event.uuid]) {
-                        onlineUsers[event.uuid].online = false;
-                        
-                        // Remove after 30 seconds if still offline
-                        setTimeout(() => {
-                            if (onlineUsers[event.uuid] && !onlineUsers[event.uuid].online) {
-                                delete onlineUsers[event.uuid];
-                                if (currentTab === 'users') {
-                                    updateChatsList();
-                                }
-                            }
-                        }, 30000);
-                    }
-                }
+            const exists = messages[chatId].some(m => m.id === msg.id);
+            if (!exists) {
+                messages[chatId].push({
+                    ...msg,
+                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                });
+                localStorage.setItem('messages', JSON.stringify(messages));
                 
-                if (currentTab === 'users') {
-                    updateChatsList();
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
                 }
+                updateChatsList();
             }
         }
 
@@ -1216,7 +1121,6 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
-                // Load user's chats
                 myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
                 
                 document.getElementById('loginModal').classList.remove('active');
@@ -1225,9 +1129,7 @@
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 
-                initPubNub();
-                
-                // Check URL for chat
+                initAbly();
                 checkUrlForChat();
             } else {
                 alert('Неверное имя пользователя или пароль');
@@ -1273,7 +1175,6 @@
             users[userKey] = newUser;
             localStorage.setItem('telegram_users', JSON.stringify(users));
             
-            // Auto login
             currentUser = {
                 id: newUser.id,
                 name: newUser.name,
@@ -1290,22 +1191,23 @@
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             
-            initPubNub();
+            initAbly();
         }
 
         // Logout
         function logout() {
+            if (ably) {
+                const globalChannel = ably.channels.get('global-users');
+                globalChannel.presence.leave();
+                ably.close();
+            }
             localStorage.removeItem('currentUser');
             currentUser = null;
             currentChat = null;
-            if (pubnub) {
-                pubnub.unsubscribeAll();
-            }
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
             updateUrlWithChat(null);
             
-            // Clear forms
             document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
             document.getElementById('registerUsername').value = '';
@@ -1358,28 +1260,18 @@
             publicChats.push(newChat);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
-            // Add to my chats
             myChats.push(newChat);
             
-            // Subscribe to new chat channel
-            if (pubnub) {
-                pubnub.subscribe({
-                    channels: [`chat-${newChat.id}`]
-                });
+            if (ably) {
+                // Subscribe to new chat channel
+                const chatChannel = ably.channels.get(`chat-${newChat.id}`);
+                chatChannel.subscribe('message', handleChatMessage);
+                
+                // Broadcast new chat to all users
+                const chatsChannel = ably.channels.get('global-chats');
+                chatsChannel.publish('new-chat', { chat: newChat });
             }
             
-            // Broadcast new chat to all users
-            if (pubnub) {
-                pubnub.publish({
-                    channel: 'global-chats',
-                    message: {
-                        type: 'new-chat',
-                        chat: newChat
-                    }
-                });
-            }
-            
-            // Join the chat
             joinChat(newChat);
             closeCreateChatModal();
         }
@@ -1388,7 +1280,6 @@
         function joinChat(chat) {
             if (!chat) return;
             
-            // Check if chat needs password and user is not a member
             if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
                 pendingChatToJoin = chat;
                 document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
@@ -1396,59 +1287,52 @@
                 return;
             }
             
-            // Add to my chats if not already
             if (!myChats.find(c => c.id === chat.id)) {
                 myChats.push(chat);
             }
             
-            // Add user to members if not already
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
             }
             
-            // Subscribe to chat channel
-            if (pubnub) {
-                pubnub.subscribe({
-                    channels: [`chat-${chat.id}`]
+            if (ably) {
+                const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                chatChannel.subscribe('message', handleChatMessage);
+                
+                // Get history
+                chatChannel.history({ limit: 100 }, (err, resultPage) => {
+                    if (resultPage && resultPage.items.length > 0) {
+                        if (!messages[chat.id]) messages[chat.id] = [];
+                        resultPage.items.forEach(item => {
+                            const msg = item.data;
+                            if (!messages[chat.id].find(m => m.id === msg.id)) {
+                                messages[chat.id].push({
+                                    ...msg,
+                                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                                });
+                            }
+                        });
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        renderMessages();
+                    }
                 });
             }
             
-            // Set as current chat
             currentChat = chat;
-            
-            // Update URL
             updateUrlWithChat(chat);
             
-            // Update UI
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
                 <span class="url-indicator">#${chat.id.substring(0, 8)}</span>
             `;
             document.getElementById('chatStatus').textContent = `${chat.description || 'Публичный чат'} • ${chat.members.length} участников`;
             
-            // Initialize messages for this chat
-            if (!messages[chat.id]) {
-                messages[chat.id] = [];
-                
-                // Request chat history from others
-                if (pubnub) {
-                    pubnub.publish({
-                        channel: 'global-users',
-                        message: {
-                            type: 'request-chat-history',
-                            chatId: chat.id,
-                            from: currentUser.id
-                        }
-                    });
-                }
-            }
-            
+            if (!messages[chat.id]) messages[chat.id] = [];
             renderMessages();
             updateChatsList();
             
-            // Close sidebar on mobile
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('active');
             }
@@ -1459,7 +1343,6 @@
             const password = document.getElementById('joinPasswordInput').value;
             
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
-                // Add user to members
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -1488,10 +1371,9 @@
             const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             
-            // Send text
             if (text) {
                 const message = {
-                    type: 'chat-message',
+                    type: 'message',
                     id: messageId,
                     chatId: currentChat.id,
                     sender: currentUser.id,
@@ -1500,9 +1382,7 @@
                     time: timeString
                 };
                 
-                if (!messages[currentChat.id]) {
-                    messages[currentChat.id] = [];
-                }
+                if (!messages[currentChat.id]) messages[currentChat.id] = [];
                 
                 messages[currentChat.id].push({
                     ...message,
@@ -1511,24 +1391,21 @@
                 
                 localStorage.setItem('messages', JSON.stringify(messages));
                 
-                if (pubnub) {
-                    pubnub.publish({
-                        channel: `chat-${currentChat.id}`,
-                        message: message
-                    });
+                if (ably) {
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('message', message);
                 }
                 
                 input.value = '';
                 renderMessages();
             }
             
-            // Send files
             if (fileInput.files && fileInput.files.length > 0) {
                 Array.from(fileInput.files).forEach(file => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const mediaMessage = {
-                            type: 'chat-message',
+                            type: 'message',
                             id: Date.now() + Math.random().toString(36).substr(2, 5),
                             chatId: currentChat.id,
                             sender: currentUser.id,
@@ -1541,9 +1418,7 @@
                             time: timeString
                         };
                         
-                        if (!messages[currentChat.id]) {
-                            messages[currentChat.id] = [];
-                        }
+                        if (!messages[currentChat.id]) messages[currentChat.id] = [];
                         
                         messages[currentChat.id].push({
                             ...mediaMessage,
@@ -1552,11 +1427,9 @@
                         
                         localStorage.setItem('messages', JSON.stringify(messages));
                         
-                        if (pubnub) {
-                            pubnub.publish({
-                                channel: `chat-${currentChat.id}`,
-                                message: mediaMessage
-                            });
+                        if (ably) {
+                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                            chatChannel.publish('message', mediaMessage);
                         }
                         
                         renderMessages();
@@ -1627,10 +1500,6 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
-                // Get all online users from the onlineUsers object
-                items = Object.values(onlineUsers).filter(u => u.online && u.id !== currentUser?.id);
-                
-                // Also add users from localStorage who might be offline but registered
                 const allRegisteredUsers = Object.values(users).map(u => ({
                     id: u.id,
                     name: u.name,
@@ -1638,15 +1507,7 @@
                     online: onlineUsers[u.id] ? onlineUsers[u.id].online : false
                 }));
                 
-                // Merge online status
                 items = allRegisteredUsers.filter(u => u.id !== currentUser?.id);
-                items.forEach(user => {
-                    if (onlineUsers[user.id]) {
-                        user.online = onlineUsers[user.id].online;
-                    }
-                });
-                
-                // Sort: online first, then offline
                 items.sort((a, b) => {
                     if (a.online && !b.online) return -1;
                     if (!a.online && b.online) return 1;
@@ -1654,7 +1515,6 @@
                 });
             }
             
-            // Search filter
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             if (searchTerm) {
                 items = items.filter(item => 
@@ -1740,10 +1600,9 @@
                 myChats.push(privateChat);
             }
             
-            if (pubnub) {
-                pubnub.subscribe({
-                    channels: [`chat-${chatId}`]
-                });
+            if (ably) {
+                const chatChannel = ably.channels.get(`chat-${chatId}`);
+                chatChannel.subscribe('message', handleChatMessage);
             }
             
             currentChat = privateChat;
@@ -1756,10 +1615,7 @@
             `;
             document.getElementById('chatStatus').textContent = user.online ? 'В сети' : 'Был недавно';
             
-            if (!messages[chatId]) {
-                messages[chatId] = [];
-            }
-            
+            if (!messages[chatId]) messages[chatId] = [];
             renderMessages();
             updateChatsList();
             switchTab('chats');
@@ -1803,7 +1659,6 @@
                 currentUser.name = newName;
                 document.getElementById('profileName').textContent = newName;
                 
-                // Update in users storage
                 const userKey = currentUser.name.toLowerCase();
                 if (users[userKey]) {
                     users[userKey].name = newName;
@@ -1855,7 +1710,6 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
-        // Handle popstate (back/forward navigation)
         window.addEventListener('popstate', function(event) {
             const hash = window.location.hash.substring(1);
             if (hash) {
@@ -1870,55 +1724,16 @@
             }
         });
 
-        // Auto-resize textarea
         document.getElementById('messageInput').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Handle window resize
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 document.getElementById('sidebar').classList.remove('active');
             }
         });
-
-        // Periodic online users update
-        setInterval(() => {
-            if (pubnub && currentUser) {
-                pubnub.hereNow({
-                    channels: ['global-users'],
-                    includeUUIDs: true,
-                    includeState: true
-                }).then((response) => {
-                    const occupants = response.channels['global-users'].occupants;
-                    const onlineIds = new Set();
-                    
-                    occupants.forEach(occ => {
-                        if (occ.uuid !== currentUser.id) {
-                            onlineIds.add(occ.uuid);
-                            onlineUsers[occ.uuid] = {
-                                id: occ.uuid,
-                                name: occ.state?.name || occ.uuid,
-                                avatar: occ.state?.avatar || '👤',
-                                online: true
-                            };
-                        }
-                    });
-                    
-                    // Mark users as offline if not in onlineIds
-                    Object.keys(onlineUsers).forEach(id => {
-                        if (!onlineIds.has(id)) {
-                            onlineUsers[id].online = false;
-                        }
-                    });
-                    
-                    if (currentTab === 'users') {
-                        updateChatsList();
-                    }
-                });
-            }
-        }, 10000); // Update every 10 seconds
     </script>
 </body>
 </html>
