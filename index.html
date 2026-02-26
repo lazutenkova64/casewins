@@ -14,19 +14,47 @@
         }
 
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #2a2a2a;
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #16181d;
+            --bg-tertiary: #1e2026;
+            --bg-hover: #2a2c33;
             --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --accent-blue: #2ea6ff;
-            --accent-green: #2b7f4b;
+            --text-secondary: #9ca3af;
+            --accent-blue: #2b6ef0;
+            --accent-blue-hover: #1a5bd6;
+            --accent-green: #22c55e;
             --accent-purple: #8b5cf6;
-            --border-color: #333333;
-            --message-out: #2b5278;
-            --message-in: #2a2a2a;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            --unread-badge: #2ea6ff;
+            --border-color: #2f3136;
+            --message-out: #2b6ef0;
+            --message-in: #1e2026;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --unread-badge: #2b6ef0;
+            --scrollbar-track: rgba(255, 255, 255, 0.05);
+            --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+            --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Modern scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover);
         }
 
         body {
@@ -51,16 +79,18 @@
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
+            box-shadow: var(--shadow-md);
         }
 
         .sidebar-header {
-            padding: 16px;
+            padding: 20px;
             display: flex;
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(145deg, var(--bg-secondary), var(--bg-tertiary));
         }
 
         .avatar {
@@ -74,8 +104,14 @@
             font-size: 20px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .avatar:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
         }
 
         .profile-info {
@@ -89,6 +125,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 4px;
         }
 
         .profile-status {
@@ -103,59 +140,92 @@
             background-color: var(--accent-green);
             border-radius: 50%;
             margin-left: 6px;
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .admin-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #000;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 12px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
         }
 
         .tabs {
             display: flex;
-            padding: 12px 16px;
+            padding: 16px 20px;
             gap: 8px;
             border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
         }
 
         .tab {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             background: none;
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 14px;
-            transition: all 0.2s;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
         }
 
-        .tab.active {
-            background-color: var(--bg-tertiary);
+        .tab:hover {
+            background-color: var(--bg-hover);
             color: var(--text-primary);
         }
 
+        .tab.active {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
         .search-bar {
-            padding: 12px 16px;
+            padding: 16px 20px;
             position: relative;
         }
 
         .search-bar input {
             width: 100%;
-            padding: 10px 16px;
+            padding: 12px 20px;
             background-color: var(--bg-tertiary);
-            border: none;
-            border-radius: 24px;
+            border: 1px solid transparent;
+            border-radius: 30px;
             color: var(--text-primary);
             font-size: 14px;
             outline: none;
+            transition: all 0.2s;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-bar input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(43, 110, 240, 0.2);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-secondary);
         }
 
         .create-chat-btn {
             position: absolute;
-            right: 24px;
+            right: 28px;
             top: 50%;
             transform: translateY(-50%);
-            background: var(--accent-blue);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             border: none;
             color: white;
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -163,33 +233,41 @@
             cursor: pointer;
             font-size: 20px;
             -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .create-chat-btn:hover {
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: var(--shadow-md);
         }
 
         .chats-list {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            padding: 8px 0;
         }
 
         .chat-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 12px 20px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border-bottom: 1px solid var(--border-color);
             -webkit-tap-highlight-color: transparent;
             position: relative;
-            animation: slideIn 0.2s ease;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .chat-item:hover {
-            background-color: var(--bg-tertiary);
+            background-color: var(--bg-hover);
         }
 
         .chat-item.active {
-            background-color: var(--bg-tertiary);
+            background: linear-gradient(90deg, var(--bg-hover), transparent);
             border-left: 3px solid var(--accent-blue);
         }
 
@@ -204,6 +282,7 @@
             font-weight: 600;
             font-size: 18px;
             flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
         }
 
         .chat-details {
@@ -249,44 +328,50 @@
             color: white;
             font-size: 11px;
             font-weight: 600;
-            min-width: 18px;
-            height: 18px;
-            border-radius: 9px;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 5px;
+            padding: 0 6px;
+            box-shadow: 0 2px 4px rgba(43, 110, 240, 0.3);
         }
 
         .chat-member-count {
             font-size: 11px;
             color: var(--accent-blue);
             background: var(--bg-tertiary);
-            padding: 2px 6px;
+            padding: 2px 8px;
             border-radius: 12px;
         }
 
         .lock-icon {
             font-size: 12px;
             margin-left: 4px;
+            color: var(--text-secondary);
         }
 
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background-color: var(--bg-primary);
+            background: linear-gradient(145deg, var(--bg-primary), var(--bg-secondary));
             width: 100%;
+            position: relative;
         }
 
         .chat-header {
-            padding: 12px 16px;
-            background-color: var(--bg-secondary);
+            padding: 16px 24px;
+            background: rgba(22, 24, 29, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: var(--shadow);
+            gap: 16px;
+            box-shadow: var(--shadow-md);
+            z-index: 10;
         }
 
         .back-button {
@@ -298,6 +383,11 @@
             cursor: pointer;
             padding: 4px 8px;
             -webkit-tap-highlight-color: transparent;
+            transition: transform 0.2s;
+        }
+
+        .back-button:hover {
+            transform: scale(1.1);
         }
 
         .chat-info {
@@ -307,7 +397,7 @@
 
         .chat-title {
             font-weight: 600;
-            font-size: 16px;
+            font-size: 18px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -317,7 +407,7 @@
         }
 
         .chat-subtitle {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
@@ -326,42 +416,51 @@
 
         .chat-actions {
             display: flex;
-            gap: 4px;
+            gap: 8px;
         }
 
         .action-btn {
-            background: none;
+            background: var(--bg-tertiary);
             border: none;
             color: var(--text-secondary);
             font-size: 20px;
             cursor: pointer;
-            padding: 8px;
+            padding: 10px;
             border-radius: 50%;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
         }
 
         .action-btn:hover {
-            background-color: var(--bg-tertiary);
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
         }
 
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
         }
 
         .message {
-            max-width: 85%;
+            max-width: 70%;
             display: flex;
             flex-direction: column;
             position: relative;
-            animation: messageSlide 0.15s ease-out;
+            animation: messageSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform, opacity;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .message.out {
@@ -373,31 +472,35 @@
         }
 
         .message-bubble {
-            padding: 10px 14px;
-            border-radius: 18px;
+            padding: 12px 18px;
+            border-radius: 20px;
             font-size: 14px;
-            line-height: 1.4;
+            line-height: 1.5;
             word-wrap: break-word;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
         }
 
         .message.out .message-bubble {
-            background-color: var(--accent-blue);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             border-bottom-right-radius: 4px;
+            color: white;
         }
 
         .message.in .message-bubble {
-            background-color: var(--message-in);
+            background: var(--message-in);
             border-bottom-left-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
         }
 
         .message-media {
-            max-width: 250px;
-            max-height: 250px;
-            border-radius: 12px;
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 16px;
             margin-bottom: 4px;
             cursor: pointer;
             transition: transform 0.2s;
+            box-shadow: var(--shadow-md);
         }
 
         .message-media:hover {
@@ -409,30 +512,35 @@
             font-weight: 600;
             color: var(--accent-blue);
             margin-bottom: 4px;
-            margin-left: 4px;
+            margin-left: 8px;
         }
 
         .message-time {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-secondary);
             margin-top: 4px;
             margin-left: 8px;
+            opacity: 0.8;
         }
 
         .message-actions {
             position: absolute;
-            top: -20px;
+            top: -30px;
             right: 0;
             display: none;
-            gap: 4px;
+            gap: 6px;
             background: var(--bg-tertiary);
-            padding: 4px 8px;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+            padding: 6px 12px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10;
         }
 
         .message:hover .message-actions {
             display: flex;
+            animation: fadeIn 0.2s ease;
         }
 
         .message-action-btn {
@@ -441,36 +549,50 @@
             color: var(--text-secondary);
             font-size: 14px;
             cursor: pointer;
-            padding: 2px 6px;
+            padding: 4px 8px;
             border-radius: 12px;
             transition: all 0.2s;
         }
 
         .message-action-btn:hover {
-            background: var(--bg-secondary);
+            background: var(--bg-hover);
             color: var(--text-primary);
+            transform: scale(1.1);
         }
 
         .message-input-container {
-            padding: 12px 16px;
-            background-color: var(--bg-secondary);
+            padding: 20px 24px;
+            background: rgba(22, 24, 29, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid var(--border-color);
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: flex-end;
         }
 
-        .attach-btn {
-            background: none;
+        .emoji-btn {
+            background: var(--bg-tertiary);
             border: none;
             color: var(--text-secondary);
             font-size: 24px;
             cursor: pointer;
-            padding: 8px;
+            padding: 12px;
             border-radius: 50%;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
             flex-shrink: 0;
             -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .emoji-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
         }
 
         .input-wrapper {
@@ -483,53 +605,74 @@
 
         .message-input {
             width: 100%;
-            padding: 10px 14px;
+            padding: 14px 20px;
             background-color: var(--bg-tertiary);
-            border: none;
-            border-radius: 24px;
+            border: 1px solid transparent;
+            border-radius: 30px;
             color: var(--text-primary);
             font-size: 14px;
             outline: none;
             resize: none;
-            max-height: 100px;
-            min-height: 40px;
+            max-height: 120px;
+            min-height: 48px;
+            transition: all 0.2s;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(43, 110, 240, 0.2);
         }
 
         .emoji-picker {
             display: flex;
             gap: 8px;
-            padding: 8px 0;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 30px;
             flex-wrap: wrap;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .emoji-btn {
+        .emoji-picker-btn {
             background: none;
             border: none;
             font-size: 24px;
             cursor: pointer;
-            padding: 4px;
-            transition: transform 0.2s;
+            padding: 8px;
+            border-radius: 12px;
+            transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .emoji-btn:hover {
+        .emoji-picker-btn:hover {
+            background: var(--bg-hover);
             transform: scale(1.2);
         }
 
         .send-btn {
-            background-color: var(--accent-blue);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             border: none;
             color: white;
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             flex-shrink: 0;
-            font-size: 18px;
+            font-size: 20px;
             -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
         }
 
         .modal {
@@ -540,6 +683,8 @@
             right: 0;
             bottom: 0;
             background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             z-index: 2000;
             align-items: center;
             justify-content: center;
@@ -548,53 +693,77 @@
 
         .modal.active {
             display: flex;
+            animation: fadeIn 0.3s ease;
         }
 
         .modal-content {
-            background-color: var(--bg-secondary);
-            border-radius: 24px;
-            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: 32px;
+            padding: 32px;
             width: 100%;
             max-width: 400px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .modal-content h2 {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             text-align: center;
-            font-size: 20px;
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .modal-input {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background-color: var(--bg-tertiary);
-            border: none;
-            border-radius: 12px;
+            border: 1px solid transparent;
+            border-radius: 16px;
             color: var(--text-primary);
             font-size: 16px;
             outline: none;
             margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(43, 110, 240, 0.2);
         }
 
         .modal-btn {
-            background-color: var(--accent-blue);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             border: none;
             color: white;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 14px;
+            border-radius: 16px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
             margin-bottom: 8px;
             -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .modal-btn.secondary {
-            background-color: var(--bg-tertiary);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-btn.secondary:hover {
+            background: var(--bg-hover);
         }
 
         .close-btn {
@@ -606,6 +775,12 @@
             float: right;
             padding: 4px 8px;
             -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+            transform: scale(1.1);
         }
 
         .password-input-container {
@@ -615,7 +790,7 @@
 
         .toggle-password {
             position: absolute;
-            right: 12px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
@@ -636,23 +811,26 @@
         .auth-tabs {
             display: flex;
             gap: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .auth-tab {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             background: none;
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            border-radius: 8px;
+            border-radius: 16px;
             font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
         .auth-tab.active {
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: var(--shadow-sm);
         }
 
         .url-indicator {
@@ -671,6 +849,8 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 3000;
             display: none;
             align-items: center;
@@ -679,11 +859,13 @@
 
         .media-viewer.active {
             display: flex;
+            animation: fadeIn 0.3s ease;
         }
 
         .media-viewer-content {
             max-width: 90%;
             max-height: 90%;
+            animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .media-viewer-content img,
@@ -691,23 +873,38 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
         }
 
         .media-viewer-close {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
+            top: 24px;
+            right: 24px;
+            background: var(--bg-tertiary);
             border: none;
             color: white;
-            font-size: 32px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
             cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-md);
+        }
+
+        .media-viewer-close:hover {
+            transform: scale(1.1);
+            background: var(--bg-hover);
         }
 
         @keyframes messageSlide {
             0% {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(20px);
             }
             100% {
                 opacity: 1;
@@ -718,11 +915,42 @@
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateX(-10px);
+                transform: translateX(-20px);
             }
             to {
                 opacity: 1;
                 transform: translateX(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
             }
         }
 
@@ -736,7 +964,7 @@
                 transform: translateX(-100%);
                 width: 85%;
                 max-width: 320px;
-                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+                box-shadow: var(--shadow-lg);
             }
 
             .sidebar.active {
@@ -748,23 +976,19 @@
             }
 
             .message {
-                max-width: 90%;
+                max-width: 85%;
             }
 
             .message-actions {
-                top: -25px;
+                top: -35px;
             }
 
             .chat-header {
-                padding: 10px 12px;
+                padding: 12px 16px;
             }
 
             .message-input-container {
-                padding: 10px 12px;
-            }
-
-            .modal-content {
-                padding: 20px;
+                padding: 16px;
             }
         }
 
@@ -846,7 +1070,10 @@
             <div class="sidebar-header">
                 <div class="avatar" id="profileAvatar" onclick="openProfileModal()">👤</div>
                 <div class="profile-info">
-                    <div class="profile-name" id="profileName">Загрузка...</div>
+                    <div class="profile-name" id="profileName">
+                        Загрузка...
+                        <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span>
+                    </div>
                     <div class="profile-status">онлайн <span class="online-indicator"></span></div>
                 </div>
             </div>
@@ -887,16 +1114,33 @@
             <div class="messages-container" id="messagesContainer"></div>
 
             <div class="message-input-container">
-                <button class="attach-btn" onclick="triggerFileUpload()">📎</button>
+                <button class="emoji-btn" onclick="showEmojiPicker()">😊</button>
                 <input type="file" id="fileInput" style="display: none" accept="image/*,video/*" multiple>
                 <div class="input-wrapper">
-                    <div id="filePreviewContainer" style="display: none; padding: 8px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 8px; font-size: 13px;"></div>
+                    <div id="filePreviewContainer" style="display: none; padding: 8px; background: var(--bg-tertiary); border-radius: 16px; margin-bottom: 8px; font-size: 13px;"></div>
                     <div class="emoji-picker" id="emojiPicker" style="display: none;">
-                        <button class="emoji-btn" onclick="addEmoji('😊')">😊</button>
-                        <button class="emoji-btn" onclick="addEmoji('😂')">😂</button>
-                        <button class="emoji-btn" onclick="addEmoji('❤️')">❤️</button>
-                        <button class="emoji-btn" onclick="addEmoji('👍')">👍</button>
-                        <button class="emoji-btn" onclick="addEmoji('🔥')">🔥</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😊')">😊</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😂')">😂</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🥹')">🥹</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😭')">😭</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😍')">😍</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🥰')">🥰</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😘')">😘</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🤔')">🤔</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🤯')">🤯</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😎')">😎</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🥳')">🥳</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('😡')">😡</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('👋')">👋</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('👍')">👍</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('👎')">👎</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('❤️')">❤️</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🔥')">🔥</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('💯')">💯</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('⭐')">⭐</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🎉')">🎉</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🎈')">🎈</button>
+                        <button class="emoji-picker-btn" onclick="addEmoji('🎁')">🎁</button>
                     </div>
                     <textarea 
                         class="message-input" 
@@ -969,6 +1213,9 @@
         // ============================================================
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
+        // Администратор
+        const ADMIN_USERNAME = "K1lame";
+        
         let ably;
         let currentUser = null;
         
@@ -984,8 +1231,7 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // Clear any existing chats
-        publicChats = [];
+        // Initialize public chats (хранятся постоянно)
         localStorage.setItem('publicChats', JSON.stringify(publicChats));
 
         // Check for saved session
@@ -995,12 +1241,17 @@
                 try {
                     currentUser = JSON.parse(savedUser);
                     
+                    // Check if admin
+                    if (currentUser.name === ADMIN_USERNAME) {
+                        document.getElementById('adminBadge').style.display = 'inline-block';
+                    }
+                    
                     // Load user's chats
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
-                    document.getElementById('profileName').textContent = currentUser.name;
+                    document.getElementById('profileName').innerHTML = currentUser.name + (currentUser.name === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : '');
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1065,7 +1316,8 @@
                 presenceChannel.presence.enter({ 
                     name: currentUser.name, 
                     avatar: currentUser.avatar || '👤',
-                    bio: currentUser.bio || ''
+                    bio: currentUser.bio || '',
+                    isAdmin: currentUser.name === ADMIN_USERNAME
                 });
                 
                 presenceChannel.presence.subscribe('enter', (member) => {
@@ -1075,7 +1327,8 @@
                             name: member.data.name,
                             avatar: member.data.avatar || '👤',
                             bio: member.data.bio || '',
-                            online: true
+                            online: true,
+                            isAdmin: member.data.isAdmin
                         };
                         if (currentTab === 'users') updateChatsList();
                     }
@@ -1096,7 +1349,8 @@
                                 name: member.data.name,
                                 avatar: member.data.avatar || '👤',
                                 bio: member.data.bio || '',
-                                online: true
+                                online: true,
+                                isAdmin: member.data.isAdmin
                             };
                         }
                     });
@@ -1113,6 +1367,43 @@
                         if (currentTab === 'public') {
                             updateChatsList();
                         }
+                    }
+                });
+
+                // Admin commands channel
+                const adminChannel = ably.channels.get('admin-commands');
+                adminChannel.subscribe('delete-message', (data) => {
+                    const { chatId, messageId } = data.data;
+                    if (messages[chatId]) {
+                        messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        if (currentChat?.id === chatId) {
+                            renderMessages();
+                        }
+                        updateChatsList();
+                    }
+                });
+                
+                adminChannel.subscribe('delete-chat', (data) => {
+                    const { chatId } = data.data;
+                    
+                    // Remove from public chats
+                    publicChats = publicChats.filter(c => c.id !== chatId);
+                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                    
+                    // Remove from all users' myChats (will be synced when they load)
+                    // Delete all messages in this chat
+                    delete messages[chatId];
+                    localStorage.setItem('messages', JSON.stringify(messages));
+                    
+                    if (currentChat?.id === chatId) {
+                        currentChat = null;
+                        renderMessages();
+                        updateUrlWithChat(null);
+                    }
+                    
+                    if (currentTab === 'public') {
+                        updateChatsList();
                     }
                 });
 
@@ -1154,7 +1445,6 @@
                     localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chat.id) {
-                        // Immediate render without sorting for speed
                         renderMessages();
                         // Clear unread for this chat
                         unreadCounts[chat.id] = 0;
@@ -1249,7 +1539,7 @@
                 
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
-                document.getElementById('profileName').textContent = currentUser.name;
+                document.getElementById('profileName').innerHTML = currentUser.name + (currentUser.name === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : '');
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1314,7 +1604,7 @@
             
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('appContainer').style.display = 'flex';
-            document.getElementById('profileName').textContent = currentUser.name;
+            document.getElementById('profileName').innerHTML = currentUser.name + (currentUser.name === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : '');
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             
@@ -1415,15 +1705,13 @@
                 chat.members.push(currentUser.id);
             }
             
-            // Add to my chats only after first message
-            // For now just set as current chat
-            
             // Set current chat
             currentChat = chat;
             updateUrlWithChat(chat);
             
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
+                ${currentUser.name === ADMIN_USERNAME ? '<span class="admin-badge" style="margin-left: 8px;">ADMIN</span>' : ''}
             `;
             document.getElementById('chatStatus').textContent = chat.description || 'Чат';
             
@@ -1460,14 +1748,13 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            const fileInput = document.getElementById('fileInput');
             
             if (!currentChat) {
                 alert('Сначала выберите чат из списка');
                 return;
             }
             
-            if (text === '' && (!fileInput.files || fileInput.files.length === 0)) return;
+            if (text === '') return;
             
             // Add to my chats if not already (first message in this chat)
             if (!myChats.find(c => c.id === currentChat.id)) {
@@ -1485,96 +1772,117 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             
             // Send text
-            if (text) {
-                const message = {
-                    id: messageId,
-                    chatId: currentChat.id,
-                    sender: currentUser.id,
-                    senderName: currentUser.name,
-                    text: text,
-                    time: timeString
-                };
-                
-                if (!messages[currentChat.id]) messages[currentChat.id] = [];
-                
-                messages[currentChat.id].push({
-                    ...message,
-                    type: 'out'
-                });
-                
-                localStorage.setItem('messages', JSON.stringify(messages));
-                
-                if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('message', message);
-                }
-                
-                input.value = '';
-                renderMessages();
+            const message = {
+                id: messageId,
+                chatId: currentChat.id,
+                sender: currentUser.id,
+                senderName: currentUser.name,
+                text: text,
+                time: timeString
+            };
+            
+            if (!messages[currentChat.id]) messages[currentChat.id] = [];
+            
+            messages[currentChat.id].push({
+                ...message,
+                type: 'out'
+            });
+            
+            localStorage.setItem('messages', JSON.stringify(messages));
+            
+            if (ably) {
+                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                chatChannel.publish('message', message);
             }
             
-            // Send files
-            if (fileInput.files && fileInput.files.length > 0) {
-                Array.from(fileInput.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const mediaMessage = {
-                            id: Date.now() + Math.random().toString(36).substr(2, 5),
-                            chatId: currentChat.id,
-                            sender: currentUser.id,
-                            senderName: currentUser.name,
-                            media: {
-                                url: e.target.result,
-                                type: file.type,
-                                name: file.name
-                            },
-                            time: timeString
-                        };
-                        
-                        if (!messages[currentChat.id]) messages[currentChat.id] = [];
-                        
-                        messages[currentChat.id].push({
-                            ...mediaMessage,
-                            type: 'out'
-                        });
-                        
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        
-                        if (ably) {
-                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                            chatChannel.publish('message', mediaMessage);
-                        }
-                        
-                        renderMessages();
-                    };
-                    reader.readAsDataURL(file);
-                });
-                
-                fileInput.value = '';
-                document.getElementById('filePreviewContainer').style.display = 'none';
-            }
-            
+            input.value = '';
+            renderMessages();
             updateChatsList();
         }
 
-        // Delete message
-        function deleteMessage(messageId) {
-            if (!currentChat || !confirm('Удалить сообщение?')) return;
+        // Admin delete message
+        function adminDeleteMessage(chatId, messageId) {
+            if (currentUser.name !== ADMIN_USERNAME) return;
             
-            const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
-            if (msgIndex !== -1 && messages[currentChat.id][msgIndex].sender === currentUser.id) {
-                messages[currentChat.id].splice(msgIndex, 1);
+            if (messages[chatId]) {
+                messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
                 localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('delete', {
+                    const adminChannel = ably.channels.get('admin-commands');
+                    adminChannel.publish('delete-message', {
+                        chatId: chatId,
                         messageId: messageId
                     });
                 }
                 
-                renderMessages();
+                if (currentChat?.id === chatId) {
+                    renderMessages();
+                }
                 updateChatsList();
+            }
+        }
+
+        // Admin delete chat
+        function adminDeleteChat(chatId) {
+            if (currentUser.name !== ADMIN_USERNAME) return;
+            
+            if (!confirm('Удалить этот чат для всех пользователей?')) return;
+            
+            // Remove from public chats
+            publicChats = publicChats.filter(c => c.id !== chatId);
+            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+            
+            // Delete all messages
+            delete messages[chatId];
+            localStorage.setItem('messages', JSON.stringify(messages));
+            
+            if (ably) {
+                const adminChannel = ably.channels.get('admin-commands');
+                adminChannel.publish('delete-chat', {
+                    chatId: chatId
+                });
+            }
+            
+            if (currentChat?.id === chatId) {
+                currentChat = null;
+                renderMessages();
+                updateUrlWithChat(null);
+            }
+            
+            if (currentTab === 'public') {
+                updateChatsList();
+            }
+        }
+
+        // Delete message (user or admin)
+        function deleteMessage(messageId) {
+            if (!currentChat) return;
+            
+            const msg = messages[currentChat.id].find(m => m.id === messageId);
+            
+            // Allow delete if user is sender OR is admin
+            if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
+                if (currentUser.name === ADMIN_USERNAME && msg.sender !== currentUser.id) {
+                    adminDeleteMessage(currentChat.id, messageId);
+                } else {
+                    // Regular user delete
+                    const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
+                    if (msgIndex !== -1) {
+                        messages[currentChat.id].splice(msgIndex, 1);
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        
+                        if (ably) {
+                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                            chatChannel.publish('delete', {
+                                messageId: messageId
+                            });
+                        }
+                        
+                        renderMessages();
+                        updateChatsList();
+                    }
+                }
             }
         }
 
@@ -1631,8 +1939,10 @@
                 return;
             }
             
-            // Render messages in current order (they should already be sorted by time)
-            messages[currentChat.id].forEach(msg => {
+            // Sort messages by time
+            const sortedMessages = [...messages[currentChat.id]].sort((a, b) => a.id - b.id);
+            
+            sortedMessages.forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${msg.type}`;
                 messageDiv.setAttribute('data-id', msg.id);
@@ -1649,18 +1959,19 @@
                 }
                 
                 let actions = '';
-                if (msg.sender === currentUser.id) {
+                // Show delete for sender OR admin
+                if (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME) {
                     actions = `
                         <div class="message-actions">
-                            <button class="message-action-btn" onclick="editMessage('${msg.id}')">✏️</button>
-                            <button class="message-action-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>
+                            ${msg.sender === currentUser.id ? '<button class="message-action-btn" onclick="editMessage(\'' + msg.id + '\')">✏️</button>' : ''}
+                            <button class="message-action-btn" onclick="deleteMessage(\'' + msg.id + '\')">🗑️</button>
                         </div>
                     `;
                 }
                 
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}</div>` : ''}
+                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${msg.senderName === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -1679,10 +1990,8 @@
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
                 const msg = messages[currentChat.id].find(m => m.id === messageId);
-                if (msg && msg.sender === currentUser.id) {
-                    if (confirm('Редактировать сообщение?')) {
-                        editMessage(messageId);
-                    } else if (confirm('Удалить сообщение?')) {
+                if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
+                    if (confirm('Удалить сообщение?')) {
                         deleteMessage(messageId);
                     }
                 }
@@ -1750,6 +2059,7 @@
                         <div class="chat-details">
                             <div class="chat-name">
                                 ${item.name}
+                                ${item.isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
                                 ${item.online ? '<span class="online-indicator"></span>' : ''}
                             </div>
                             <div class="chat-last-message">${item.bio || 'Нет информации'}</div>
@@ -1766,6 +2076,7 @@
                             <div class="chat-name">
                                 ${item.name || 'Без названия'}
                                 ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
+                                ${currentUser.name === ADMIN_USERNAME ? '<button class="message-action-btn" style="margin-left: 8px;" onclick="event.stopPropagation(); adminDeleteChat(\'' + item.id + '\')">🗑️</button>' : ''}
                             </div>
                             <div class="chat-last-message">
                                 ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
@@ -1859,7 +2170,7 @@
             
             if (newName && newName !== currentUser.name) {
                 currentUser.name = newName;
-                document.getElementById('profileName').textContent = newName;
+                document.getElementById('profileName').innerHTML = newName + (newName === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : '');
                 
                 const userKey = currentUser.name.toLowerCase();
                 if (users[userKey]) {
@@ -1894,18 +2205,6 @@
             input.value += emoji;
             input.focus();
         }
-
-        function triggerFileUpload() {
-            document.getElementById('fileInput').click();
-        }
-
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                const preview = document.getElementById('filePreviewContainer');
-                preview.style.display = 'flex';
-                preview.innerHTML = `📎 Выбрано файлов: ${e.target.files.length}`;
-            }
-        });
 
         function handleKeyPress(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1955,4 +2254,3 @@
     </script>
 </body>
 </html>
-
