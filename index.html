@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web - Полностью Рабочая Версия</title>
+    <title>Telegram Web - Реальное время</title>
     <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.4.0.min.js"></script>
     <style>
         * {
@@ -591,6 +591,15 @@
             color: var(--text-primary);
         }
 
+        .url-indicator {
+            font-size: 11px;
+            color: var(--accent-blue);
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -866,16 +875,6 @@
                     createdByName: 'System',
                     members: [],
                     createdAt: new Date().toISOString()
-                },
-                {
-                    id: 'chat_gaming',
-                    name: 'Игровой чат',
-                    description: 'Для геймеров',
-                    password: 'game123',
-                    createdBy: 'system',
-                    createdByName: 'System',
-                    members: [],
-                    createdAt: new Date().toISOString()
                 }
             ];
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -899,10 +898,38 @@
                     
                     setTimeout(() => {
                         initPubNub();
+                        // Check URL for chat ID
+                        checkUrlForChat();
                     }, 100);
                 } catch (e) {
                     console.error('Failed to load session', e);
                 }
+            }
+        }
+
+        // Check URL for chat ID
+        function checkUrlForChat() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const chat = publicChats.find(c => c.id === hash);
+                if (chat) {
+                    setTimeout(() => {
+                        joinChat(chat);
+                    }, 500);
+                }
+            }
+        }
+
+        // Update URL with chat ID
+        function updateUrlWithChat(chat) {
+            if (chat) {
+                const newUrl = `${window.location.pathname}#${chat.id}`;
+                window.history.pushState({ chatId: chat.id }, chat.name, newUrl);
+                document.title = `${chat.name} - Telegram Web`;
+            } else {
+                const newUrl = window.location.pathname;
+                window.history.pushState({}, 'Telegram Web', newUrl);
+                document.title = 'Telegram Web';
             }
         }
 
@@ -921,17 +948,17 @@
                 presenceTimeout: 60
             });
 
-            // Subscribe to channels
-            const channels = ['global-users', 'global-chats'];
-            
-            // Subscribe to user's chat channels
-            myChats.forEach(chat => {
-                channels.push(`chat-${chat.id}`);
-            });
-            
+            // Subscribe to global channels
             pubnub.subscribe({
-                channels: channels,
+                channels: ['global-users', 'global-chats'],
                 withPresence: true
+            });
+
+            // Subscribe to all chat channels user is in
+            myChats.forEach(chat => {
+                pubnub.subscribe({
+                    channels: [`chat-${chat.id}`]
+                });
             });
 
             pubnub.addListener({
@@ -953,6 +980,15 @@
                         name: currentUser.name,
                         avatar: currentUser.avatar || '👤'
                     }
+                }
+            });
+
+            // Request existing chats
+            pubnub.publish({
+                channel: 'global-chats',
+                message: {
+                    type: 'request-chats',
+                    from: currentUser.id
                 }
             });
 
@@ -992,15 +1028,59 @@
                     updateChatsList();
                 }
                 
-            } else if (message.type === 'new-public-chat') {
+            } else if (message.type === 'new-chat') {
+                // New chat created - add to public chats
                 if (!publicChats.find(c => c.id === message.chat.id)) {
                     publicChats.push(message.chat);
                     localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                    
+                    // Update UI if on public tab
                     if (currentTab === 'public') {
                         updateChatsList();
                     }
+                    
+                    // Show notification
+                    showNotification(`Новый чат: ${message.chat.name}`);
+                }
+                
+            } else if (message.type === 'request-chats') {
+                // Someone requested chats - send them our public chats
+                if (message.from !== currentUser.id) {
+                    publicChats.forEach(chat => {
+                        pubnub.publish({
+                            channel: `user-${message.from}`,
+                            message: {
+                                type: 'new-chat',
+                                chat: chat
+                            }
+                        });
+                    });
                 }
             }
+        }
+
+        // Show notification
+        function showNotification(text) {
+            // Create temporary notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--accent-blue);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 12px;
+                z-index: 3000;
+                animation: slideIn 0.3s ease;
+                box-shadow: var(--shadow);
+            `;
+            notification.textContent = text;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
 
         // Handle presence
@@ -1014,6 +1094,19 @@
                             avatar: event.state?.avatar || '👤',
                             online: true
                         };
+                        
+                        // Send them our public chats
+                        setTimeout(() => {
+                            publicChats.forEach(chat => {
+                                pubnub.publish({
+                                    channel: `user-${event.uuid}`,
+                                    message: {
+                                        type: 'new-chat',
+                                        chat: chat
+                                    }
+                                });
+                            });
+                        }, 500);
                     }
                 } else if (event.action === 'leave' || event.action === 'timeout') {
                     if (onlineUsers[event.uuid]) {
@@ -1060,6 +1153,9 @@
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 
                 initPubNub();
+                
+                // Check URL for chat
+                checkUrlForChat();
             } else {
                 alert('Неверное имя пользователя или пароль');
             }
@@ -1134,6 +1230,7 @@
             }
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
+            updateUrlWithChat(null);
             
             // Clear forms
             document.getElementById('loginUsername').value = '';
@@ -1175,7 +1272,7 @@
             }
             
             const newChat = {
-                id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                 name: name,
                 description: description || '',
                 password: password,
@@ -1198,12 +1295,12 @@
                 });
             }
             
-            // Broadcast new chat
+            // Broadcast new chat to all users
             if (pubnub) {
                 pubnub.publish({
                     channel: 'global-chats',
                     message: {
-                        type: 'new-public-chat',
+                        type: 'new-chat',
                         chat: newChat
                     }
                 });
@@ -1236,6 +1333,17 @@
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                
+                // Broadcast member update
+                if (pubnub) {
+                    pubnub.publish({
+                        channel: 'global-chats',
+                        message: {
+                            type: 'update-chat',
+                            chat: chat
+                        }
+                    });
+                }
             }
             
             // Subscribe to chat channel
@@ -1248,9 +1356,13 @@
             // Set as current chat
             currentChat = chat;
             
+            // Update URL
+            updateUrlWithChat(chat);
+            
             // Update UI
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
+                <span class="url-indicator">#${chat.id.substring(0, 8)}</span>
             `;
             document.getElementById('chatStatus').textContent = chat.description || 'Публичный чат';
             
@@ -1277,6 +1389,17 @@
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                
+                // Broadcast member update
+                if (pubnub) {
+                    pubnub.publish({
+                        channel: 'global-chats',
+                        message: {
+                            type: 'update-chat',
+                            chat: pendingChatToJoin
+                        }
+                    });
+                }
                 
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
@@ -1535,9 +1658,12 @@
             }
             
             currentChat = privateChat;
+            updateUrlWithChat(privateChat);
+            
             document.getElementById('currentChatName').innerHTML = `
                 ${user.name}
                 <span class="online-indicator"></span>
+                <span class="url-indicator">#private</span>
             `;
             document.getElementById('chatStatus').textContent = 'Приватный диалог';
             
@@ -1639,6 +1765,21 @@
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
         }
+
+        // Handle popstate (back/forward navigation)
+        window.addEventListener('popstate', function(event) {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const chat = publicChats.find(c => c.id === hash);
+                if (chat) {
+                    joinChat(chat);
+                }
+            } else {
+                currentChat = null;
+                renderMessages();
+                updateUrlWithChat(null);
+            }
+        });
 
         // Auto-resize textarea
         document.getElementById('messageInput').addEventListener('input', function() {
