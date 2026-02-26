@@ -31,6 +31,8 @@
             --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
             --unread-badge: #2b6ef0;
+            --online-color: #22c55e;
+            --offline-color: #ef4444;
             --scrollbar-track: rgba(255, 255, 255, 0.05);
             --scrollbar-thumb: rgba(255, 255, 255, 0.15);
             --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
@@ -137,10 +139,20 @@
             display: inline-block;
             width: 8px;
             height: 8px;
-            background-color: var(--accent-green);
+            background-color: var(--online-color);
             border-radius: 50%;
             margin-left: 6px;
-            box-shadow: 0 0 8px var(--accent-green);
+            box-shadow: 0 0 8px var(--online-color);
+        }
+
+        .offline-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--offline-color);
+            border-radius: 50%;
+            margin-left: 6px;
+            box-shadow: 0 0 8px var(--offline-color);
         }
 
         .admin-badge {
@@ -255,11 +267,11 @@
             gap: 12px;
             padding: 12px 20px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background-color 0.2s ease;
             border-bottom: 1px solid var(--border-color);
             -webkit-tap-highlight-color: transparent;
             position: relative;
-            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.3s ease;
         }
 
         .chat-item:hover {
@@ -350,6 +362,23 @@
             font-size: 12px;
             margin-left: 4px;
             color: var(--text-secondary);
+        }
+
+        .delete-chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            margin-left: 8px;
+        }
+
+        .delete-chat-btn:hover {
+            background: var(--bg-hover);
+            color: #ef4444;
         }
 
         .chat-area {
@@ -450,7 +479,6 @@
             flex-direction: column;
             gap: 12px;
             -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
         }
 
         .message {
@@ -458,9 +486,8 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            animation: messageSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: messageAppear 0.2s ease;
             will-change: transform, opacity;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .message.out {
@@ -634,6 +661,11 @@
             margin-bottom: 8px;
             box-shadow: var(--shadow-lg);
             animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            bottom: 100px;
+            right: 24px;
+            max-width: 300px;
+            z-index: 100;
         }
 
         .emoji-picker-btn {
@@ -833,15 +865,6 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .url-indicator {
-            font-size: 11px;
-            color: var(--accent-blue);
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
-        }
-
         .media-viewer {
             position: fixed;
             top: 0;
@@ -901,34 +924,12 @@
             background: var(--bg-hover);
         }
 
-        @keyframes messageSlide {
+        @keyframes messageAppear {
             0% {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(10px);
             }
             100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
                 opacity: 1;
                 transform: translateY(0);
             }
@@ -940,6 +941,17 @@
             }
             to {
                 opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
 
@@ -989,6 +1001,11 @@
 
             .message-input-container {
                 padding: 16px;
+            }
+
+            .emoji-picker {
+                right: 16px;
+                max-width: 250px;
             }
         }
 
@@ -1084,9 +1101,9 @@
                 <button class="tab" onclick="switchTab('users')" id="tabUsers">Пользователи</button>
             </div>
 
-            <div class="search-bar">
+            <div class="search-bar" id="searchBar">
                 <input type="text" id="searchInput" placeholder="Поиск..." oninput="handleSearch()">
-                <button class="create-chat-btn" onclick="openCreateChatModal()">+</button>
+                <button class="create-chat-btn" id="createChatBtn" onclick="openCreateChatModal()" style="display: none;">+</button>
             </div>
 
             <div class="chats-list" id="chatsList"></div>
@@ -1107,14 +1124,14 @@
                 </div>
                 <div class="chat-actions">
                     <button class="action-btn" onclick="openProfileModal()">👤</button>
-                    <button class="action-btn" onclick="showEmojiPicker()">😊</button>
+                    <button class="action-btn" onclick="toggleEmojiPicker()">😊</button>
                 </div>
             </div>
 
             <div class="messages-container" id="messagesContainer"></div>
 
             <div class="message-input-container">
-                <button class="emoji-btn" onclick="showEmojiPicker()">😊</button>
+                <button class="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
                 <input type="file" id="fileInput" style="display: none" accept="image/*,video/*" multiple>
                 <div class="input-wrapper">
                     <div id="filePreviewContainer" style="display: none; padding: 8px; background: var(--bg-tertiary); border-radius: 16px; margin-bottom: 8px; font-size: 13px;"></div>
@@ -1230,6 +1247,22 @@
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
+        let allRegisteredUsers = {};
+
+        // Initialize all registered users
+        function updateAllUsers() {
+            allRegisteredUsers = {};
+            Object.keys(users).forEach(key => {
+                const user = users[key];
+                allRegisteredUsers[user.id] = {
+                    id: user.id,
+                    name: user.name,
+                    avatar: user.avatar || '👤',
+                    bio: user.bio || '',
+                    online: onlineUsers[user.id] ? onlineUsers[user.id].online : false
+                };
+            });
+        }
 
         // Initialize public chats (хранятся постоянно)
         localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -1255,6 +1288,8 @@
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileBioInput').value = currentUser.bio || '';
+                    
+                    updateAllUsers();
                     
                     setTimeout(() => {
                         initAbly();
@@ -1330,13 +1365,15 @@
                             online: true,
                             isAdmin: member.data.isAdmin
                         };
+                        updateAllUsers();
                         if (currentTab === 'users') updateChatsList();
                     }
                 });
                 
                 presenceChannel.presence.subscribe('leave', (member) => {
                     if (onlineUsers[member.clientId]) {
-                        delete onlineUsers[member.clientId];
+                        onlineUsers[member.clientId].online = false;
+                        updateAllUsers();
                         if (currentTab === 'users') updateChatsList();
                     }
                 });
@@ -1354,6 +1391,7 @@
                             };
                         }
                     });
+                    updateAllUsers();
                     if (currentTab === 'users') updateChatsList();
                 });
 
@@ -1482,32 +1520,34 @@
                 }
             });
             
-            // Get history for this chat
-            chatChannel.history({ limit: 200 }, (err, resultPage) => {
-                if (resultPage && resultPage.items.length > 0) {
-                    if (!messages[chat.id]) messages[chat.id] = [];
-                    
-                    resultPage.items.forEach(item => {
-                        const msg = item.data;
-                        const exists = messages[chat.id].some(m => m.id === msg.id);
-                        if (!exists) {
-                            messages[chat.id].push({
-                                ...msg,
-                                type: msg.sender === currentUser.id ? 'out' : 'in'
-                            });
+            // Get history for this chat - но не задерживаем отображение
+            setTimeout(() => {
+                chatChannel.history({ limit: 200 }, (err, resultPage) => {
+                    if (resultPage && resultPage.items.length > 0) {
+                        if (!messages[chat.id]) messages[chat.id] = [];
+                        
+                        resultPage.items.forEach(item => {
+                            const msg = item.data;
+                            const exists = messages[chat.id].some(m => m.id === msg.id);
+                            if (!exists) {
+                                messages[chat.id].push({
+                                    ...msg,
+                                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                                });
+                            }
+                        });
+                        
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        
+                        if (currentChat?.id === chat.id) {
+                            renderMessages();
+                            // Clear unread for this chat
+                            unreadCounts[chat.id] = 0;
+                            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         }
-                    });
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
-                    if (currentChat?.id === chat.id) {
-                        renderMessages();
-                        // Clear unread for this chat
-                        unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
-                }
-            });
+                });
+            }, 100);
         }
 
         // Login
@@ -1544,6 +1584,7 @@
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
                 
+                updateAllUsers();
                 initAbly();
                 checkUrlForChat();
             } else {
@@ -1608,6 +1649,7 @@
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             
+            updateAllUsers();
             initAbly();
         }
 
@@ -1650,6 +1692,26 @@
                 loginTab.className = 'auth-tab';
                 registerTab.className = 'auth-tab active';
             }
+        }
+
+        // Switch tabs
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            document.getElementById('tabChats').className = tab === 'chats' ? 'tab active' : 'tab';
+            document.getElementById('tabPublic').className = tab === 'public' ? 'tab active' : 'tab';
+            document.getElementById('tabUsers').className = tab === 'users' ? 'tab active' : 'tab';
+            
+            // Show/hide create chat button
+            const createBtn = document.getElementById('createChatBtn');
+            if (tab === 'public') {
+                createBtn.style.display = 'flex';
+            } else {
+                createBtn.style.display = 'none';
+            }
+            
+            document.getElementById('searchInput').value = '';
+            updateChatsList();
         }
 
         // Create public chat
@@ -1796,6 +1858,8 @@
             }
             
             input.value = '';
+            // Hide emoji picker after sending
+            document.getElementById('emojiPicker').style.display = 'none';
             renderMessages();
             updateChatsList();
         }
@@ -1979,11 +2043,10 @@
                 container.appendChild(messageDiv);
             });
             
-            // Smooth scroll to bottom
-            container.scrollTo({
-                top: container.scrollHeight,
-                behavior: 'smooth'
-            });
+            // Smooth scroll to bottom - без дерганий
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 10);
         }
 
         // Handle message click (for mobile)
@@ -2032,7 +2095,7 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
-                items = Object.values(onlineUsers);
+                items = Object.values(allRegisteredUsers);
             }
             
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -2053,6 +2116,7 @@
                 element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
                 
                 if (currentTab === 'users') {
+                    const isOnline = item.online || false;
                     element.onclick = () => createPrivateChat(item);
                     element.innerHTML = `
                         <div class="chat-avatar">${item.avatar || '👤'}</div>
@@ -2060,9 +2124,9 @@
                             <div class="chat-name">
                                 ${item.name}
                                 ${item.isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
-                                ${item.online ? '<span class="online-indicator"></span>' : ''}
+                                <span class="${isOnline ? 'online-indicator' : 'offline-indicator'}"></span>
                             </div>
-                            <div class="chat-last-message">${item.bio || 'Нет информации'}</div>
+                            <div class="chat-last-message">${item.bio || (isOnline ? 'В сети' : 'Был недавно')}</div>
                         </div>
                     `;
                 } else {
@@ -2076,7 +2140,7 @@
                             <div class="chat-name">
                                 ${item.name || 'Без названия'}
                                 ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
-                                ${currentUser.name === ADMIN_USERNAME ? '<button class="message-action-btn" style="margin-left: 8px;" onclick="event.stopPropagation(); adminDeleteChat(\'' + item.id + '\')">🗑️</button>' : ''}
+                                ${currentUser.name === ADMIN_USERNAME ? '<button class="delete-chat-btn" onclick="event.stopPropagation(); adminDeleteChat(\'' + item.id + '\')">🗑️</button>' : ''}
                             </div>
                             <div class="chat-last-message">
                                 ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
@@ -2091,18 +2155,6 @@
                 
                 list.appendChild(element);
             });
-        }
-
-        // Switch tabs
-        function switchTab(tab) {
-            currentTab = tab;
-            
-            document.getElementById('tabChats').className = tab === 'chats' ? 'tab active' : 'tab';
-            document.getElementById('tabPublic').className = tab === 'public' ? 'tab active' : 'tab';
-            document.getElementById('tabUsers').className = tab === 'users' ? 'tab active' : 'tab';
-            
-            document.getElementById('searchInput').value = '';
-            updateChatsList();
         }
 
         // Create private chat
@@ -2195,7 +2247,7 @@
             input.type = input.type === 'password' ? 'text' : 'password';
         }
 
-        function showEmojiPicker() {
+        function toggleEmojiPicker() {
             const picker = document.getElementById('emojiPicker');
             picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
         }
@@ -2249,6 +2301,18 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeMediaViewer();
+            }
+        });
+
+        // Click outside to close emoji picker
+        document.addEventListener('click', function(e) {
+            const emojiPicker = document.getElementById('emojiPicker');
+            const emojiBtn = document.querySelector('.emoji-btn');
+            
+            if (emojiPicker.style.display === 'flex' && 
+                !emojiPicker.contains(e.target) && 
+                !emojiBtn.contains(e.target)) {
+                emojiPicker.style.display = 'none';
             }
         });
     </script>
