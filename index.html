@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web - Полная синхронизация</title>
+    <title>Telegram Web - Общий чат</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         * {
@@ -21,7 +21,6 @@
             --text-secondary: #aaaaaa;
             --accent-blue: #2ea6ff;
             --accent-green: #2b7f4b;
-            --accent-purple: #8b5cf6;
             --border-color: #333333;
             --message-out: #2b5278;
             --message-in: #2a2a2a;
@@ -45,7 +44,7 @@
         }
 
         .sidebar {
-            width: 350px;
+            width: 320px;
             background-color: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -66,14 +65,13 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
             flex-shrink: 0;
         }
 
@@ -104,154 +102,57 @@
             margin-left: 6px;
         }
 
-        .tabs {
-            display: flex;
-            padding: 12px 16px;
-            gap: 8px;
+        .users-header {
+            padding: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
         }
 
-        .tab {
-            flex: 1;
-            padding: 8px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .tab.active {
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .search-bar {
-            padding: 12px 16px;
-            position: relative;
-        }
-
-        .search-bar input {
-            width: 100%;
-            padding: 10px 16px;
-            background-color: var(--bg-tertiary);
-            border: none;
-            border-radius: 24px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .create-chat-btn {
-            position: absolute;
-            right: 24px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--accent-blue);
-            border: none;
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .chats-list {
+        .users-list {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
-        .chat-item {
+        .user-item {
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 12px 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
             border-bottom: 1px solid var(--border-color);
-            -webkit-tap-highlight-color: transparent;
         }
 
-        .chat-item:hover {
-            background-color: var(--bg-tertiary);
-        }
-
-        .chat-item.active {
-            background-color: var(--bg-tertiary);
-            border-left: 3px solid var(--accent-blue);
-        }
-
-        .chat-avatar {
-            width: 48px;
-            height: 48px;
+        .user-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 18px;
+            font-size: 16px;
             flex-shrink: 0;
         }
 
-        .chat-details {
+        .user-details {
             flex: 1;
             min-width: 0;
         }
 
-        .chat-name {
+        .user-name {
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
             display: flex;
             align-items: center;
             gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        .chat-last-message {
-            font-size: 13px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-
-        .chat-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .chat-member-count {
-            font-size: 11px;
-            color: var(--accent-blue);
-            background: var(--bg-tertiary);
-            padding: 2px 6px;
-            border-radius: 12px;
-        }
-
-        .lock-icon {
+        .user-status {
             font-size: 12px;
-            margin-left: 4px;
+            color: var(--text-secondary);
         }
 
         .chat-area {
@@ -263,12 +164,12 @@
         }
 
         .chat-header {
-            padding: 12px 16px;
+            padding: 16px 20px;
             background-color: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             box-shadow: var(--shadow);
         }
 
@@ -280,7 +181,6 @@
             font-size: 24px;
             cursor: pointer;
             padding: 4px 8px;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .chat-info {
@@ -290,26 +190,20 @@
 
         .chat-title {
             font-weight: 600;
-            font-size: 16px;
+            font-size: 18px;
             display: flex;
             align-items: center;
             gap: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .chat-subtitle {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .chat-actions {
             display: flex;
-            gap: 4px;
+            gap: 8px;
         }
 
         .action-btn {
@@ -321,21 +215,24 @@
             padding: 8px;
             border-radius: 50%;
             transition: background-color 0.2s;
-            -webkit-tap-highlight-color: transparent;
+        }
+
+        .action-btn:hover {
+            background-color: var(--bg-tertiary);
         }
 
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
             -webkit-overflow-scrolling: touch;
         }
 
         .message {
-            max-width: 85%;
+            max-width: 70%;
             display: flex;
             flex-direction: column;
             animation: fadeIn 0.3s ease;
@@ -350,8 +247,8 @@
         }
 
         .message-bubble {
-            padding: 10px 14px;
-            border-radius: 18px;
+            padding: 12px 16px;
+            border-radius: 20px;
             font-size: 14px;
             line-height: 1.4;
             word-wrap: break-word;
@@ -369,8 +266,8 @@
         }
 
         .message-media {
-            max-width: 250px;
-            max-height: 250px;
+            max-width: 300px;
+            max-height: 300px;
             border-radius: 12px;
             margin-bottom: 4px;
             cursor: pointer;
@@ -385,18 +282,18 @@
         }
 
         .message-time {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-secondary);
             margin-top: 4px;
             margin-left: 8px;
         }
 
         .message-input-container {
-            padding: 12px 16px;
+            padding: 16px 20px;
             background-color: var(--bg-secondary);
             border-top: 1px solid var(--border-color);
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: flex-end;
         }
 
@@ -410,7 +307,6 @@
             border-radius: 50%;
             transition: background-color 0.2s;
             flex-shrink: 0;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .input-wrapper {
@@ -423,7 +319,7 @@
 
         .message-input {
             width: 100%;
-            padding: 10px 14px;
+            padding: 12px 16px;
             background-color: var(--bg-tertiary);
             border: none;
             border-radius: 24px;
@@ -431,8 +327,8 @@
             font-size: 14px;
             outline: none;
             resize: none;
-            max-height: 100px;
-            min-height: 40px;
+            max-height: 120px;
+            min-height: 44px;
         }
 
         .emoji-picker {
@@ -449,7 +345,6 @@
             cursor: pointer;
             padding: 4px;
             transition: transform 0.2s;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .send-btn {
@@ -465,7 +360,6 @@
             cursor: pointer;
             flex-shrink: 0;
             font-size: 18px;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .modal {
@@ -489,23 +383,21 @@
         .modal-content {
             background-color: var(--bg-secondary);
             border-radius: 24px;
-            padding: 24px;
+            padding: 32px;
             width: 100%;
             max-width: 400px;
-            max-height: 90vh;
-            overflow-y: auto;
             box-shadow: var(--shadow);
         }
 
         .modal-content h2 {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             text-align: center;
             font-size: 20px;
         }
 
         .modal-input {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background-color: var(--bg-tertiary);
             border: none;
             border-radius: 12px;
@@ -519,14 +411,13 @@
             background-color: var(--accent-blue);
             border: none;
             color: white;
-            padding: 12px;
+            padding: 14px;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
             margin-bottom: 8px;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .modal-btn.secondary {
@@ -541,7 +432,6 @@
             cursor: pointer;
             float: right;
             padding: 4px 8px;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .password-input-container {
@@ -591,15 +481,6 @@
             color: var(--text-primary);
         }
 
-        .url-indicator {
-            font-size: 11px;
-            color: var(--accent-blue);
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
-        }
-
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -608,17 +489,6 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
             }
         }
 
@@ -632,7 +502,6 @@
                 transform: translateX(-100%);
                 width: 85%;
                 max-width: 320px;
-                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
             }
 
             .sidebar.active {
@@ -644,41 +513,7 @@
             }
 
             .message {
-                max-width: 90%;
-            }
-
-            .chat-header {
-                padding: 10px 12px;
-            }
-
-            .message-input-container {
-                padding: 10px 12px;
-            }
-
-            .modal-content {
-                padding: 20px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .chat-avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
-
-            .avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 18px;
-            }
-
-            .chat-name {
-                font-size: 14px;
-            }
-
-            .chat-last-message {
-                font-size: 12px;
+                max-width: 85%;
             }
         }
     </style>
@@ -687,7 +522,7 @@
     <!-- Login/Register Modal -->
     <div class="modal active" id="loginModal">
         <div class="modal-content">
-            <h2>Telegram Web</h2>
+            <h2>Добро пожаловать!</h2>
             
             <div class="auth-tabs">
                 <button class="auth-tab active" onclick="switchAuthMode('login')" id="loginTabBtn">Вход</button>
@@ -737,18 +572,11 @@
                 </div>
             </div>
 
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('chats')" id="tabChats">Мои чаты</button>
-                <button class="tab" onclick="switchTab('public')" id="tabPublic">Публичные</button>
-                <button class="tab" onclick="switchTab('users')" id="tabUsers">Пользователи</button>
+            <div class="users-header">
+                <span>Участники онлайн</span>
             </div>
 
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Поиск..." oninput="handleSearch()">
-                <button class="create-chat-btn" onclick="openCreateChatModal()">+</button>
-            </div>
-
-            <div class="chats-list" id="chatsList"></div>
+            <div class="users-list" id="usersList"></div>
             
             <div style="padding: 16px; border-top: 1px solid var(--border-color);">
                 <button class="modal-btn secondary" style="width: 100%;" onclick="logout()">Выйти</button>
@@ -760,7 +588,7 @@
                 <button class="back-button" onclick="toggleSidebar()">←</button>
                 <div class="chat-info">
                     <div class="chat-title" id="currentChatName">
-                        Выберите чат
+                        Общий чат
                     </div>
                     <div class="chat-subtitle" id="chatStatus"></div>
                 </div>
@@ -770,11 +598,7 @@
                 </div>
             </div>
 
-            <div class="messages-container" id="messagesContainer">
-                <div style="text-align: center; color: var(--text-secondary); padding: 40px;">
-                    👈 Выберите чат из списка
-                </div>
-            </div>
+            <div class="messages-container" id="messagesContainer"></div>
 
             <div class="message-input-container">
                 <button class="attach-btn" onclick="triggerFileUpload()">📎</button>
@@ -801,34 +625,6 @@
         </div>
     </div>
 
-    <!-- Create Chat Modal -->
-    <div class="modal" id="createChatModal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeCreateChatModal()">×</button>
-            <h2>Создать публичный чат</h2>
-            <input type="text" class="modal-input" id="chatNameInput" placeholder="Название чата" maxlength="30">
-            <div class="password-input-container">
-                <input type="password" class="modal-input" id="chatPasswordInput" placeholder="Пароль (необязательно)">
-                <button class="toggle-password" onclick="togglePassword('chatPasswordInput')">👁️</button>
-            </div>
-            <input type="text" class="modal-input" id="chatDescriptionInput" placeholder="Описание (необязательно)">
-            <button class="modal-btn" onclick="createPublicChat()">Создать чат</button>
-        </div>
-    </div>
-
-    <!-- Join Chat Modal -->
-    <div class="modal" id="joinChatModal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeJoinChatModal()">×</button>
-            <h2 id="joinChatTitle">Введите пароль</h2>
-            <div class="password-input-container">
-                <input type="password" class="modal-input" id="joinPasswordInput" placeholder="Пароль чата">
-                <button class="toggle-password" onclick="togglePassword('joinPasswordInput')">👁️</button>
-            </div>
-            <button class="modal-btn" onclick="joinProtectedChat()">Войти</button>
-        </div>
-    </div>
-
     <!-- Profile Modal -->
     <div class="modal" id="profileModal">
         <div class="modal-content">
@@ -844,71 +640,27 @@
 
     <script>
         // ============================================================
-        // ⚡⚡⚡ ВСТАВЬТЕ СВОЙ ABLY API KEY СЮДА ⚡⚡⚡
+        // ВАШ ABLY API KEY (уже вставлен)
         // ============================================================
-        // 1. Зайдите в Ably Dashboard (https://ably.com)
-        // 2. Нажмите на ваше приложение "Ток"
-        // 3. В левом меню выберите "API Keys"
-        // 4. Скопируйте первый ключ (с полным доступом)
-        // 5. Вставьте его вместо строки ниже между кавычек
-        // ============================================================
-        
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
-        // ============================================================
-        // Пример: const ABLY_API_KEY = "pYHewv.VrFP9Q:ваш_секретный_ключ";
-        // ============================================================
-
+        // Глобальные переменные
         let ably;
         let currentUser = null;
-        
-        // Data structures
         let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
-        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
-        let myChats = [];
         let onlineUsers = {};
-        let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
-        let currentTab = 'chats';
-        let pendingChatToJoin = null;
-        let channels = {};
+        let messages = [];
+        let generalChatChannel;
 
-        // Initialize demo chats if empty
-        if (publicChats.length === 0) {
-            publicChats = [
-                {
-                    id: 'chat_general',
-                    name: 'Общий чат',
-                    description: 'Для всех пользователей',
-                    password: '',
-                    createdBy: 'system',
-                    createdByName: 'System',
-                    members: [],
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    id: 'chat_work',
-                    name: 'Работа и бизнес',
-                    description: 'Обсуждаем работу',
-                    password: '',
-                    createdBy: 'system',
-                    createdByName: 'System',
-                    members: [],
-                    createdAt: new Date().toISOString()
-                }
-            ];
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
-        }
+        // ID общего чата
+        const GENERAL_CHAT_ID = 'general_chat';
 
-        // Check for saved session
+        // Проверка сохраненной сессии
         function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    
-                    // Load user's chats
-                    myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -918,8 +670,6 @@
                     
                     setTimeout(() => {
                         initAbly();
-                        // Check URL for chat ID
-                        checkUrlForChat();
                     }, 100);
                 } catch (e) {
                     console.error('Failed to load session', e);
@@ -927,61 +677,30 @@
             }
         }
 
-        // Check URL for chat ID
-        function checkUrlForChat() {
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const chat = publicChats.find(c => c.id === hash);
-                if (chat) {
-                    setTimeout(() => {
-                        joinChat(chat);
-                    }, 500);
-                }
-            }
-        }
-
-        // Update URL with chat ID
-        function updateUrlWithChat(chat) {
-            if (chat) {
-                const newUrl = `${window.location.pathname}#${chat.id}`;
-                window.history.pushState({ chatId: chat.id }, chat.name, newUrl);
-                document.title = `${chat.name} - Telegram Web`;
-            } else {
-                const newUrl = window.location.pathname;
-                window.history.pushState({}, 'Telegram Web', newUrl);
-                document.title = 'Telegram Web';
-            }
-        }
-
-        // Call on load
-        checkSavedSession();
-
-        // Initialize Ably
+        // Инициализация Ably
         function initAbly() {
             if (!currentUser) return;
             
-            // Проверка наличия ключа API
-            if (ABLY_API_KEY === "ВСТАВЬТЕ_СЮДА_ВАШ_ABLY_API_КЛЮЧ") {
-                alert("⚠️ ВНИМАНИЕ: Вставьте ваш Ably API ключ в код! Смотрите комментарии в начале скрипта.");
-                return;
-            }
-            
             ably = new Ably.Realtime({
                 key: ABLY_API_KEY,
-                clientId: currentUser.id
+                clientId: currentUser.id,
+                transport: 'web_socket' // Оптимизация транспорта
             });
 
             ably.connection.on('connected', () => {
                 console.log('Connected to Ably');
                 
-                // Subscribe to global presence
-                const globalChannel = ably.channels.get('global-users');
-                globalChannel.presence.enter({ 
+                // Присоединяемся к общему чату
+                joinGeneralChat();
+                
+                // Отслеживаем присутствие
+                const presenceChannel = ably.channels.get('presence');
+                presenceChannel.presence.enter({ 
                     name: currentUser.name, 
                     avatar: currentUser.avatar || '👤' 
                 });
                 
-                globalChannel.presence.subscribe('enter', (member) => {
+                presenceChannel.presence.subscribe('enter', (member) => {
                     if (member.clientId !== currentUser.id) {
                         onlineUsers[member.clientId] = {
                             id: member.clientId,
@@ -989,19 +708,19 @@
                             avatar: member.data.avatar || '👤',
                             online: true
                         };
-                        if (currentTab === 'users') updateChatsList();
+                        updateUsersList();
                     }
                 });
                 
-                globalChannel.presence.subscribe('leave', (member) => {
+                presenceChannel.presence.subscribe('leave', (member) => {
                     if (onlineUsers[member.clientId]) {
-                        onlineUsers[member.clientId].online = false;
-                        if (currentTab === 'users') updateChatsList();
+                        delete onlineUsers[member.clientId];
+                        updateUsersList();
                     }
                 });
                 
-                // Get current members
-                globalChannel.presence.get((err, members) => {
+                // Получаем текущих участников
+                presenceChannel.presence.get((err, members) => {
                     members.forEach(member => {
                         if (member.clientId !== currentUser.id) {
                             onlineUsers[member.clientId] = {
@@ -1012,93 +731,219 @@
                             };
                         }
                     });
-                    if (currentTab === 'users') updateChatsList();
+                    updateUsersList();
                 });
             });
 
-            // Subscribe to global chats channel
-            const chatsChannel = ably.channels.get('global-chats');
-            chatsChannel.subscribe('new-chat', (message) => {
-                if (!publicChats.find(c => c.id === message.data.chat.id)) {
-                    publicChats.push(message.data.chat);
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                    
-                    // Subscribe to new chat channel
-                    const chatChannel = ably.channels.get(`chat-${message.data.chat.id}`);
-                    chatChannel.subscribe('message', handleChatMessage);
-                    
-                    // Get history for this chat
-                    chatChannel.history({ limit: 100 }, (err, resultPage) => {
-                        if (resultPage && resultPage.items.length > 0) {
-                            if (!messages[message.data.chat.id]) messages[message.data.chat.id] = [];
-                            resultPage.items.forEach(item => {
-                                const msg = item.data;
-                                if (!messages[message.data.chat.id].find(m => m.id === msg.id)) {
-                                    messages[message.data.chat.id].push({
-                                        ...msg,
-                                        type: msg.sender === currentUser.id ? 'out' : 'in'
-                                    });
-                                }
-                            });
-                            localStorage.setItem('messages', JSON.stringify(messages));
-                            if (currentChat?.id === message.data.chat.id) renderMessages();
-                        }
-                    });
-                    
-                    if (currentTab === 'public') updateChatsList();
-                }
-            });
-
-            // Subscribe to all existing chats
-            publicChats.forEach(chat => {
-                const chatChannel = ably.channels.get(`chat-${chat.id}`);
-                chatChannel.subscribe('message', handleChatMessage);
-                
-                // Get history for this chat
-                chatChannel.history({ limit: 100 }, (err, resultPage) => {
-                    if (resultPage && resultPage.items.length > 0) {
-                        if (!messages[chat.id]) messages[chat.id] = [];
-                        resultPage.items.forEach(item => {
-                            const msg = item.data;
-                            if (!messages[chat.id].find(m => m.id === msg.id)) {
-                                messages[chat.id].push({
-                                    ...msg,
-                                    type: msg.sender === currentUser.id ? 'out' : 'in'
-                                });
+            // Обновление статуса
+            setInterval(() => {
+                if (ably && currentUser) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.get((err, members) => {
+                        const newOnlineUsers = {};
+                        members.forEach(member => {
+                            if (member.clientId !== currentUser.id) {
+                                newOnlineUsers[member.clientId] = {
+                                    id: member.clientId,
+                                    name: member.data.name,
+                                    avatar: member.data.avatar || '👤',
+                                    online: true
+                                };
                             }
                         });
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        if (currentChat?.id === chat.id) renderMessages();
-                    }
-                });
-            });
-
-            updateChatsList();
+                        onlineUsers = newOnlineUsers;
+                        updateUsersList();
+                    });
+                }
+            }, 10000);
         }
 
-        // Handle chat messages
-        function handleChatMessage(message) {
-            const msg = message.data;
-            const chatId = msg.chatId;
+        // Присоединение к общему чату
+        function joinGeneralChat() {
+            generalChatChannel = ably.channels.get(GENERAL_CHAT_ID);
             
-            if (!messages[chatId]) messages[chatId] = [];
-            
-            const exists = messages[chatId].some(m => m.id === msg.id);
-            if (!exists) {
-                messages[chatId].push({
+            generalChatChannel.subscribe('message', (message) => {
+                const msg = message.data;
+                messages.push({
                     ...msg,
                     type: msg.sender === currentUser.id ? 'out' : 'in'
                 });
-                localStorage.setItem('messages', JSON.stringify(messages));
                 
-                if (currentChat && currentChat.id === chatId) {
+                // Ограничиваем историю последними 100 сообщениями
+                if (messages.length > 100) {
+                    messages = messages.slice(-100);
+                }
+                
+                renderMessages();
+                updateChatStatus();
+            });
+            
+            // Получаем историю сообщений
+            generalChatChannel.history({ limit: 100 }, (err, resultPage) => {
+                if (resultPage && resultPage.items.length > 0) {
+                    messages = [];
+                    resultPage.items.forEach(item => {
+                        const msg = item.data;
+                        messages.push({
+                            ...msg,
+                            type: msg.sender === currentUser.id ? 'out' : 'in'
+                        });
+                    });
                     renderMessages();
                 }
-                updateChatsList();
+            });
+        }
+
+        // Обновление списка пользователей
+        function updateUsersList() {
+            const list = document.getElementById('usersList');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            
+            const sortedUsers = Object.values(onlineUsers).sort((a, b) => 
+                a.name.localeCompare(b.name)
+            );
+            
+            if (sortedUsers.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Нет пользователей онлайн</div>';
+                return;
+            }
+            
+            sortedUsers.forEach(user => {
+                const element = document.createElement('div');
+                element.className = 'user-item';
+                element.innerHTML = `
+                    <div class="user-avatar">${user.avatar || '👤'}</div>
+                    <div class="user-details">
+                        <div class="user-name">
+                            ${user.name}
+                            <span class="online-indicator"></span>
+                        </div>
+                        <div class="user-status">В сети</div>
+                    </div>
+                `;
+                list.appendChild(element);
+            });
+            
+            updateChatStatus();
+        }
+
+        // Обновление статуса чата
+        function updateChatStatus() {
+            const count = Object.keys(onlineUsers).length;
+            document.getElementById('chatStatus').textContent = `${count} участников онлайн`;
+        }
+
+        // Отправка сообщения
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            const fileInput = document.getElementById('fileInput');
+            
+            if (text === '' && (!fileInput.files || fileInput.files.length === 0)) return;
+            
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            
+            if (text) {
+                const message = {
+                    id: messageId,
+                    sender: currentUser.id,
+                    senderName: currentUser.name,
+                    text: text,
+                    time: timeString
+                };
+                
+                messages.push({ ...message, type: 'out' });
+                
+                if (messages.length > 100) {
+                    messages = messages.slice(-100);
+                }
+                
+                if (generalChatChannel) {
+                    generalChatChannel.publish('message', message);
+                }
+                
+                input.value = '';
+                renderMessages();
+            }
+            
+            if (fileInput.files && fileInput.files.length > 0) {
+                Array.from(fileInput.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const mediaMessage = {
+                            id: Date.now() + Math.random().toString(36).substr(2, 5),
+                            sender: currentUser.id,
+                            senderName: currentUser.name,
+                            media: {
+                                url: e.target.result,
+                                type: file.type,
+                                name: file.name
+                            },
+                            time: timeString
+                        };
+                        
+                        messages.push({ ...mediaMessage, type: 'out' });
+                        
+                        if (messages.length > 100) {
+                            messages = messages.slice(-100);
+                        }
+                        
+                        if (generalChatChannel) {
+                            generalChatChannel.publish('message', mediaMessage);
+                        }
+                        
+                        renderMessages();
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                fileInput.value = '';
+                document.getElementById('filePreviewContainer').style.display = 'none';
             }
         }
 
-        // Login
+        // Отрисовка сообщений
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 40px;">Нет сообщений. Напишите что-нибудь!</div>';
+                return;
+            }
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.type}`;
+                
+                let content = '';
+                if (msg.text) {
+                    content = `<div class="message-bubble">${msg.text}</div>`;
+                } else if (msg.media) {
+                    if (msg.media.type.startsWith('image/')) {
+                        content = `<img src="${msg.media.url}" class="message-media" onclick="window.open('${msg.media.url}')">`;
+                    } else if (msg.media.type.startsWith('video/')) {
+                        content = `<video src="${msg.media.url}" class="message-media" controls></video>`;
+                    }
+                }
+                
+                messageDiv.innerHTML = `
+                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}</div>` : ''}
+                    ${content}
+                    <div class="message-time">${msg.time}</div>
+                `;
+                
+                container.appendChild(messageDiv);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Авторизация
         function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -1121,8 +966,6 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
-                myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
-                
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('profileName').textContent = currentUser.name;
@@ -1130,13 +973,12 @@
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 
                 initAbly();
-                checkUrlForChat();
             } else {
                 alert('Неверное имя пользователя или пароль');
             }
         }
 
-        // Register
+        // Регистрация
         function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
@@ -1194,28 +1036,20 @@
             initAbly();
         }
 
-        // Logout
+        // Выход
         function logout() {
             if (ably) {
-                const globalChannel = ably.channels.get('global-users');
-                globalChannel.presence.leave();
+                const presenceChannel = ably.channels.get('presence');
+                presenceChannel.presence.leave();
                 ably.close();
             }
             localStorage.removeItem('currentUser');
             currentUser = null;
-            currentChat = null;
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
-            updateUrlWithChat(null);
-            
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
-            document.getElementById('registerUsername').value = '';
-            document.getElementById('registerPassword').value = '';
-            document.getElementById('registerConfirmPassword').value = '';
         }
 
-        // Switch auth mode
+        // Переключение между формами
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -1235,415 +1069,7 @@
             }
         }
 
-        // Create public chat
-        function createPublicChat() {
-            const name = document.getElementById('chatNameInput').value.trim();
-            const password = document.getElementById('chatPasswordInput').value.trim();
-            const description = document.getElementById('chatDescriptionInput').value.trim();
-            
-            if (!name) {
-                alert('Введите название чата');
-                return;
-            }
-            
-            const newChat = {
-                id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
-                name: name,
-                description: description || '',
-                password: password,
-                createdBy: currentUser.id,
-                createdByName: currentUser.name,
-                members: [currentUser.id],
-                createdAt: new Date().toISOString()
-            };
-            
-            publicChats.push(newChat);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
-            
-            myChats.push(newChat);
-            
-            if (ably) {
-                // Subscribe to new chat channel
-                const chatChannel = ably.channels.get(`chat-${newChat.id}`);
-                chatChannel.subscribe('message', handleChatMessage);
-                
-                // Broadcast new chat to all users
-                const chatsChannel = ably.channels.get('global-chats');
-                chatsChannel.publish('new-chat', { chat: newChat });
-            }
-            
-            joinChat(newChat);
-            closeCreateChatModal();
-        }
-
-        // Join chat
-        function joinChat(chat) {
-            if (!chat) return;
-            
-            if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
-                pendingChatToJoin = chat;
-                document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
-                document.getElementById('joinChatModal').classList.add('active');
-                return;
-            }
-            
-            if (!myChats.find(c => c.id === chat.id)) {
-                myChats.push(chat);
-            }
-            
-            if (!chat.members) chat.members = [];
-            if (!chat.members.includes(currentUser.id)) {
-                chat.members.push(currentUser.id);
-                localStorage.setItem('publicChats', JSON.stringify(publicChats));
-            }
-            
-            if (ably) {
-                const chatChannel = ably.channels.get(`chat-${chat.id}`);
-                chatChannel.subscribe('message', handleChatMessage);
-                
-                // Get history
-                chatChannel.history({ limit: 100 }, (err, resultPage) => {
-                    if (resultPage && resultPage.items.length > 0) {
-                        if (!messages[chat.id]) messages[chat.id] = [];
-                        resultPage.items.forEach(item => {
-                            const msg = item.data;
-                            if (!messages[chat.id].find(m => m.id === msg.id)) {
-                                messages[chat.id].push({
-                                    ...msg,
-                                    type: msg.sender === currentUser.id ? 'out' : 'in'
-                                });
-                            }
-                        });
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        renderMessages();
-                    }
-                });
-            }
-            
-            currentChat = chat;
-            updateUrlWithChat(chat);
-            
-            document.getElementById('currentChatName').innerHTML = `
-                ${chat.name} ${chat.password ? '🔒' : ''}
-                <span class="url-indicator">#${chat.id.substring(0, 8)}</span>
-            `;
-            document.getElementById('chatStatus').textContent = `${chat.description || 'Публичный чат'} • ${chat.members.length} участников`;
-            
-            if (!messages[chat.id]) messages[chat.id] = [];
-            renderMessages();
-            updateChatsList();
-            
-            if (window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('active');
-            }
-        }
-
-        // Join protected chat
-        function joinProtectedChat() {
-            const password = document.getElementById('joinPasswordInput').value;
-            
-            if (pendingChatToJoin && password === pendingChatToJoin.password) {
-                if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
-                pendingChatToJoin.members.push(currentUser.id);
-                localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                
-                joinChat(pendingChatToJoin);
-                closeJoinChatModal();
-            } else {
-                alert('Неверный пароль');
-            }
-        }
-
-        // Send message
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            const fileInput = document.getElementById('fileInput');
-            
-            if (!currentChat) {
-                alert('Сначала выберите чат из списка');
-                return;
-            }
-            
-            if (text === '' && (!fileInput.files || fileInput.files.length === 0)) return;
-            
-            const now = new Date();
-            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-            const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            
-            if (text) {
-                const message = {
-                    type: 'message',
-                    id: messageId,
-                    chatId: currentChat.id,
-                    sender: currentUser.id,
-                    senderName: currentUser.name,
-                    text: text,
-                    time: timeString
-                };
-                
-                if (!messages[currentChat.id]) messages[currentChat.id] = [];
-                
-                messages[currentChat.id].push({
-                    ...message,
-                    type: 'out'
-                });
-                
-                localStorage.setItem('messages', JSON.stringify(messages));
-                
-                if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('message', message);
-                }
-                
-                input.value = '';
-                renderMessages();
-            }
-            
-            if (fileInput.files && fileInput.files.length > 0) {
-                Array.from(fileInput.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const mediaMessage = {
-                            type: 'message',
-                            id: Date.now() + Math.random().toString(36).substr(2, 5),
-                            chatId: currentChat.id,
-                            sender: currentUser.id,
-                            senderName: currentUser.name,
-                            media: {
-                                url: e.target.result,
-                                type: file.type,
-                                name: file.name
-                            },
-                            time: timeString
-                        };
-                        
-                        if (!messages[currentChat.id]) messages[currentChat.id] = [];
-                        
-                        messages[currentChat.id].push({
-                            ...mediaMessage,
-                            type: 'out'
-                        });
-                        
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        
-                        if (ably) {
-                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                            chatChannel.publish('message', mediaMessage);
-                        }
-                        
-                        renderMessages();
-                    };
-                    reader.readAsDataURL(file);
-                });
-                
-                fileInput.value = '';
-                document.getElementById('filePreviewContainer').style.display = 'none';
-            }
-            
-            updateChatsList();
-        }
-
-        // Render messages
-        function renderMessages() {
-            const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-            
-            if (!currentChat) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 40px;">👈 Выберите чат из списка</div>';
-                return;
-            }
-            
-            if (!messages[currentChat.id] || messages[currentChat.id].length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 40px;">Нет сообщений. Напишите что-нибудь!</div>';
-                return;
-            }
-            
-            messages[currentChat.id].forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.type}`;
-                
-                let content = '';
-                if (msg.text) {
-                    content = `<div class="message-bubble">${msg.text}</div>`;
-                } else if (msg.media) {
-                    if (msg.media.type.startsWith('image/')) {
-                        content = `<img src="${msg.media.url}" class="message-media" onclick="window.open('${msg.media.url}')">`;
-                    } else if (msg.media.type.startsWith('video/')) {
-                        content = `<video src="${msg.media.url}" class="message-media" controls></video>`;
-                    }
-                }
-                
-                messageDiv.innerHTML = `
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}</div>` : ''}
-                    ${content}
-                    <div class="message-time">${msg.time}</div>
-                `;
-                
-                container.appendChild(messageDiv);
-            });
-            
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // Update chats list
-        function updateChatsList() {
-            const list = document.getElementById('chatsList');
-            if (!list) return;
-            
-            list.innerHTML = '';
-            
-            let items = [];
-            
-            if (currentTab === 'chats') {
-                items = myChats;
-            } else if (currentTab === 'public') {
-                items = publicChats;
-            } else if (currentTab === 'users') {
-                const allRegisteredUsers = Object.values(users).map(u => ({
-                    id: u.id,
-                    name: u.name,
-                    avatar: u.avatar || '👤',
-                    online: onlineUsers[u.id] ? onlineUsers[u.id].online : false
-                }));
-                
-                items = allRegisteredUsers.filter(u => u.id !== currentUser?.id);
-                items.sort((a, b) => {
-                    if (a.online && !b.online) return -1;
-                    if (!a.online && b.online) return 1;
-                    return a.name.localeCompare(b.name);
-                });
-            }
-            
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            if (searchTerm) {
-                items = items.filter(item => 
-                    (item.name || '').toLowerCase().includes(searchTerm) ||
-                    (item.description || '').toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            if (items.length === 0) {
-                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Ничего не найдено</div>';
-                return;
-            }
-            
-            items.forEach(item => {
-                const element = document.createElement('div');
-                element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
-                
-                if (currentTab === 'users') {
-                    element.onclick = () => createPrivateChat(item);
-                    element.innerHTML = `
-                        <div class="chat-avatar">${item.avatar || '👤'}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">
-                                ${item.name}
-                                ${item.online ? '<span class="online-indicator"></span>' : ''}
-                            </div>
-                            <div class="chat-last-message">
-                                ${item.online ? '🟢 В сети' : '⚫ Был недавно'}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const lastMsg = messages[item.id]?.slice(-1)[0];
-                    
-                    element.onclick = () => joinChat(item);
-                    element.innerHTML = `
-                        <div class="chat-avatar">${(item.name || '?').charAt(0)}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">
-                                ${item.name || 'Без названия'}
-                                ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
-                            </div>
-                            <div class="chat-last-message">
-                                ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
-                            </div>
-                        </div>
-                        <div class="chat-meta">
-                            <div class="chat-time">${lastMsg ? lastMsg.time : ''}</div>
-                            <div class="chat-member-count">${item.members?.length || 0} 👥</div>
-                        </div>
-                    `;
-                }
-                
-                list.appendChild(element);
-            });
-        }
-
-        // Switch tabs
-        function switchTab(tab) {
-            currentTab = tab;
-            
-            document.getElementById('tabChats').className = tab === 'chats' ? 'tab active' : 'tab';
-            document.getElementById('tabPublic').className = tab === 'public' ? 'tab active' : 'tab';
-            document.getElementById('tabUsers').className = tab === 'users' ? 'tab active' : 'tab';
-            
-            document.getElementById('searchInput').value = '';
-            updateChatsList();
-        }
-
-        // Create private chat
-        function createPrivateChat(user) {
-            const chatId = [currentUser.id, user.id].sort().join('-');
-            
-            const privateChat = {
-                id: chatId,
-                name: user.name,
-                isPrivate: true,
-                user: user,
-                members: [currentUser.id, user.id]
-            };
-            
-            if (!myChats.find(c => c.id === chatId)) {
-                myChats.push(privateChat);
-            }
-            
-            if (ably) {
-                const chatChannel = ably.channels.get(`chat-${chatId}`);
-                chatChannel.subscribe('message', handleChatMessage);
-            }
-            
-            currentChat = privateChat;
-            updateUrlWithChat(privateChat);
-            
-            document.getElementById('currentChatName').innerHTML = `
-                ${user.name}
-                ${user.online ? '<span class="online-indicator"></span>' : ''}
-                <span class="url-indicator">#private</span>
-            `;
-            document.getElementById('chatStatus').textContent = user.online ? 'В сети' : 'Был недавно';
-            
-            if (!messages[chatId]) messages[chatId] = [];
-            renderMessages();
-            updateChatsList();
-            switchTab('chats');
-        }
-
-        // Search handler
-        function handleSearch() {
-            updateChatsList();
-        }
-
-        // Modal functions
-        function openCreateChatModal() {
-            document.getElementById('createChatModal').classList.add('active');
-        }
-
-        function closeCreateChatModal() {
-            document.getElementById('createChatModal').classList.remove('active');
-            document.getElementById('chatNameInput').value = '';
-            document.getElementById('chatPasswordInput').value = '';
-            document.getElementById('chatDescriptionInput').value = '';
-        }
-
-        function closeJoinChatModal() {
-            document.getElementById('joinChatModal').classList.remove('active');
-            document.getElementById('joinPasswordInput').value = '';
-            pendingChatToJoin = null;
-        }
-
+        // Профиль
         function openProfileModal() {
             document.getElementById('profileModal').classList.add('active');
             document.getElementById('profileNameInput').value = currentUser.name;
@@ -1670,7 +1096,7 @@
             closeProfileModal();
         }
 
-        // Utility functions
+        // Вспомогательные функции
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             input.type = input.type === 'password' ? 'text' : 'password';
@@ -1710,30 +1136,14 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
-        window.addEventListener('popstate', function(event) {
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const chat = publicChats.find(c => c.id === hash);
-                if (chat) {
-                    joinChat(chat);
-                }
-            } else {
-                currentChat = null;
-                renderMessages();
-                updateUrlWithChat(null);
-            }
-        });
-
+        // Авто-изменение размера textarea
         document.getElementById('messageInput').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                document.getElementById('sidebar').classList.remove('active');
-            }
-        });
+        // Проверка сессии при загрузке
+        checkSavedSession();
     </script>
 </body>
 </html>
