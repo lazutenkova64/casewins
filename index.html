@@ -181,6 +181,7 @@
             border-bottom: 1px solid var(--border-color);
             -webkit-tap-highlight-color: transparent;
             position: relative;
+            animation: slideIn 0.3s ease;
         }
 
         .chat-item:hover {
@@ -359,7 +360,7 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            animation: fadeIn 0.2s ease;
+            animation: messageSlide 0.2s ease-out;
         }
 
         .message.out {
@@ -702,14 +703,25 @@
             cursor: pointer;
         }
 
-        @keyframes fadeIn {
+        @keyframes messageSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateX(-20px);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateX(0);
             }
         }
 
@@ -871,11 +883,7 @@
                 </div>
             </div>
 
-            <div class="messages-container" id="messagesContainer">
-                <div style="text-align: center; color: var(--text-secondary); padding: 40px;">
-                    👈 Выберите чат из списка
-                </div>
-            </div>
+            <div class="messages-container" id="messagesContainer"></div>
 
             <div class="message-input-container">
                 <button class="attach-btn" onclick="triggerFileUpload()">📎</button>
@@ -975,9 +983,11 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // Initialize public chats - очищаем все чаты
-        publicChats = [];
-        localStorage.setItem('publicChats', JSON.stringify(publicChats));
+        // Initialize public chats
+        if (publicChats.length === 0) {
+            publicChats = [];
+            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+        }
 
         // Check for saved session
         function checkSavedSession() {
@@ -1091,6 +1101,19 @@
                     if (currentTab === 'users') updateChatsList();
                 });
 
+                // Global chats channel for public chats
+                const globalChatsChannel = ably.channels.get('global-chats');
+                globalChatsChannel.subscribe('new-chat', (message) => {
+                    const newChat = message.data;
+                    if (!publicChats.find(c => c.id === newChat.id)) {
+                        publicChats.push(newChat);
+                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                        if (currentTab === 'public') {
+                            updateChatsList();
+                        }
+                    }
+                });
+
                 // Subscribe to all my chats
                 myChats.forEach(chat => {
                     subscribeToChat(chat);
@@ -1117,6 +1140,9 @@
                         type: msg.sender === currentUser.id ? 'out' : 'in'
                     });
                     
+                    // Sort messages by time
+                    messages[chat.id].sort((a, b) => a.id - b.id);
+                    
                     // Update unread count if not in this chat
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
@@ -1127,6 +1153,9 @@
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages();
+                        // Clear unread for this chat
+                        unreadCounts[chat.id] = 0;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
                     updateChatsList();
@@ -1362,6 +1391,10 @@
             
             if (ably) {
                 subscribeToChat(newChat);
+                
+                // Broadcast new chat to all users
+                const globalChatsChannel = ably.channels.get('global-chats');
+                globalChatsChannel.publish('new-chat', newChat);
             }
             
             joinChat(newChat);
@@ -1384,6 +1417,11 @@
             if (!myChats.find(c => c.id === chat.id)) {
                 myChats.push(chat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                // Subscribe to new chat
+                if (ably) {
+                    subscribeToChat(chat);
+                }
             }
             
             // Add to members
@@ -1465,6 +1503,9 @@
                     type: 'out'
                 });
                 
+                // Sort messages
+                messages[currentChat.id].sort((a, b) => a.id - b.id);
+                
                 localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
@@ -1500,6 +1541,9 @@
                             ...mediaMessage,
                             type: 'out'
                         });
+                        
+                        // Sort messages
+                        messages[currentChat.id].sort((a, b) => a.id - b.id);
                         
                         localStorage.setItem('messages', JSON.stringify(messages));
                         
@@ -1633,7 +1677,11 @@
                 container.appendChild(messageDiv);
             });
             
-            container.scrollTop = container.scrollHeight;
+            // Smooth scroll to bottom
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
         }
 
         // Handle message click (for mobile)
@@ -1773,10 +1821,10 @@
                 
                 myChats.push(privateChat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-            }
-            
-            if (ably) {
-                subscribeToChat(privateChat);
+                
+                if (ably) {
+                    subscribeToChat(privateChat);
+                }
             }
             
             joinChat(privateChat);
