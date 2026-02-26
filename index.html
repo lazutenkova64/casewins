@@ -600,6 +600,12 @@
             margin-left: 8px;
         }
 
+        .user-status {
+            font-size: 11px;
+            color: var(--accent-green);
+            margin-left: auto;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -608,6 +614,17 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
             }
         }
 
@@ -852,6 +869,7 @@
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
+        let messageHistory = {}; // Store full message history per chat
 
         // Initialize demo chats if empty
         if (publicChats.length === 0) {
@@ -948,14 +966,24 @@
                 presenceTimeout: 60
             });
 
-            // Subscribe to global channels
+            // Set user state
+            pubnub.setState({
+                channels: ['global-users'],
+                state: {
+                    name: currentUser.name,
+                    avatar: currentUser.avatar || '👤',
+                    online: true
+                }
+            });
+
+            // Subscribe to channels
             pubnub.subscribe({
                 channels: ['global-users', 'global-chats'],
                 withPresence: true
             });
 
-            // Subscribe to all chat channels user is in
-            myChats.forEach(chat => {
+            // Subscribe to all chat channels
+            publicChats.forEach(chat => {
                 pubnub.subscribe({
                     channels: [`chat-${chat.id}`]
                 });
@@ -971,26 +999,39 @@
             });
 
             // Broadcast user online
-            pubnub.signal({
-                channel: 'global-users',
-                message: {
-                    type: 'user-online',
-                    user: {
-                        id: currentUser.id,
-                        name: currentUser.name,
-                        avatar: currentUser.avatar || '👤'
+            setTimeout(() => {
+                pubnub.publish({
+                    channel: 'global-users',
+                    message: {
+                        type: 'user-online',
+                        user: {
+                            id: currentUser.id,
+                            name: currentUser.name,
+                            avatar: currentUser.avatar || '👤'
+                        }
                     }
-                }
-            });
+                });
 
-            // Request existing chats
-            pubnub.publish({
-                channel: 'global-chats',
-                message: {
-                    type: 'request-chats',
-                    from: currentUser.id
-                }
-            });
+                // Request all users
+                pubnub.hereNow({
+                    channels: ['global-users'],
+                    includeUUIDs: true,
+                    includeState: true
+                }).then((response) => {
+                    const occupants = response.channels['global-users'].occupants;
+                    occupants.forEach(occ => {
+                        if (occ.uuid !== currentUser.id) {
+                            onlineUsers[occ.uuid] = {
+                                id: occ.uuid,
+                                name: occ.state?.name || occ.uuid,
+                                avatar: occ.state?.avatar || '👤',
+                                online: true
+                            };
+                        }
+                    });
+                    updateChatsList();
+                });
+            }, 500);
 
             updateChatsList();
         }
@@ -998,6 +1039,7 @@
         // Handle incoming messages
         function handleMessage(event) {
             const message = event.message;
+            const channel = event.channel;
             
             if (message.type === 'chat-message') {
                 const chatId = message.chatId;
@@ -1029,29 +1071,49 @@
                 }
                 
             } else if (message.type === 'new-chat') {
-                // New chat created - add to public chats
+                // New chat created
                 if (!publicChats.find(c => c.id === message.chat.id)) {
                     publicChats.push(message.chat);
                     localStorage.setItem('publicChats', JSON.stringify(publicChats));
                     
-                    // Update UI if on public tab
+                    // Subscribe to new chat channel
+                    pubnub.subscribe({
+                        channels: [`chat-${message.chat.id}`]
+                    });
+                    
                     if (currentTab === 'public') {
                         updateChatsList();
                     }
                     
-                    // Show notification
                     showNotification(`Новый чат: ${message.chat.name}`);
                 }
                 
-            } else if (message.type === 'request-chats') {
-                // Someone requested chats - send them our public chats
-                if (message.from !== currentUser.id) {
-                    publicChats.forEach(chat => {
+            } else if (message.type === 'user-online') {
+                // User came online
+                if (message.user.id !== currentUser.id) {
+                    onlineUsers[message.user.id] = {
+                        id: message.user.id,
+                        name: message.user.name,
+                        avatar: message.user.avatar || '👤',
+                        online: true
+                    };
+                    
+                    if (currentTab === 'users') {
+                        updateChatsList();
+                    }
+                }
+                
+            } else if (message.type === 'request-chat-history') {
+                // Someone requested chat history
+                const chatId = message.chatId;
+                if (messages[chatId] && messages[chatId].length > 0) {
+                    // Send message history
+                    messages[chatId].forEach(msg => {
                         pubnub.publish({
                             channel: `user-${message.from}`,
                             message: {
-                                type: 'new-chat',
-                                chat: chat
+                                type: 'chat-message',
+                                ...msg
                             }
                         });
                     });
@@ -1061,7 +1123,6 @@
 
         // Show notification
         function showNotification(text) {
-            // Create temporary notification
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -1087,6 +1148,7 @@
         function handlePresence(event) {
             if (event.channel === 'global-users') {
                 if (event.action === 'join') {
+                    // User joined
                     if (event.uuid !== currentUser.id) {
                         onlineUsers[event.uuid] = {
                             id: event.uuid,
@@ -1095,7 +1157,7 @@
                             online: true
                         };
                         
-                        // Send them our public chats
+                        // Send them all public chats
                         setTimeout(() => {
                             publicChats.forEach(chat => {
                                 pubnub.publish({
@@ -1109,8 +1171,19 @@
                         }, 500);
                     }
                 } else if (event.action === 'leave' || event.action === 'timeout') {
+                    // User left
                     if (onlineUsers[event.uuid]) {
                         onlineUsers[event.uuid].online = false;
+                        
+                        // Remove after 30 seconds if still offline
+                        setTimeout(() => {
+                            if (onlineUsers[event.uuid] && !onlineUsers[event.uuid].online) {
+                                delete onlineUsers[event.uuid];
+                                if (currentTab === 'users') {
+                                    updateChatsList();
+                                }
+                            }
+                        }, 30000);
                     }
                 }
                 
@@ -1333,17 +1406,6 @@
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                
-                // Broadcast member update
-                if (pubnub) {
-                    pubnub.publish({
-                        channel: 'global-chats',
-                        message: {
-                            type: 'update-chat',
-                            chat: chat
-                        }
-                    });
-                }
             }
             
             // Subscribe to chat channel
@@ -1364,11 +1426,23 @@
                 ${chat.name} ${chat.password ? '🔒' : ''}
                 <span class="url-indicator">#${chat.id.substring(0, 8)}</span>
             `;
-            document.getElementById('chatStatus').textContent = chat.description || 'Публичный чат';
+            document.getElementById('chatStatus').textContent = `${chat.description || 'Публичный чат'} • ${chat.members.length} участников`;
             
             // Initialize messages for this chat
             if (!messages[chat.id]) {
                 messages[chat.id] = [];
+                
+                // Request chat history from others
+                if (pubnub) {
+                    pubnub.publish({
+                        channel: 'global-users',
+                        message: {
+                            type: 'request-chat-history',
+                            chatId: chat.id,
+                            from: currentUser.id
+                        }
+                    });
+                }
             }
             
             renderMessages();
@@ -1389,17 +1463,6 @@
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                
-                // Broadcast member update
-                if (pubnub) {
-                    pubnub.publish({
-                        channel: 'global-chats',
-                        message: {
-                            type: 'update-chat',
-                            chat: pendingChatToJoin
-                        }
-                    });
-                }
                 
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
@@ -1564,7 +1627,31 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
+                // Get all online users from the onlineUsers object
                 items = Object.values(onlineUsers).filter(u => u.online && u.id !== currentUser?.id);
+                
+                // Also add users from localStorage who might be offline but registered
+                const allRegisteredUsers = Object.values(users).map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    avatar: u.avatar || '👤',
+                    online: onlineUsers[u.id] ? onlineUsers[u.id].online : false
+                }));
+                
+                // Merge online status
+                items = allRegisteredUsers.filter(u => u.id !== currentUser?.id);
+                items.forEach(user => {
+                    if (onlineUsers[user.id]) {
+                        user.online = onlineUsers[user.id].online;
+                    }
+                });
+                
+                // Sort: online first, then offline
+                items.sort((a, b) => {
+                    if (a.online && !b.online) return -1;
+                    if (!a.online && b.online) return 1;
+                    return a.name.localeCompare(b.name);
+                });
             }
             
             // Search filter
@@ -1592,9 +1679,11 @@
                         <div class="chat-details">
                             <div class="chat-name">
                                 ${item.name}
-                                <span class="online-indicator"></span>
+                                ${item.online ? '<span class="online-indicator"></span>' : ''}
                             </div>
-                            <div class="chat-last-message">Нажмите чтобы начать диалог</div>
+                            <div class="chat-last-message">
+                                ${item.online ? '🟢 В сети' : '⚫ Был недавно'}
+                            </div>
                         </div>
                     `;
                 } else {
@@ -1662,10 +1751,10 @@
             
             document.getElementById('currentChatName').innerHTML = `
                 ${user.name}
-                <span class="online-indicator"></span>
+                ${user.online ? '<span class="online-indicator"></span>' : ''}
                 <span class="url-indicator">#private</span>
             `;
-            document.getElementById('chatStatus').textContent = 'Приватный диалог';
+            document.getElementById('chatStatus').textContent = user.online ? 'В сети' : 'Был недавно';
             
             if (!messages[chatId]) {
                 messages[chatId] = [];
@@ -1793,6 +1882,43 @@
                 document.getElementById('sidebar').classList.remove('active');
             }
         });
+
+        // Periodic online users update
+        setInterval(() => {
+            if (pubnub && currentUser) {
+                pubnub.hereNow({
+                    channels: ['global-users'],
+                    includeUUIDs: true,
+                    includeState: true
+                }).then((response) => {
+                    const occupants = response.channels['global-users'].occupants;
+                    const onlineIds = new Set();
+                    
+                    occupants.forEach(occ => {
+                        if (occ.uuid !== currentUser.id) {
+                            onlineIds.add(occ.uuid);
+                            onlineUsers[occ.uuid] = {
+                                id: occ.uuid,
+                                name: occ.state?.name || occ.uuid,
+                                avatar: occ.state?.avatar || '👤',
+                                online: true
+                            };
+                        }
+                    });
+                    
+                    // Mark users as offline if not in onlineIds
+                    Object.keys(onlineUsers).forEach(id => {
+                        if (!onlineIds.has(id)) {
+                            onlineUsers[id].online = false;
+                        }
+                    });
+                    
+                    if (currentTab === 'users') {
+                        updateChatsList();
+                    }
+                });
+            }
+        }, 10000); // Update every 10 seconds
     </script>
 </body>
 </html>
