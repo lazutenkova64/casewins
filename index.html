@@ -26,6 +26,7 @@
             --message-out: #2b5278;
             --message-in: #2a2a2a;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --unread-badge: #2ea6ff;
         }
 
         body {
@@ -179,6 +180,7 @@
             transition: background-color 0.2s;
             border-bottom: 1px solid var(--border-color);
             -webkit-tap-highlight-color: transparent;
+            position: relative;
         }
 
         .chat-item:hover {
@@ -239,6 +241,20 @@
         .chat-time {
             font-size: 11px;
             color: var(--text-secondary);
+        }
+
+        .chat-unread {
+            background-color: var(--unread-badge);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
         }
 
         .chat-member-count {
@@ -954,27 +970,14 @@
         let onlineUsers = {};
         let currentChat = null;
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
+        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
-        let channels = {};
 
-        // Initialize demo chats if empty
-        if (publicChats.length === 0) {
-            publicChats = [
-                {
-                    id: 'general',
-                    name: 'Общий чат',
-                    description: 'Для всех пользователей',
-                    password: '',
-                    createdBy: 'system',
-                    createdByName: 'System',
-                    members: [],
-                    createdAt: new Date().toISOString()
-                }
-            ];
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
-        }
+        // Initialize public chats - очищаем все чаты
+        publicChats = [];
+        localStorage.setItem('publicChats', JSON.stringify(publicChats));
 
         // Check for saved session
         function checkSavedSession() {
@@ -984,7 +987,7 @@
                     currentUser = JSON.parse(savedUser);
                     
                     // Load user's chats
-                    myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -1007,7 +1010,7 @@
         function checkUrlForChat() {
             const hash = window.location.hash.substring(1);
             if (hash) {
-                const chat = publicChats.find(c => c.id === hash);
+                const chat = myChats.find(c => c.id === hash);
                 if (chat) {
                     setTimeout(() => {
                         joinChat(chat);
@@ -1088,20 +1091,8 @@
                     if (currentTab === 'users') updateChatsList();
                 });
 
-                // Global chats channel
-                const chatsChannel = ably.channels.get('chats');
-                chatsChannel.subscribe('new-chat', (message) => {
-                    if (!publicChats.find(c => c.id === message.data.id)) {
-                        publicChats.push(message.data);
-                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                        
-                        if (currentTab === 'public') updateChatsList();
-                        showNotification(`Новый чат: ${message.data.name}`);
-                    }
-                });
-
-                // Subscribe to all chats
-                publicChats.forEach(chat => {
+                // Subscribe to all my chats
+                myChats.forEach(chat => {
                     subscribeToChat(chat);
                 });
             });
@@ -1116,7 +1107,7 @@
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
                 
-                // Проверяем, нет ли уже такого сообщения
+                // Check if message already exists
                 if (!messages[chat.id]) messages[chat.id] = [];
                 
                 const exists = messages[chat.id].some(m => m.id === msg.id);
@@ -1126,7 +1117,12 @@
                         type: msg.sender === currentUser.id ? 'out' : 'in'
                     });
                     
-                    // Сохраняем в localStorage
+                    // Update unread count if not in this chat
+                    if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
+                        unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                    }
+                    
                     localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chat.id) {
@@ -1169,7 +1165,6 @@
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
                     
-                    // Добавляем только новые сообщения
                     resultPage.items.forEach(item => {
                         const msg = item.data;
                         const exists = messages[chat.id].some(m => m.id === msg.id);
@@ -1181,36 +1176,17 @@
                         }
                     });
                     
-                    // Сортируем по времени
                     messages[chat.id].sort((a, b) => a.id - b.id);
-                    
                     localStorage.setItem('messages', JSON.stringify(messages));
-                    if (currentChat?.id === chat.id) renderMessages();
+                    
+                    if (currentChat?.id === chat.id) {
+                        renderMessages();
+                        // Clear unread for this chat
+                        unreadCounts[chat.id] = 0;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                    }
                 }
             });
-        }
-
-        // Show notification
-        function showNotification(text) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--accent-blue);
-                color: white;
-                padding: 12px 20px;
-                border-radius: 12px;
-                z-index: 3000;
-                animation: slideIn 0.3s ease;
-                box-shadow: var(--shadow);
-            `;
-            notification.textContent = text;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
         }
 
         // Login
@@ -1237,7 +1213,8 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
-                myChats = publicChats.filter(chat => chat.members && chat.members.includes(currentUser.id));
+                // Load user's chats
+                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
@@ -1379,15 +1356,12 @@
             publicChats.push(newChat);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
+            // Add to my chats and save
             myChats.push(newChat);
+            localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             
             if (ably) {
-                // Subscribe to new chat
                 subscribeToChat(newChat);
-                
-                // Broadcast new chat
-                const chatsChannel = ably.channels.get('chats');
-                chatsChannel.publish('new-chat', newChat);
             }
             
             joinChat(newChat);
@@ -1406,16 +1380,16 @@
                 return;
             }
             
-            // Add to my chats
+            // Add to my chats if not already
             if (!myChats.find(c => c.id === chat.id)) {
                 myChats.push(chat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             }
             
             // Add to members
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
-                localStorage.setItem('publicChats', JSON.stringify(publicChats));
             }
             
             // Set current chat
@@ -1424,11 +1398,15 @@
             
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
-                <span class="url-indicator">#${chat.id.substring(0, 8)}</span>
             `;
-            document.getElementById('chatStatus').textContent = `${chat.description || 'Публичный чат'} • ${chat.members?.length || 0} участников`;
+            document.getElementById('chatStatus').textContent = chat.description || 'Чат';
             
             if (!messages[chat.id]) messages[chat.id] = [];
+            
+            // Clear unread count for this chat
+            unreadCounts[chat.id] = 0;
+            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+            
             renderMessages();
             updateChatsList();
             
@@ -1444,7 +1422,6 @@
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
-                localStorage.setItem('publicChats', JSON.stringify(publicChats));
                 
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
@@ -1741,6 +1718,7 @@
                     `;
                 } else {
                     const lastMsg = messages[item.id]?.slice(-1)[0];
+                    const unread = unreadCounts[item.id] || 0;
                     
                     element.onclick = () => joinChat(item);
                     element.innerHTML = `
@@ -1756,7 +1734,7 @@
                         </div>
                         <div class="chat-meta">
                             <div class="chat-time">${lastMsg ? lastMsg.time : ''}</div>
-                            <div class="chat-member-count">${item.members?.length || 0} 👥</div>
+                            ${unread > 0 ? `<div class="chat-unread">${unread}</div>` : ''}
                         </div>
                     `;
                 }
@@ -1781,36 +1759,27 @@
         function createPrivateChat(user) {
             const chatId = [currentUser.id, user.id].sort().join('-');
             
-            const privateChat = {
-                id: chatId,
-                name: user.name,
-                isPrivate: true,
-                user: user,
-                members: [currentUser.id, user.id]
-            };
+            // Check if chat already exists
+            let privateChat = myChats.find(c => c.id === chatId);
             
-            if (!myChats.find(c => c.id === chatId)) {
+            if (!privateChat) {
+                privateChat = {
+                    id: chatId,
+                    name: user.name,
+                    isPrivate: true,
+                    user: user,
+                    members: [currentUser.id, user.id]
+                };
+                
                 myChats.push(privateChat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             }
             
             if (ably) {
                 subscribeToChat(privateChat);
             }
             
-            currentChat = privateChat;
-            updateUrlWithChat(privateChat);
-            
-            document.getElementById('currentChatName').innerHTML = `
-                ${user.name}
-                ${user.online ? '<span class="online-indicator"></span>' : ''}
-                <span class="url-indicator">#private</span>
-            `;
-            document.getElementById('chatStatus').textContent = user.online ? 'В сети' : 'Был недавно';
-            
-            if (!messages[chatId]) messages[chatId] = [];
-            renderMessages();
-            updateChatsList();
-            switchTab('chats');
+            joinChat(privateChat);
         }
 
         // Search handler
@@ -1921,7 +1890,7 @@
         window.addEventListener('popstate', function(event) {
             const hash = window.location.hash.substring(1);
             if (hash) {
-                const chat = publicChats.find(c => c.id === hash);
+                const chat = myChats.find(c => c.id === hash);
                 if (chat) {
                     joinChat(chat);
                 }
