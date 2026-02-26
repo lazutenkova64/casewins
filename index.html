@@ -4,10 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Общий чат</title>
+    <!-- Подключаем Ably -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
-        body { background: #1a1a1a; color: white; height: 100vh; display: flex; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: system-ui, sans-serif; 
+        }
+        
+        body { 
+            background: #1a1a1a; 
+            color: white; 
+            height: 100vh; 
+            display: flex; 
+        }
         
         .sidebar {
             width: 250px;
@@ -165,7 +177,10 @@
         
         .login-modal {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
             background: rgba(0,0,0,0.9);
             display: flex;
             align-items: center;
@@ -279,7 +294,7 @@
     </div>
 
     <script>
-        // ВАШ КЛЮЧ
+        // ВАШ КЛЮЧ ABLY - проверьте что он правильный!
         const ABLY_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
         let ably;
@@ -288,71 +303,78 @@
         let onlineUsers = {};
         let messages = [];
 
-        // ПРОВЕРКА КЛЮЧА - сразу видно, работает или нет
+        console.log("Запуск чата...");
         console.log("Ключ Ably:", ABLY_KEY);
         
         function initAbly() {
             if (!currentUser) return;
             
-            ably = new Ably.Realtime({ 
-                key: ABLY_KEY, 
-                clientId: currentUser.id 
-            });
-            
-            ably.connection.on('connected', () => {
-                console.log('✅ Подключено к Ably!');
-                
-                // Канал присутствия
-                const presence = ably.channels.get('presence');
-                presence.presence.enter({ name: currentUser.name });
-                
-                presence.presence.subscribe('enter', (member) => {
-                    if (member.clientId !== currentUser.id) {
-                        onlineUsers[member.clientId] = member.data.name;
-                        updateUsersList();
-                    }
+            try {
+                ably = new Ably.Realtime({ 
+                    key: ABLY_KEY, 
+                    clientId: currentUser.id 
                 });
                 
-                presence.presence.subscribe('leave', (member) => {
-                    delete onlineUsers[member.clientId];
-                    updateUsersList();
-                });
-                
-                presence.presence.get((err, members) => {
-                    members.forEach(m => {
-                        if (m.clientId !== currentUser.id) {
-                            onlineUsers[m.clientId] = m.data.name;
+                ably.connection.on('connected', () => {
+                    console.log('✅ Подключено к Ably!');
+                    
+                    // Канал присутствия
+                    const presence = ably.channels.get('presence');
+                    presence.presence.enter({ name: currentUser.name });
+                    
+                    presence.presence.subscribe('enter', (member) => {
+                        if (member.clientId !== currentUser.id) {
+                            onlineUsers[member.clientId] = member.data.name;
+                            updateUsersList();
                         }
                     });
-                    updateUsersList();
-                });
-                
-                // Канал чата
-                const chat = ably.channels.get('general');
-                chat.subscribe('message', (msg) => {
-                    messages.push(msg.data);
-                    if (messages.length > 50) messages.shift();
-                    renderMessages();
-                });
-                
-                chat.history({ limit: 50 }, (err, page) => {
-                    if (page && page.items.length) {
-                        messages = page.items.map(i => i.data);
+                    
+                    presence.presence.subscribe('leave', (member) => {
+                        delete onlineUsers[member.clientId];
+                        updateUsersList();
+                    });
+                    
+                    presence.presence.get((err, members) => {
+                        members.forEach(m => {
+                            if (m.clientId !== currentUser.id) {
+                                onlineUsers[m.clientId] = m.data.name;
+                            }
+                        });
+                        updateUsersList();
+                    });
+                    
+                    // Канал чата
+                    const chat = ably.channels.get('general');
+                    chat.subscribe('message', (msg) => {
+                        messages.push(msg.data);
+                        if (messages.length > 50) messages.shift();
                         renderMessages();
-                    }
+                    });
+                    
+                    chat.history({ limit: 50 }, (err, page) => {
+                        if (page && page.items.length) {
+                            messages = page.items.map(i => i.data);
+                            renderMessages();
+                        }
+                    });
                 });
-            });
-            
-            ably.connection.on('failed', (err) => {
-                console.error('❌ Ошибка подключения:', err);
-                alert('Ошибка подключения к Ably. Проверьте ключ.');
-            });
+                
+                ably.connection.on('failed', (err) => {
+                    console.error('❌ Ошибка подключения:', err);
+                    alert('Ошибка подключения к Ably. Проверьте ключ.');
+                });
+            } catch (e) {
+                console.error('Ошибка инициализации:', e);
+                alert('Ошибка при запуске чата');
+            }
         }
 
         function updateUsersList() {
             const list = document.getElementById('usersList');
             const count = document.getElementById('onlineCount');
             const status = document.getElementById('chatStatus');
+            
+            if (!list) return;
             
             list.innerHTML = '';
             const names = Object.values(onlineUsers);
@@ -372,6 +394,8 @@
 
         function renderMessages() {
             const container = document.getElementById('messages');
+            if (!container) return;
+            
             container.innerHTML = '';
             
             messages.forEach(msg => {
@@ -464,12 +488,15 @@
             document.querySelectorAll('.tab-btn')[1].classList.add('active');
         }
 
-        // Проверяем сохраненную сессию
-        const saved = localStorage.getItem('currentUser');
-        if (saved) {
-            currentUser = JSON.parse(saved);
-            startApp();
-        }
+        // Проверяем сохраненную сессию при загрузке
+        window.onload = function() {
+            console.log("Страница загружена");
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                startApp();
+            }
+        };
     </script>
 </body>
 </html>
