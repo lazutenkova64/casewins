@@ -23,6 +23,7 @@
             --accent-blue: #2b6ef0;
             --accent-blue-hover: #1a5bd6;
             --accent-green: #22c55e;
+            --accent-red: #ef4444;
             --accent-purple: #8b5cf6;
             --border-color: #2f3136;
             --message-out: #2b6ef0;
@@ -32,13 +33,12 @@
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
             --unread-badge: #2b6ef0;
             --online-color: #22c55e;
-            --offline-color: #ef4444;
+            --offline-color: #6b7280;
             --scrollbar-track: rgba(255, 255, 255, 0.05);
             --scrollbar-thumb: rgba(255, 255, 255, 0.15);
             --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
         }
 
-        /* Modern scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -152,7 +152,6 @@
             background-color: var(--offline-color);
             border-radius: 50%;
             margin-left: 6px;
-            box-shadow: 0 0 8px var(--offline-color);
         }
 
         .admin-badge {
@@ -186,7 +185,7 @@
             border-radius: 12px;
             font-size: 14px;
             font-weight: 500;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -271,7 +270,7 @@
             border-bottom: 1px solid var(--border-color);
             -webkit-tap-highlight-color: transparent;
             position: relative;
-            animation: fadeIn 0.3s ease;
+            min-height: 72px;
         }
 
         .chat-item:hover {
@@ -379,6 +378,7 @@
         .delete-chat-btn:hover {
             background: var(--bg-hover);
             color: #ef4444;
+            transform: scale(1.1);
         }
 
         .chat-area {
@@ -479,6 +479,7 @@
             flex-direction: column;
             gap: 12px;
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
         }
 
         .message {
@@ -486,8 +487,8 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            animation: messageAppear 0.2s ease;
-            will-change: transform, opacity;
+            opacity: 0;
+            animation: messageAppear 0.3s ease forwards;
         }
 
         .message.out {
@@ -927,7 +928,7 @@
         @keyframes messageAppear {
             0% {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(20px);
             }
             100% {
                 opacity: 1;
@@ -1240,32 +1241,33 @@
         let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
-        let onlineUsers = {};
+        let onlineUsers = new Set(); // Множество ID онлайн пользователей
         let currentChat = null;
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
-        let allRegisteredUsers = {};
 
-        // Initialize all registered users
-        function updateAllUsers() {
-            allRegisteredUsers = {};
-            Object.keys(users).forEach(key => {
+        // Initialize public chats
+        localStorage.setItem('publicChats', JSON.stringify(publicChats));
+
+        // Get all registered users
+        function getAllUsers() {
+            const userList = [];
+            for (let key in users) {
                 const user = users[key];
-                allRegisteredUsers[user.id] = {
+                userList.push({
                     id: user.id,
                     name: user.name,
                     avatar: user.avatar || '👤',
                     bio: user.bio || '',
-                    online: onlineUsers[user.id] ? onlineUsers[user.id].online : false
-                };
-            });
+                    online: onlineUsers.has(user.id),
+                    isAdmin: user.name === ADMIN_USERNAME
+                });
+            }
+            return userList;
         }
-
-        // Initialize public chats (хранятся постоянно)
-        localStorage.setItem('publicChats', JSON.stringify(publicChats));
 
         // Check for saved session
         function checkSavedSession() {
@@ -1273,11 +1275,6 @@
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    
-                    // Check if admin
-                    if (currentUser.name === ADMIN_USERNAME) {
-                        document.getElementById('adminBadge').style.display = 'inline-block';
-                    }
                     
                     // Load user's chats
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
@@ -1288,8 +1285,6 @@
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileBioInput').value = currentUser.bio || '';
-                    
-                    updateAllUsers();
                     
                     setTimeout(() => {
                         initAbly();
@@ -1305,7 +1300,7 @@
         function checkUrlForChat() {
             const hash = window.location.hash.substring(1);
             if (hash) {
-                const chat = myChats.find(c => c.id === hash);
+                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
                 if (chat) {
                     setTimeout(() => {
                         joinChat(chat);
@@ -1330,17 +1325,14 @@
         // Call on load
         checkSavedSession();
 
-        // Initialize Ably with optimized settings
+        // Initialize Ably
         function initAbly() {
             if (!currentUser) return;
             
             ably = new Ably.Realtime({
                 key: ABLY_API_KEY,
                 clientId: currentUser.id,
-                transports: ['web_socket'],
-                disconnectedRetryTimeout: 1000,
-                suspendedRetryTimeout: 2000,
-                realtimeRequestTimeout: 5000
+                transports: ['web_socket']
             });
 
             ably.connection.on('connected', () => {
@@ -1357,45 +1349,34 @@
                 
                 presenceChannel.presence.subscribe('enter', (member) => {
                     if (member.clientId !== currentUser.id) {
-                        onlineUsers[member.clientId] = {
-                            id: member.clientId,
-                            name: member.data.name,
-                            avatar: member.data.avatar || '👤',
-                            bio: member.data.bio || '',
-                            online: true,
-                            isAdmin: member.data.isAdmin
-                        };
-                        updateAllUsers();
-                        if (currentTab === 'users') updateChatsList();
+                        onlineUsers.add(member.clientId);
+                        if (currentTab === 'users') {
+                            updateChatsList();
+                        }
                     }
                 });
                 
                 presenceChannel.presence.subscribe('leave', (member) => {
-                    if (onlineUsers[member.clientId]) {
-                        onlineUsers[member.clientId].online = false;
-                        updateAllUsers();
-                        if (currentTab === 'users') updateChatsList();
+                    if (member.clientId !== currentUser.id) {
+                        onlineUsers.delete(member.clientId);
+                        if (currentTab === 'users') {
+                            updateChatsList();
+                        }
                     }
                 });
                 
                 presenceChannel.presence.get((err, members) => {
                     members.forEach(member => {
                         if (member.clientId !== currentUser.id) {
-                            onlineUsers[member.clientId] = {
-                                id: member.clientId,
-                                name: member.data.name,
-                                avatar: member.data.avatar || '👤',
-                                bio: member.data.bio || '',
-                                online: true,
-                                isAdmin: member.data.isAdmin
-                            };
+                            onlineUsers.add(member.clientId);
                         }
                     });
-                    updateAllUsers();
-                    if (currentTab === 'users') updateChatsList();
+                    if (currentTab === 'users') {
+                        updateChatsList();
+                    }
                 });
 
-                // Global chats channel for public chats
+                // Global chats channel
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.subscribe('new-chat', (message) => {
                     const newChat = message.data;
@@ -1429,7 +1410,16 @@
                     publicChats = publicChats.filter(c => c.id !== chatId);
                     localStorage.setItem('publicChats', JSON.stringify(publicChats));
                     
-                    // Remove from all users' myChats (will be synced when they load)
+                    // Remove from myChats for all users
+                    const allKeys = Object.keys(localStorage);
+                    allKeys.forEach(key => {
+                        if (key.startsWith('myChats_')) {
+                            const userChats = JSON.parse(localStorage.getItem(key)) || [];
+                            const filteredChats = userChats.filter(c => c.id !== chatId);
+                            localStorage.setItem(key, JSON.stringify(filteredChats));
+                        }
+                    });
+                    
                     // Delete all messages in this chat
                     delete messages[chatId];
                     localStorage.setItem('messages', JSON.stringify(messages));
@@ -1440,9 +1430,12 @@
                         updateUrlWithChat(null);
                     }
                     
-                    if (currentTab === 'public') {
+                    if (currentTab === 'public' || currentTab === 'chats') {
                         updateChatsList();
                     }
+                    
+                    // Update myChats for current user
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 });
 
                 // Subscribe to all my chats
@@ -1454,17 +1447,16 @@
             updateChatsList();
         }
 
-        // Subscribe to chat channel with optimized message handling
+        // Subscribe to chat channel
         function subscribeToChat(chat) {
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             
-            // Remove any existing listeners to prevent duplicates
+            // Remove any existing listeners
             chatChannel.unsubscribe();
             
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
                 
-                // Check if message already exists
                 if (!messages[chat.id]) messages[chat.id] = [];
                 
                 const exists = messages[chat.id].some(m => m.id === msg.id);
@@ -1474,7 +1466,6 @@
                         type: msg.sender === currentUser.id ? 'out' : 'in'
                     });
                     
-                    // Update unread count if not in this chat
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
@@ -1484,7 +1475,6 @@
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages();
-                        // Clear unread for this chat
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
@@ -1520,34 +1510,31 @@
                 }
             });
             
-            // Get history for this chat - но не задерживаем отображение
-            setTimeout(() => {
-                chatChannel.history({ limit: 200 }, (err, resultPage) => {
-                    if (resultPage && resultPage.items.length > 0) {
-                        if (!messages[chat.id]) messages[chat.id] = [];
-                        
-                        resultPage.items.forEach(item => {
-                            const msg = item.data;
-                            const exists = messages[chat.id].some(m => m.id === msg.id);
-                            if (!exists) {
-                                messages[chat.id].push({
-                                    ...msg,
-                                    type: msg.sender === currentUser.id ? 'out' : 'in'
-                                });
-                            }
-                        });
-                        
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        
-                        if (currentChat?.id === chat.id) {
-                            renderMessages();
-                            // Clear unread for this chat
-                            unreadCounts[chat.id] = 0;
-                            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+            // Get history
+            chatChannel.history({ limit: 200 }, (err, resultPage) => {
+                if (resultPage && resultPage.items.length > 0) {
+                    if (!messages[chat.id]) messages[chat.id] = [];
+                    
+                    resultPage.items.forEach(item => {
+                        const msg = item.data;
+                        const exists = messages[chat.id].some(m => m.id === msg.id);
+                        if (!exists) {
+                            messages[chat.id].push({
+                                ...msg,
+                                type: msg.sender === currentUser.id ? 'out' : 'in'
+                            });
                         }
+                    });
+                    
+                    localStorage.setItem('messages', JSON.stringify(messages));
+                    
+                    if (currentChat?.id === chat.id) {
+                        renderMessages();
+                        unreadCounts[chat.id] = 0;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
-                });
-            }, 100);
+                }
+            });
         }
 
         // Login
@@ -1574,7 +1561,6 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
-                // Load user's chats
                 myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 
                 document.getElementById('loginModal').classList.remove('active');
@@ -1584,7 +1570,6 @@
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
                 
-                updateAllUsers();
                 initAbly();
                 checkUrlForChat();
             } else {
@@ -1649,7 +1634,6 @@
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             
-            updateAllUsers();
             initAbly();
         }
 
@@ -1702,7 +1686,6 @@
             document.getElementById('tabPublic').className = tab === 'public' ? 'tab active' : 'tab';
             document.getElementById('tabUsers').className = tab === 'users' ? 'tab active' : 'tab';
             
-            // Show/hide create chat button
             const createBtn = document.getElementById('createChatBtn');
             if (tab === 'public') {
                 createBtn.style.display = 'flex';
@@ -1740,7 +1723,6 @@
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             if (ably) {
-                // Broadcast new chat to all users
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.publish('new-chat', newChat);
             }
@@ -1753,7 +1735,6 @@
         function joinChat(chat) {
             if (!chat) return;
             
-            // Check password
             if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
                 pendingChatToJoin = chat;
                 document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
@@ -1761,13 +1742,11 @@
                 return;
             }
             
-            // Add to members
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
             }
             
-            // Set current chat
             currentChat = chat;
             updateUrlWithChat(chat);
             
@@ -1779,7 +1758,6 @@
             
             if (!messages[chat.id]) messages[chat.id] = [];
             
-            // Clear unread count for this chat
             unreadCounts[chat.id] = 0;
             localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
@@ -1818,12 +1796,10 @@
             
             if (text === '') return;
             
-            // Add to my chats if not already (first message in this chat)
             if (!myChats.find(c => c.id === currentChat.id)) {
                 myChats.push(currentChat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                 
-                // Subscribe to this chat
                 if (ably) {
                     subscribeToChat(currentChat);
                 }
@@ -1833,7 +1809,6 @@
             const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             
-            // Send text
             const message = {
                 id: messageId,
                 chatId: currentChat.id,
@@ -1858,7 +1833,6 @@
             }
             
             input.value = '';
-            // Hide emoji picker after sending
             document.getElementById('emojiPicker').style.display = 'none';
             renderMessages();
             updateChatsList();
@@ -1893,11 +1867,18 @@
             
             if (!confirm('Удалить этот чат для всех пользователей?')) return;
             
-            // Remove from public chats
             publicChats = publicChats.filter(c => c.id !== chatId);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
-            // Delete all messages
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (key.startsWith('myChats_')) {
+                    const userChats = JSON.parse(localStorage.getItem(key)) || [];
+                    const filteredChats = userChats.filter(c => c.id !== chatId);
+                    localStorage.setItem(key, JSON.stringify(filteredChats));
+                }
+            });
+            
             delete messages[chatId];
             localStorage.setItem('messages', JSON.stringify(messages));
             
@@ -1914,7 +1895,9 @@
                 updateUrlWithChat(null);
             }
             
-            if (currentTab === 'public') {
+            myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+            
+            if (currentTab === 'public' || currentTab === 'chats') {
                 updateChatsList();
             }
         }
@@ -1925,12 +1908,10 @@
             
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             
-            // Allow delete if user is sender OR is admin
             if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
                 if (currentUser.name === ADMIN_USERNAME && msg.sender !== currentUser.id) {
                     adminDeleteMessage(currentChat.id, messageId);
                 } else {
-                    // Regular user delete
                     const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
                     if (msgIndex !== -1) {
                         messages[currentChat.id].splice(msgIndex, 1);
@@ -2003,7 +1984,6 @@
                 return;
             }
             
-            // Sort messages by time
             const sortedMessages = [...messages[currentChat.id]].sort((a, b) => a.id - b.id);
             
             sortedMessages.forEach(msg => {
@@ -2023,7 +2003,6 @@
                 }
                 
                 let actions = '';
-                // Show delete for sender OR admin
                 if (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME) {
                     actions = `
                         <div class="message-actions">
@@ -2043,7 +2022,6 @@
                 container.appendChild(messageDiv);
             });
             
-            // Smooth scroll to bottom - без дерганий
             setTimeout(() => {
                 container.scrollTop = container.scrollHeight;
             }, 10);
@@ -2061,7 +2039,7 @@
             }
         }
 
-        // Open media in fullscreen
+        // Open media
         function openMedia(url) {
             const viewer = document.getElementById('mediaViewer');
             const content = document.getElementById('mediaViewerContent');
@@ -2086,6 +2064,7 @@
             const list = document.getElementById('chatsList');
             if (!list) return;
             
+            const scrollPos = list.scrollTop;
             list.innerHTML = '';
             
             let items = [];
@@ -2095,7 +2074,7 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
-                items = Object.values(allRegisteredUsers);
+                items = getAllUsers();
             }
             
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -2116,7 +2095,6 @@
                 element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
                 
                 if (currentTab === 'users') {
-                    const isOnline = item.online || false;
                     element.onclick = () => createPrivateChat(item);
                     element.innerHTML = `
                         <div class="chat-avatar">${item.avatar || '👤'}</div>
@@ -2124,9 +2102,9 @@
                             <div class="chat-name">
                                 ${item.name}
                                 ${item.isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
-                                <span class="${isOnline ? 'online-indicator' : 'offline-indicator'}"></span>
+                                <span class="${item.online ? 'online-indicator' : 'offline-indicator'}"></span>
                             </div>
-                            <div class="chat-last-message">${item.bio || (isOnline ? 'В сети' : 'Был недавно')}</div>
+                            <div class="chat-last-message">${item.bio || (item.online ? 'В сети' : 'Был недавно')}</div>
                         </div>
                     `;
                 } else {
@@ -2155,13 +2133,14 @@
                 
                 list.appendChild(element);
             });
+            
+            list.scrollTop = scrollPos;
         }
 
         // Create private chat
         function createPrivateChat(user) {
             const chatId = [currentUser.id, user.id].sort().join('-');
             
-            // Check if chat already exists
             let privateChat = myChats.find(c => c.id === chatId);
             
             if (!privateChat) {
@@ -2172,6 +2151,12 @@
                     user: user,
                     members: [currentUser.id, user.id]
                 };
+                myChats.push(privateChat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                if (ably) {
+                    subscribeToChat(privateChat);
+                }
             }
             
             joinChat(privateChat);
@@ -2273,7 +2258,7 @@
         window.addEventListener('popstate', function(event) {
             const hash = window.location.hash.substring(1);
             if (hash) {
-                const chat = myChats.find(c => c.id === hash);
+                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
                 if (chat) {
                     joinChat(chat);
                 }
@@ -2297,7 +2282,7 @@
             }
         });
 
-        // Close media viewer with Escape key
+        // Close media viewer with Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeMediaViewer();
