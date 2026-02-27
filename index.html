@@ -33,7 +33,7 @@
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
             --unread-badge: #2b6ef0;
             --online-color: #22c55e;
-            --offline-color: #6b7280;
+            --offline-color: #ef4444;
             --scrollbar-track: rgba(255, 255, 255, 0.05);
             --scrollbar-thumb: rgba(255, 255, 255, 0.15);
             --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
@@ -152,6 +152,7 @@
             background-color: var(--offline-color);
             border-radius: 50%;
             margin-left: 6px;
+            box-shadow: 0 0 8px var(--offline-color);
         }
 
         .admin-badge {
@@ -1249,7 +1250,10 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // Initialize public chats
+        // Initialize public chats if empty
+        if (publicChats.length === 0) {
+            // Можно добавить демо-чат если нужно
+        }
         localStorage.setItem('publicChats', JSON.stringify(publicChats));
 
         // Get all registered users
@@ -1376,7 +1380,7 @@
                     }
                 });
 
-                // Global chats channel
+                // Global chats channel for public chats
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.subscribe('new-chat', (message) => {
                     const newChat = message.data;
@@ -1441,6 +1445,34 @@
                 // Subscribe to all my chats
                 myChats.forEach(chat => {
                     subscribeToChat(chat);
+                });
+                
+                // Also subscribe to public chats that user might join
+                publicChats.forEach(chat => {
+                    if (!myChats.find(c => c.id === chat.id)) {
+                        // Just subscribe to channel without adding to myChats
+                        const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                        chatChannel.subscribe('message', (message) => {
+                            const msg = message.data;
+                            
+                            if (!messages[chat.id]) messages[chat.id] = [];
+                            
+                            const exists = messages[chat.id].some(m => m.id === msg.id);
+                            if (!exists) {
+                                messages[chat.id].push({
+                                    ...msg,
+                                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                                });
+                                
+                                if (currentChat?.id === chat.id && msg.sender !== currentUser.id) {
+                                    renderMessages();
+                                }
+                                
+                                localStorage.setItem('messages', JSON.stringify(messages));
+                                updateChatsList();
+                            }
+                        });
+                    }
                 });
             });
 
@@ -1725,6 +1757,29 @@
             if (ably) {
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.publish('new-chat', newChat);
+                
+                // Subscribe to this chat
+                const chatChannel = ably.channels.get(`chat-${newChat.id}`);
+                chatChannel.subscribe('message', (message) => {
+                    const msg = message.data;
+                    
+                    if (!messages[newChat.id]) messages[newChat.id] = [];
+                    
+                    const exists = messages[newChat.id].some(m => m.id === msg.id);
+                    if (!exists) {
+                        messages[newChat.id].push({
+                            ...msg,
+                            type: msg.sender === currentUser.id ? 'out' : 'in'
+                        });
+                        
+                        localStorage.setItem('messages', JSON.stringify(messages));
+                        
+                        if (currentChat?.id === newChat.id) {
+                            renderMessages();
+                        }
+                        updateChatsList();
+                    }
+                });
             }
             
             joinChat(newChat);
@@ -1745,6 +1800,16 @@
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
+            }
+            
+            // Add to my chats if not already
+            if (!myChats.find(c => c.id === chat.id)) {
+                myChats.push(chat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                if (ably) {
+                    subscribeToChat(chat);
+                }
             }
             
             currentChat = chat;
@@ -1796,15 +1861,6 @@
             
             if (text === '') return;
             
-            if (!myChats.find(c => c.id === currentChat.id)) {
-                myChats.push(currentChat);
-                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-                
-                if (ably) {
-                    subscribeToChat(currentChat);
-                }
-            }
-            
             const now = new Date();
             const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -1838,26 +1894,71 @@
             updateChatsList();
         }
 
-        // Admin delete message
-        function adminDeleteMessage(chatId, messageId) {
-            if (currentUser.name !== ADMIN_USERNAME) return;
+        // Delete message (user or admin)
+        function deleteMessage(messageId) {
+            if (!currentChat) return;
             
-            if (messages[chatId]) {
-                messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
+            const msg = messages[currentChat.id].find(m => m.id === messageId);
+            
+            // Allow delete if user is sender OR is admin
+            if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
+                messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
                 localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
-                    const adminChannel = ably.channels.get('admin-commands');
-                    adminChannel.publish('delete-message', {
-                        chatId: chatId,
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('delete', {
                         messageId: messageId
+                    });
+                    
+                    // Also publish to admin channel if admin
+                    if (currentUser.name === ADMIN_USERNAME) {
+                        const adminChannel = ably.channels.get('admin-commands');
+                        adminChannel.publish('delete-message', {
+                            chatId: currentChat.id,
+                            messageId: messageId
+                        });
+                    }
+                }
+                
+                renderMessages();
+                updateChatsList();
+            }
+        }
+
+        // Edit message
+        function editMessage(messageId) {
+            if (!currentChat) return;
+            
+            const msg = messages[currentChat.id].find(m => m.id === messageId);
+            if (msg && msg.sender === currentUser.id) {
+                messageToEdit = msg;
+                document.getElementById('editMessageText').value = msg.text || '';
+                document.getElementById('editMessageModal').classList.add('active');
+            }
+        }
+
+        // Save edited message
+        function saveEditedMessage() {
+            const newText = document.getElementById('editMessageText').value.trim();
+            if (!newText || !messageToEdit || !currentChat) return;
+            
+            const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageToEdit.id);
+            if (msgIndex !== -1) {
+                messages[currentChat.id][msgIndex].text = newText;
+                messages[currentChat.id][msgIndex].edited = true;
+                localStorage.setItem('messages', JSON.stringify(messages));
+                
+                if (ably) {
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('edit', {
+                        messageId: messageToEdit.id,
+                        newText: newText
                     });
                 }
                 
-                if (currentChat?.id === chatId) {
-                    renderMessages();
-                }
-                updateChatsList();
+                renderMessages();
+                closeEditMessageModal();
             }
         }
 
@@ -1902,71 +2003,6 @@
             }
         }
 
-        // Delete message (user or admin)
-        function deleteMessage(messageId) {
-            if (!currentChat) return;
-            
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
-            
-            if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
-                if (currentUser.name === ADMIN_USERNAME && msg.sender !== currentUser.id) {
-                    adminDeleteMessage(currentChat.id, messageId);
-                } else {
-                    const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
-                    if (msgIndex !== -1) {
-                        messages[currentChat.id].splice(msgIndex, 1);
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        
-                        if (ably) {
-                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                            chatChannel.publish('delete', {
-                                messageId: messageId
-                            });
-                        }
-                        
-                        renderMessages();
-                        updateChatsList();
-                    }
-                }
-            }
-        }
-
-        // Edit message
-        function editMessage(messageId) {
-            if (!currentChat) return;
-            
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
-            if (msg && msg.sender === currentUser.id) {
-                messageToEdit = msg;
-                document.getElementById('editMessageText').value = msg.text || '';
-                document.getElementById('editMessageModal').classList.add('active');
-            }
-        }
-
-        // Save edited message
-        function saveEditedMessage() {
-            const newText = document.getElementById('editMessageText').value.trim();
-            if (!newText || !messageToEdit || !currentChat) return;
-            
-            const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageToEdit.id);
-            if (msgIndex !== -1) {
-                messages[currentChat.id][msgIndex].text = newText;
-                messages[currentChat.id][msgIndex].edited = true;
-                localStorage.setItem('messages', JSON.stringify(messages));
-                
-                if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('edit', {
-                        messageId: messageToEdit.id,
-                        newText: newText
-                    });
-                }
-                
-                renderMessages();
-                closeEditMessageModal();
-            }
-        }
-
         // Render messages
         function renderMessages() {
             const container = document.getElementById('messagesContainer');
@@ -2003,6 +2039,7 @@
                 }
                 
                 let actions = '';
+                // Show delete for sender OR admin
                 if (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME) {
                     actions = `
                         <div class="message-actions">
