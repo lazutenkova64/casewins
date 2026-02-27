@@ -6,57 +6,35 @@
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        /* CSS-переменные для тем */
-        :root[data-theme="dark"] {
-            --bg-primary: #0c0c0c;
-            --bg-secondary: #141414;
-            --bg-tertiary: #1e1e1e;
-            --bg-glass: rgba(30, 30, 30, 0.8);
+        /* Базовые CSS-переменные (тема по умолчанию) */
+        :root {
+            --hue: 210;
+            --saturation: 80%;
+            --lightness: 60%;
+            --bg-primary: hsl(var(--hue), 20%, 10%);
+            --bg-secondary: hsl(var(--hue), 20%, 15%);
+            --bg-tertiary: hsl(var(--hue), 20%, 20%);
+            --bg-glass: hsla(var(--hue), 20%, 20%, 0.7);
             --text-primary: #ffffff;
             --text-secondary: #b0b0b0;
-            --accent-blue: #2b9aff;
-            --accent-green: #2b9a6b;
-            --accent-purple: #9f7aea;
-            --accent-red: #f56565;
-            --accent-orange: #f6ad55;
-            --border-color: #2a2a2a;
-            --message-out: #1e4a7a;
-            --message-in: #2a2a2a;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
-            --unread-badge: #2b9aff;
-            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-blue: hsl(var(--hue), var(--saturation), var(--lightness));
+            --accent-green: hsl(140, 70%, 50%);
+            --accent-purple: hsl(270, 70%, 70%);
+            --accent-red: hsl(0, 70%, 60%);
+            --accent-orange: hsl(30, 90%, 60%);
+            --border-color: hsl(var(--hue), 20%, 25%);
+            --message-out: hsl(var(--hue), 60%, 40%);
+            --message-in: hsl(var(--hue), 20%, 25%);
+            --shadow: 0 8px 30px hsla(var(--hue), 20%, 5%, 0.6);
+            --shadow-sm: 0 4px 12px hsla(var(--hue), 20%, 5%, 0.3);
+            --unread-badge: var(--accent-blue);
+            --gradient-1: linear-gradient(135deg, hsl(var(--hue), 80%, 65%) 0%, hsl(calc(var(--hue) + 30), 80%, 65%) 100%);
             --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            --toggle-bg: #2a2a2a;
-            --toggle-active: #2b9aff;
-        }
-
-        :root[data-theme="light"] {
-            --bg-primary: #f0f2f5;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #e4e6e9;
-            --bg-glass: rgba(255, 255, 255, 0.9);
-            --text-primary: #050505;
-            --text-secondary: #65676b;
-            --accent-blue: #007aff;
-            --accent-green: #34c759;
-            --accent-purple: #af52de;
-            --accent-red: #ff3b30;
-            --accent-orange: #ff9500;
-            --border-color: #ced0d4;
-            --message-out: #007aff;
-            --message-in: #e4e6e9;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
-            --unread-badge: #007aff;
-            --gradient-1: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%);
-            --gradient-2: linear-gradient(135deg, #ff2d55 0%, #ff9500 100%);
-            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            --toggle-bg: #ced0d4;
-            --toggle-active: #007aff;
+            --tester-pink: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            --toggle-bg: hsl(var(--hue), 20%, 25%);
+            --toggle-active: var(--accent-blue);
         }
 
         * {
@@ -74,7 +52,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Кастомный скроллбар */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -85,7 +62,6 @@
         ::-webkit-scrollbar-thumb {
             background: var(--text-secondary);
             border-radius: 10px;
-            opacity: 0.5;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: var(--accent-blue);
@@ -98,7 +74,6 @@
             background: radial-gradient(circle at 20% 30%, var(--bg-secondary), var(--bg-primary));
         }
 
-        /* Боковая панель */
         .sidebar {
             width: 350px;
             background: var(--bg-glass);
@@ -219,7 +194,7 @@
         }
         .search-bar input:focus {
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 3px rgba(43, 154, 255, 0.2);
+            box-shadow: 0 0 0 3px hsla(var(--hue), 80%, 60%, 0.2);
         }
 
         .create-chat-btn {
@@ -339,7 +314,6 @@
             margin-left: 4px;
         }
 
-        /* Область чата */
         .chat-area {
             flex: 1;
             display: flex;
@@ -384,7 +358,12 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .chat-title span {
             cursor: pointer;
+        }
+        .chat-title span:hover {
+            text-decoration: underline;
         }
         .chat-subtitle {
             font-size: 12px;
@@ -494,7 +473,6 @@
             color: var(--text-primary);
         }
 
-        /* Поле ввода */
         .message-input-container {
             padding: 16px 20px;
             background: var(--bg-glass);
@@ -596,7 +574,6 @@
             background: var(--bg-tertiary);
         }
 
-        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -662,7 +639,7 @@
         }
         .modal-input:focus, .modal-select:focus {
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 3px rgba(43, 154, 255, 0.1);
+            box-shadow: 0 0 0 3px hsla(var(--hue), 80%, 60%, 0.1);
         }
         .modal-select {
             appearance: none;
@@ -767,7 +744,16 @@
             border-radius: 16px;
             margin-left: 6px;
             font-weight: bold;
-            text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
+            display: inline-block;
+        }
+        .tester-badge {
+            background: var(--tester-pink);
+            color: #000;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 16px;
+            margin-left: 6px;
+            font-weight: bold;
             display: inline-block;
         }
 
@@ -804,7 +790,6 @@
             box-shadow: 0 0 15px var(--accent-green);
         }
 
-        /* Настройки */
         .settings-item {
             display: flex;
             justify-content: space-between;
@@ -902,7 +887,6 @@
             color: var(--text-secondary);
         }
 
-        /* Уведомления */
         .notification-permission {
             position: fixed;
             bottom: 20px;
@@ -924,6 +908,79 @@
             color: white;
             padding: 8px 16px;
             border-radius: 30px;
+            cursor: pointer;
+        }
+
+        /* Стили для радио-кнопок статуса */
+        .status-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .status-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .status-option input[type="radio"] {
+            display: none;
+        }
+        .status-option .radio-custom {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--text-secondary);
+            position: relative;
+        }
+        .status-option input[type="radio"]:checked + .radio-custom {
+            border-color: var(--accent-blue);
+        }
+        .status-option input[type="radio"]:checked + .radio-custom::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+        .status-option .status-label {
+            font-size: 16px;
+        }
+
+        /* Ползунки темы */
+        .theme-sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .slider-item label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .slider-item input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider-item input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
             cursor: pointer;
         }
 
@@ -1016,14 +1073,16 @@
             <div class="chat-header">
                 <button class="back-button" onclick="toggleSidebar()">←</button>
                 <div class="chat-info">
-                    <div class="chat-title" id="currentChatName" onclick="openCurrentChatProfile()">Выберите чат</div>
+                    <div class="chat-title">
+                        <span id="currentChatName" onclick="openChatInfoModal()">Выберите чат</span>
+                    </div>
                     <div class="chat-subtitle" id="chatStatus"></div>
                 </div>
             </div>
             <div class="messages-container" id="messagesContainer"></div>
             <div class="message-input-container">
                 <button class="emoji-toggle-btn" onclick="toggleEmojiPicker()">😊</button>
-                <button class="mic-btn" id="micBtn" onmousedown="startSpeechRecognition()" onmouseup="stopSpeechRecognition()" ontouchstart="startSpeechRecognition()" ontouchend="stopSpeechRecognition()">🎤</button>
+                <button class="mic-btn" id="micBtn" onclick="toggleSpeechRecognition()">🎤</button>
                 <div class="input-wrapper">
                     <div class="emoji-picker" id="emojiPicker" style="display: none;"></div>
                     <textarea class="message-input" id="messageInput" placeholder="Напишите сообщение..." rows="1" onkeydown="handleKeyPress(event)" data-i18n-placeholder="messagePlaceholder"></textarea>
@@ -1039,11 +1098,11 @@
             <button class="close-btn" onclick="closeCreateChatModal()">×</button>
             <h2 data-i18n="createPublicChat">Создать публичный чат</h2>
             <input type="text" class="modal-input" id="chatNameInput" placeholder="Название чата" maxlength="30" data-i18n-placeholder="chatNamePlaceholder">
+            <input type="text" class="modal-input" id="chatInfoInput" placeholder="Информация о группе" maxlength="200" data-i18n-placeholder="chatInfoPlaceholder">
             <div class="password-input-container">
                 <input type="password" class="modal-input" id="chatPasswordInput" placeholder="Пароль (необязательно)" data-i18n-placeholder="chatPasswordPlaceholder">
                 <button class="toggle-password" onclick="togglePassword('chatPasswordInput')">👁️</button>
             </div>
-            <input type="text" class="modal-input" id="chatDescriptionInput" placeholder="Описание (необязательно)" data-i18n-placeholder="chatDescriptionPlaceholder">
             <button class="modal-btn" onclick="createPublicChat()" data-i18n="createBtn">Создать чат</button>
         </div>
     </div>
@@ -1083,14 +1142,39 @@
             <input type="text" class="modal-input" id="profileNameInput" placeholder="Имя (никнейм)" maxlength="20" data-i18n-placeholder="namePlaceholder">
             <input type="email" class="modal-input" id="profileEmailInput" placeholder="Email" readonly data-i18n-placeholder="emailPlaceholder">
             <input type="text" class="modal-input" id="profileBioInput" placeholder="О себе" data-i18n-placeholder="bioPlaceholder">
-            <select class="modal-select" id="profileStatusSelect" onchange="changeStatus(this.value)">
-                <option value="online" data-i18n="online">В сети</option>
-                <option value="dnd" data-i18n="dnd">Не беспокоить</option>
-                <option value="invisible" data-i18n="invisible">Не в сети (инкогнито)</option>
-            </select>
+
+            <!-- Новый стильный выбор статуса -->
+            <div class="status-options">
+                <label class="status-option">
+                    <input type="radio" name="status" value="online" onchange="changeStatus('online')">
+                    <span class="radio-custom"></span>
+                    <span class="status-label" data-i18n="online">В сети</span>
+                </label>
+                <label class="status-option">
+                    <input type="radio" name="status" value="dnd" onchange="changeStatus('dnd')">
+                    <span class="radio-custom"></span>
+                    <span class="status-label" data-i18n="dnd">Не беспокоить</span>
+                </label>
+                <label class="status-option">
+                    <input type="radio" name="status" value="invisible" onchange="changeStatus('invisible')">
+                    <span class="radio-custom"></span>
+                    <span class="status-label" data-i18n="invisible">Не в сети (инкогнито)</span>
+                </label>
+            </div>
+
             <button class="modal-btn" onclick="saveProfile()" data-i18n="saveProfile">Сохранить</button>
             <button class="modal-btn secondary" onclick="openSettingsModal()" data-i18n="settings">Настройки</button>
             <button class="modal-btn danger" onclick="logout()" data-i18n="logout">Выйти</button>
+        </div>
+    </div>
+
+    <!-- Модалка информации о чате (открывается по клику на название) -->
+    <div class="modal" id="chatInfoModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeChatInfoModal()">×</button>
+            <h2 id="chatInfoName"></h2>
+            <div class="profile-view" id="chatInfoDetails"></div>
+            <button class="modal-btn danger" id="deleteChatBtn" onclick="deleteCurrentChat()" style="display: none;" data-i18n="deleteChat">Удалить чат</button>
         </div>
     </div>
 
@@ -1117,9 +1201,9 @@
                 <span data-i18n="language">Язык</span>
                 <span class="value" id="currentLanguage">Русский</span>
             </div>
-            <div class="settings-item" onclick="toggleTheme()">
-                <span data-i18n="lightTheme">Светлая версия</span>
-                <div class="toggle-switch" id="themeToggle"></div>
+            <div class="settings-item" onclick="openThemeModal()">
+                <span data-i18n="theme">Тема</span>
+                <span class="value" id="currentTheme">Пользовательская</span>
             </div>
         </div>
     </div>
@@ -1133,6 +1217,29 @@
                 <button class="lang-btn" onclick="setLanguage('ru')" id="langRu">Русский</button>
                 <button class="lang-btn" onclick="setLanguage('en')" id="langEn">English</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Модалка настройки темы (с ползунками) -->
+    <div class="modal" id="themeModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeThemeModal()">×</button>
+            <h2 data-i18n="customizeTheme">Настройка темы</h2>
+            <div class="theme-sliders">
+                <div class="slider-item">
+                    <label data-i18n="hue">Оттенок</label>
+                    <input type="range" id="hueSlider" min="0" max="360" value="210" oninput="updateThemeFromSliders()">
+                </div>
+                <div class="slider-item">
+                    <label data-i18n="saturation">Насыщенность</label>
+                    <input type="range" id="saturationSlider" min="0" max="100" value="80" oninput="updateThemeFromSliders()">
+                </div>
+                <div class="slider-item">
+                    <label data-i18n="lightness">Яркость</label>
+                    <input type="range" id="lightnessSlider" min="20" max="80" value="60" oninput="updateThemeFromSliders()">
+                </div>
+            </div>
+            <button class="modal-btn" onclick="saveTheme()" data-i18n="save">Сохранить</button>
         </div>
     </div>
 
@@ -1172,8 +1279,8 @@
                     messagePlaceholder: 'Напишите сообщение...',
                     createPublicChat: 'Создать публичный чат',
                     chatNamePlaceholder: 'Название чата',
+                    chatInfoPlaceholder: 'Информация о группе',
                     chatPasswordPlaceholder: 'Пароль (необязательно)',
-                    chatDescriptionPlaceholder: 'Описание (необязательно)',
                     createBtn: 'Создать чат',
                     enterPassword: 'Введите пароль',
                     joinBtn: 'Войти',
@@ -1192,7 +1299,11 @@
                     chooseAvatar: 'Выберите аватар',
                     hideLastSeen: 'Скрыть время захода',
                     language: 'Язык',
-                    lightTheme: 'Светлая версия',
+                    theme: 'Тема',
+                    customizeTheme: 'Настройка темы',
+                    hue: 'Оттенок',
+                    saturation: 'Насыщенность',
+                    lightness: 'Яркость',
                     selectLanguage: 'Выберите язык',
                     lastSeen: 'Был(а)',
                     recently: 'недавно',
@@ -1202,6 +1313,7 @@
                     noBio: 'Нет информации',
                     delete: 'Удалить',
                     edit: 'Ред.',
+                    deleteChat: 'Удалить чат',
                     chatDeleted: '⚠️ Чат был удален',
                     noMessages: 'Нет сообщений. Напишите что-нибудь!',
                     selectChat: '👈 Выберите чат',
@@ -1224,6 +1336,9 @@
                     daysAgo: 'д назад',
                     justNow: 'только что',
                     owner: 'владелец',
+                    createdBy: 'Создатель',
+                    description: 'Описание',
+                    members: 'Участников',
                 },
                 en: {
                     welcome: 'Welcome!',
@@ -1242,8 +1357,8 @@
                     messagePlaceholder: 'Write a message...',
                     createPublicChat: 'Create Public Chat',
                     chatNamePlaceholder: 'Chat name',
+                    chatInfoPlaceholder: 'Group info',
                     chatPasswordPlaceholder: 'Password (optional)',
-                    chatDescriptionPlaceholder: 'Description (optional)',
                     createBtn: 'Create Chat',
                     enterPassword: 'Enter password',
                     joinBtn: 'Join',
@@ -1262,7 +1377,11 @@
                     chooseAvatar: 'Choose Avatar',
                     hideLastSeen: 'Hide last seen',
                     language: 'Language',
-                    lightTheme: 'Light theme',
+                    theme: 'Theme',
+                    customizeTheme: 'Customize Theme',
+                    hue: 'Hue',
+                    saturation: 'Saturation',
+                    lightness: 'Lightness',
                     selectLanguage: 'Select language',
                     lastSeen: 'Last seen',
                     recently: 'recently',
@@ -1272,6 +1391,7 @@
                     noBio: 'No information',
                     delete: 'Delete',
                     edit: 'Edit',
+                    deleteChat: 'Delete chat',
                     chatDeleted: '⚠️ Chat was deleted',
                     noMessages: 'No messages. Write something!',
                     selectChat: '👈 Select a chat',
@@ -1294,6 +1414,9 @@
                     daysAgo: 'd ago',
                     justNow: 'just now',
                     owner: 'owner',
+                    createdBy: 'Created by',
+                    description: 'Description',
+                    members: 'Members',
                 }
             },
             t(key) {
@@ -1329,7 +1452,7 @@
         let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
-        let onlineUsers = {}; // clientId -> данные + lastSeen (timestamp)
+        let onlineUsers = {}; // clientId -> данные + lastSeen
         let currentChat = null;
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
@@ -1337,6 +1460,7 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
+        const TESTER_USERNAME = "martin_dev";
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
 
         let lastMessageTime = 0;
@@ -1354,14 +1478,86 @@
         // Эмодзи (полный набор)
         const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊', '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄', '💋', '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '🔄', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💭', '🗯️', '💬', '👁️‍🗨️', '🗨️', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'];
 
-        const weirdEmojis = ['👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥', '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥', '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂', '🍑', '🍆', '🥑', '🌮', '🍕', '🍔', '🍟', '🌭', '🍿', '🥨', '🧀', '🥩', '🥓', '🍗', '🍖', '🦴', '🥡', '🥢', '🍽️', '🔪', '🪓', '⚰️', '⚱️', '🧿', '🔮', '📿', '💎', '🔫', '💣', '🧨', '🛡️', '🏹', '🗡️', '⚔️', '🔧', '🔨', '⛏️', '⚒️', '🛠️', '🔩', '🐉', '🐲', '🌊', '🧙', '🧝', '🧞', '🧟', '🧌', '🦄', '🐲'];
+        // Новые забавные аватарки
+        const weirdEmojis = ['👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥', '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥', '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂', '🍑', '🍆', '🥑', '🌮', '🍕', '🍔', '🍟', '🌭', '🍿', '🥨', '🧀', '🥩', '🥓', '🍗', '🍖', '🦴', '🥡', '🥢', '🍽️', '🔪', '🪓', '⚰️', '⚱️', '🧿', '🔮', '📿', '💎', '🔫', '💣', '🧨', '🛡️', '🏹', '🗡️', '⚔️', '🔧', '🔨', '⛏️', '⚒️', '🛠️', '🔩', '🐉', '🐲', '🌊', '🧙', '🧝', '🧞', '🧟', '🧌', '🦄', '🐲', '🦥', '🦦', '🦨', '🦩', '🦚', '🦜', '🐧', '🐣', '🐤', '🐥', '🐦', '🐧', '🐦‍⬛', '🕊️', '🦅', '🦆', '🦉', '🐺', '🐗', '🐴', '🦄', '🐝', '🐞', '🦋', '🐌', '🐛', '🦟', '🦗', '🐜', '🐝', '🐞', '🦂', '🕷️', '🕸️', '🦠', '🌿', '🍀', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '🍃', '🍂', '🍁', '🌺', '🌻', '🌼', '🌷', '🌸', '💐', '🥀', '🌹', '🪻', '🪷', '🌽', '🥕', '🥔', '🧄', '🧅', '🥦', '🥬', '🥒', '🌶️', '🫑', '🥕', '🍠', '🥜', '🫘', '🌰', '🍄', '🪴', '🎍', '🪵', '🪨', '🏔️', '⛰️', '🌋', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🏘️', '🏚️', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛲', '⛺', '🌁', '🌃', '🌆', '🌇', '🌉', '🎠', '🎡', '🎢', '🚂', '🚃', '🚄', '🚅', '🚆', '🚇', '🚈', '🚉', '🚊', '🚝', '🚞', '🚋', '🚌', '🚍', '🚎', '🚐', '🚑', '🚒', '🚓', '🚔', '🚕', '🚖', '🚗', '🚘', '🚙', '🚚', '🚛', '🚜', '🛵', '🏍️', '🛺', '🚲', '🛴', '🚏', '🛑', '🛞', '🛟', '⛵', '🛶', '🚤', '🛳️', '⛴️', '🛥️', '🚢', '✈️', '🛩️', '🛫', '🛬', '🪂', '🚁', '🚟', '🚠', '🚡', '🛰️', '🚀', '🛸', '🌌', '⏱️', '⏲️', '🕰️', '⌛', '⏳', '⌚', '⏰', '🌡️', '☀️', '☁️', '⛅', '⛈️', '🌤️', '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '🌀', '🌈', '🌂', '☔', '⛱️', '⚡', '❄️', '☃️', '⛄', '🔥', '💧', '🌊'];
 
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        // ==================== ИНИЦИАЛИЗАЦИЯ (с предустановленными аккаунтами) ====================
+        function initDefaultUsers() {
+            // Создаём тестового пользователя martin_dev, если его нет
+            const testerKey = TESTER_USERNAME.toLowerCase();
+            if (!users[testerKey]) {
+                users[testerKey] = {
+                    id: 'user_' + Date.now() + '_tester',
+                    name: TESTER_USERNAME,
+                    email: 'martin@example.com',
+                    password: 'Andrey10987654321!',
+                    avatar: '🧪',
+                    bio: 'Тестировщик',
+                    status: 'online',
+                    hideLastSeen: false,
+                    language: 'ru',
+                    theme: 'dark',
+                    isTester: true,
+                    createdAt: new Date().toISOString()
+                };
+            }
+            // Создаём админа K1lame, если его нет
+            const adminKey = ADMIN_USERNAME.toLowerCase();
+            if (!users[adminKey]) {
+                users[adminKey] = {
+                    id: 'user_' + Date.now() + '_admin',
+                    name: ADMIN_USERNAME,
+                    email: 'admin@example.com',
+                    password: 'admin123', // можно сменить позже
+                    avatar: '👑',
+                    bio: 'Создатель',
+                    status: 'online',
+                    hideLastSeen: false,
+                    language: 'ru',
+                    theme: 'dark',
+                    isAdmin: true,
+                    createdAt: new Date().toISOString()
+                };
+            } else {
+                // Обновляем существующего админа: добавляем флаг isAdmin и меняем bio
+                users[adminKey].isAdmin = true;
+                users[adminKey].bio = 'Создатель';
+            }
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+        }
+
+        // Заполняем недостающие поля у старых пользователей
+        function migrateUsers() {
+            for (let key in users) {
+                const u = users[key];
+                if (!u.email) u.email = u.name + '@localhost';
+                if (!u.status) u.status = 'online';
+                if (u.hideLastSeen === undefined) u.hideLastSeen = false;
+                if (!u.language) u.language = 'ru';
+                if (!u.theme) u.theme = 'dark';
+                if (!u.avatar) u.avatar = '👤';
+                if (!u.bio) u.bio = '';
+                if (u.name === ADMIN_USERNAME) u.isAdmin = true;
+                if (u.name === TESTER_USERNAME) u.isTester = true;
+            }
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+        }
+
         function checkSavedSession() {
+            initDefaultUsers();
+            migrateUsers();
+
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
+                    // Обновляем данные пользователя из users (на случай изменений)
+                    const userKey = currentUser.name.toLowerCase();
+                    if (users[userKey]) {
+                        currentUser = { ...users[userKey], password: undefined }; // не храним пароль в сессии
+                        currentUser.isAdmin = users[userKey].isAdmin || false;
+                        currentUser.isTester = users[userKey].isTester || false;
+                    }
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -1380,12 +1576,11 @@
                 i18n.setLang('ru');
             }
             if (currentUser && currentUser.theme) {
-                document.documentElement.setAttribute('data-theme', currentUser.theme);
-                document.getElementById('themeToggle').className = currentUser.theme === 'light' ? 'toggle-switch active' : 'toggle-switch';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.setProperty('--hue', currentUser.hue || '210');
+                document.documentElement.style.setProperty('--saturation', (currentUser.saturation || '80') + '%');
+                document.documentElement.style.setProperty('--lightness', (currentUser.lightness || '60') + '%');
             }
-            // Запрос разрешения на уведомления (не автоматически)
+            // Запрос разрешения на уведомления
             if (Notification.permission === 'default') {
                 document.getElementById('notificationPermission').style.display = 'flex';
             }
@@ -1394,11 +1589,14 @@
         function updateProfileUI() {
             if (!currentUser) return;
             const nameSpan = document.getElementById('profileName');
+            let badges = '';
             if (currentUser.isAdmin) {
-                nameSpan.innerHTML = `${escapeHtml(currentUser.name)} <span class="admin-badge">ADMIN</span>`;
-            } else {
-                nameSpan.textContent = currentUser.name;
+                badges += '<span class="admin-badge">Создатель</span>';
+            } else if (currentUser.isTester) {
+                badges += '<span class="tester-badge">Тестировщик</span>';
             }
+            nameSpan.innerHTML = `${escapeHtml(currentUser.name)} ${badges}`;
+
             const statusDisplay = document.getElementById('profileStatusDisplay');
             if (currentUser.status === 'dnd') {
                 statusDisplay.innerHTML = i18n.t('dnd') + ' <span class="dnd-badge">DND</span>';
@@ -1412,7 +1610,12 @@
             document.getElementById('profileNameInput').value = currentUser.name;
             document.getElementById('profileEmailInput').value = currentUser.email || '';
             document.getElementById('profileBioInput').value = currentUser.bio || '';
-            document.getElementById('profileStatusSelect').value = currentUser.status || 'online';
+
+            // Отметить радио-кнопку статуса
+            const radios = document.querySelectorAll('input[name="status"]');
+            for (let r of radios) {
+                if (r.value === currentUser.status) r.checked = true;
+            }
         }
 
         function escapeHtml(text) {
@@ -1459,6 +1662,7 @@
                     avatar: currentUser.avatar || '👤',
                     bio: currentUser.bio || '',
                     isAdmin: currentUser.isAdmin,
+                    isTester: currentUser.isTester,
                     status: currentUser.status || 'online',
                     hideLastSeen: currentUser.hideLastSeen || false,
                     email: currentUser.email,
@@ -1475,6 +1679,7 @@
                                 bio: member.data.bio || '',
                                 online: true,
                                 isAdmin: member.data.isAdmin || false,
+                                isTester: member.data.isTester || false,
                                 status: member.data.status || 'online',
                                 hideLastSeen: member.data.hideLastSeen || false,
                                 lastSeen: Date.now()
@@ -1496,6 +1701,7 @@
                                 bio: member.data.bio || '',
                                 online: true,
                                 isAdmin: member.data.isAdmin || false,
+                                isTester: member.data.isTester || false,
                                 status: member.data.status || 'online',
                                 hideLastSeen: member.data.hideLastSeen || false,
                                 lastSeen: Date.now()
@@ -1523,6 +1729,7 @@
                                 bio: member.data.bio || '',
                                 online: true,
                                 isAdmin: member.data.isAdmin || false,
+                                isTester: member.data.isTester || false,
                                 status: member.data.status || 'online',
                                 hideLastSeen: member.data.hideLastSeen || false,
                                 lastSeen: Date.now()
@@ -1606,7 +1813,6 @@
                             unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
                             localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         }
-                        // Уведомление, если вкладка не активна
                         sendNotification(`Новое сообщение в ${chat.name}`, msg.text || 'Голосовое сообщение');
                     }
                     localStorage.setItem('messages', JSON.stringify(messages));
@@ -1703,18 +1909,21 @@
 
             const userKey = username.toLowerCase();
             if (users[userKey] && users[userKey].password === password) {
-                const isAdmin = username === ADMIN_USERNAME;
                 currentUser = {
                     id: users[userKey].id,
                     name: users[userKey].name,
                     avatar: users[userKey].avatar || '👤',
                     bio: users[userKey].bio || '',
                     email: users[userKey].email || '',
-                    isAdmin: isAdmin,
+                    isAdmin: users[userKey].isAdmin || false,
+                    isTester: users[userKey].isTester || false,
                     status: users[userKey].status || 'online',
                     hideLastSeen: users[userKey].hideLastSeen || false,
                     language: users[userKey].language || 'ru',
-                    theme: users[userKey].theme || 'dark'
+                    theme: users[userKey].theme || 'dark',
+                    hue: users[userKey].hue || 210,
+                    saturation: users[userKey].saturation || 80,
+                    lightness: users[userKey].lightness || 60
                 };
 
                 if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -1725,8 +1934,9 @@
                 document.getElementById('appContainer').style.display = 'flex';
 
                 i18n.setLang(currentUser.language);
-                document.documentElement.setAttribute('data-theme', currentUser.theme);
-                document.getElementById('themeToggle').className = currentUser.theme === 'light' ? 'toggle-switch active' : 'toggle-switch';
+                document.documentElement.style.setProperty('--hue', currentUser.hue);
+                document.documentElement.style.setProperty('--saturation', currentUser.saturation + '%');
+                document.documentElement.style.setProperty('--lightness', currentUser.lightness + '%');
                 document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
 
                 updateProfileUI();
@@ -1783,6 +1993,7 @@
             }
 
             const isAdmin = username === ADMIN_USERNAME;
+            const isTester = username === TESTER_USERNAME;
             const newUser = {
                 id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
                 name: username,
@@ -1794,6 +2005,11 @@
                 hideLastSeen: false,
                 language: 'ru',
                 theme: 'dark',
+                hue: 210,
+                saturation: 80,
+                lightness: 60,
+                isAdmin: isAdmin,
+                isTester: isTester,
                 createdAt: new Date().toISOString()
             };
 
@@ -1807,10 +2023,14 @@
                 bio: newUser.bio,
                 email: newUser.email,
                 isAdmin: isAdmin,
+                isTester: isTester,
                 status: 'online',
                 hideLastSeen: false,
                 language: 'ru',
-                theme: 'dark'
+                theme: 'dark',
+                hue: 210,
+                saturation: 80,
+                lightness: 60
             };
 
             if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -1906,7 +2126,7 @@
             }, MESSAGE_COOLDOWN);
         }
 
-        // ==================== РАСПОЗНАВАНИЕ РЕЧИ ====================
+        // ==================== РАСПОЗНАВАНИЕ РЕЧИ (вкл/выкл) ====================
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert(i18n.t('speechNotSupported'));
@@ -1921,8 +2141,11 @@
             return rec;
         }
 
-        function startSpeechRecognition() {
-            if (isRecording) return;
+        function toggleSpeechRecognition() {
+            if (isRecording) {
+                stopSpeechRecognition();
+                return;
+            }
             if (!recognition) {
                 recognition = initSpeechRecognition();
                 if (!recognition) return;
@@ -1931,6 +2154,7 @@
             recognition.onstart = () => {
                 isRecording = true;
                 document.getElementById('micBtn').classList.add('recording');
+                document.getElementById('micBtn').textContent = '⏹️';
             };
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
@@ -1953,6 +2177,7 @@
             }
             isRecording = false;
             document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('micBtn').textContent = '🎤';
         }
 
         // ==================== РЕНДЕР СООБЩЕНИЙ ====================
@@ -1999,11 +2224,16 @@
                     `;
                 }
 
-                const showAdminBadge = msg.isAdmin && msg.senderName === ADMIN_USERNAME;
+                let badges = '';
+                if (msg.isAdmin && msg.senderName === ADMIN_USERNAME) {
+                    badges = '<span class="admin-badge">Создатель</span>';
+                } else if (msg.senderName === TESTER_USERNAME) {
+                    badges = '<span class="tester-badge">Тестировщик</span>';
+                }
 
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender" onclick="openUserProfile('${msg.sender}')">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
+                    ${msg.type === 'in' ? `<div class="message-sender" onclick="openUserProfile('${msg.sender}')">${escapeHtml(msg.senderName)} ${badges}</div>` : ''}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -2028,31 +2258,49 @@
 
             let items = [];
 
-            // Собираем все элементы: чаты из текущей вкладки + пользователи (если есть поисковый запрос)
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-
+            // Чаты из текущей вкладки
             if (currentTab === 'chats') {
                 items = [...myChats];
             } else if (currentTab === 'public') {
                 items = [...publicChats];
             }
 
-            // Если есть поиск, добавляем пользователей
-            if (searchTerm) {
-                const userItems = Object.values(onlineUsers).filter(u => u.name.toLowerCase().includes(searchTerm));
-                items = items.concat(userItems.map(u => ({ ...u, isUser: true })));
-            }
+            // Добавляем всех пользователей (из users) с пометкой isUser
+            const allUsers = Object.values(users).map(u => ({
+                id: u.id,
+                name: u.name,
+                avatar: u.avatar,
+                bio: u.bio,
+                isAdmin: u.isAdmin,
+                isTester: u.isTester,
+                status: u.status,
+                hideLastSeen: u.hideLastSeen,
+                lastSeen: u.lastSeen,
+                online: onlineUsers[u.id] ? onlineUsers[u.id].online : false,
+                isUser: true
+            }));
 
-            // Фильтруем по поиску (для чатов)
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             if (searchTerm) {
-                items = items.filter(item => 
+                // Фильтруем и чаты, и пользователей
+                const filteredChats = items.filter(item => 
                     (item.name || '').toLowerCase().includes(searchTerm) ||
-                    (item.description || '').toLowerCase().includes(searchTerm) ||
-                    (item.bio || '').toLowerCase().includes(searchTerm)
+                    (item.description || '').toLowerCase().includes(searchTerm)
                 );
+                const filteredUsers = allUsers.filter(u => 
+                    u.name.toLowerCase().includes(searchTerm) || 
+                    (u.bio || '').toLowerCase().includes(searchTerm)
+                );
+                items = [...filteredChats, ...filteredUsers];
+            } else {
+                // Без поиска показываем только чаты
+                // (пользователей не показываем, чтобы не засорять список)
+                // Но можно показывать только если вкладка users, но у нас её нет.
+                // Оставляем только чаты.
+                // items остаётся как есть.
             }
 
-            // Сортируем: сначала чаты с последним сообщением, потом пользователи
+            // Сортируем: сначала чаты (по последнему сообщению), потом пользователи (по имени)
             items.sort((a, b) => {
                 if (a.isUser && !b.isUser) return 1;
                 if (!a.isUser && b.isUser) return -1;
@@ -2073,14 +2321,16 @@
                     // Элемент пользователя
                     element.onclick = () => createPrivateChat(item);
                     const lastSeenText = formatLastSeen(item.lastSeen, item.online, item.hideLastSeen);
+                    let badges = '';
+                    if (item.isAdmin) badges = '<span class="admin-badge">Создатель</span>';
+                    else if (item.isTester) badges = '<span class="tester-badge">Тестировщик</span>';
                     element.innerHTML = `
                         <div class="chat-avatar">${item.avatar || '👤'}</div>
                         <div class="chat-details">
                             <div class="chat-name">
-                                ${escapeHtml(item.name)}
+                                ${escapeHtml(item.name)} ${badges}
                                 ${item.online ? '<span class="online-indicator"></span>' : ''}
                                 ${item.status === 'dnd' ? '<span class="dnd-badge">DND</span>' : ''}
-                                ${item.isAdmin && item.name === ADMIN_USERNAME ? '<span class="admin-badge">ADMIN</span>' : ''}
                             </div>
                             <div class="chat-last-message">${escapeHtml(item.bio || i18n.t('noBio'))} • ${lastSeenText}</div>
                         </div>
@@ -2093,13 +2343,6 @@
                     element.onclick = () => joinChat(item);
 
                     let chatNameHTML = `${escapeHtml(item.name || i18n.t('noName'))} ${item.password ? '<span class="lock-icon">🔒</span>' : ''}`;
-
-                    // Кнопка удаления для владельца или админа
-                    if ((currentUser.isAdmin) || (item.createdBy === currentUser.id)) {
-                        if (currentTab === 'public' || myChats.find(c => c.id === item.id)) {
-                            chatNameHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">${i18n.t('delete')}</button>`;
-                        }
-                    }
 
                     element.innerHTML = `
                         <div class="chat-avatar">${(item.name || '?').charAt(0)}</div>
@@ -2158,11 +2401,7 @@
             currentChat = chat;
             updateUrlWithChat(chat);
 
-            let chatTitleHTML = `${escapeHtml(chat.name)} ${chat.password ? '🔒' : ''}`;
-            if ((currentUser.isAdmin) || (chat.createdBy === currentUser.id)) {
-                chatTitleHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">${i18n.t('delete')}</button>`;
-            }
-            document.getElementById('currentChatName').innerHTML = chatTitleHTML;
+            document.getElementById('currentChatName').innerHTML = escapeHtml(chat.name) + (chat.password ? ' 🔒' : '');
             document.getElementById('chatStatus').textContent = chat.description || '';
 
             if (!messages[chat.id]) messages[chat.id] = [];
@@ -2224,6 +2463,13 @@
             updateChatsList();
         }
 
+        function deleteCurrentChat() {
+            if (currentChat) {
+                deleteChat(currentChat.id);
+                closeChatInfoModal();
+            }
+        }
+
         function joinProtectedChat() {
             const password = document.getElementById('joinPasswordInput').value;
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
@@ -2238,8 +2484,8 @@
 
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
+            const info = document.getElementById('chatInfoInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
-            const description = document.getElementById('chatDescriptionInput').value.trim();
             if (!name) {
                 alert(i18n.t('fillAllFields'));
                 return;
@@ -2247,7 +2493,8 @@
             const newChat = {
                 id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                 name: name,
-                description: description || '',
+                description: info || '',
+                info: info || '',
                 password: password || null,
                 createdBy: currentUser.id,
                 createdByName: currentUser.name,
@@ -2341,7 +2588,11 @@
             document.getElementById('profileNameInput').value = currentUser.name;
             document.getElementById('profileEmailInput').value = currentUser.email || '';
             document.getElementById('profileBioInput').value = currentUser.bio || '';
-            document.getElementById('profileStatusSelect').value = currentUser.status || 'online';
+            // Отметить радио-кнопку статуса
+            const radios = document.querySelectorAll('input[name="status"]');
+            for (let r of radios) {
+                if (r.value === currentUser.status) r.checked = true;
+            }
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             document.getElementById('profileModal').classList.add('active');
         }
@@ -2350,10 +2601,14 @@
             document.getElementById('profileModal').classList.remove('active');
         }
 
+        function changeStatus(value) {
+            // Временно сохраняем в currentUser, окончательно при saveProfile
+            currentUser.status = value;
+        }
+
         function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             const newBio = document.getElementById('profileBioInput').value.trim();
-            const newStatus = document.getElementById('profileStatusSelect').value;
 
             if (newName && newName !== currentUser.name) {
                 const oldKey = currentUser.name.toLowerCase();
@@ -2380,10 +2635,10 @@
                 if (users[userKey]) users[userKey].bio = newBio;
             }
 
-            if (newStatus !== currentUser.status) {
-                currentUser.status = newStatus;
+            // Статус уже обновлён через changeStatus
+            if (currentUser.status) {
                 const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) users[userKey].status = newStatus;
+                if (users[userKey]) users[userKey].status = currentUser.status;
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     presenceChannel.presence.update({
@@ -2391,7 +2646,8 @@
                         avatar: currentUser.avatar,
                         bio: currentUser.bio,
                         isAdmin: currentUser.isAdmin,
-                        status: newStatus,
+                        isTester: currentUser.isTester,
+                        status: currentUser.status,
                         hideLastSeen: currentUser.hideLastSeen,
                         email: currentUser.email
                     });
@@ -2404,8 +2660,6 @@
             updateProfileUI();
             closeProfileModal();
         }
-
-        function changeStatus(value) {}
 
         function openAvatarModal() {
             const grid = document.getElementById('avatarGrid');
@@ -2443,6 +2697,7 @@
                         avatar: selectedAvatar,
                         bio: currentUser.bio,
                         isAdmin: currentUser.isAdmin,
+                        isTester: currentUser.isTester,
                         status: currentUser.status,
                         hideLastSeen: currentUser.hideLastSeen,
                         email: currentUser.email
@@ -2464,9 +2719,12 @@
             const view = document.getElementById('userProfileView');
             const lastSeenText = formatLastSeen(user.lastSeen, user.online, user.hideLastSeen);
             const statusText = user.status === 'dnd' ? i18n.t('dndStatus') : (user.online ? i18n.t('onlineNow') : lastSeenText);
+            let badges = '';
+            if (user.isAdmin) badges = '<span class="admin-badge">Создатель</span>';
+            else if (user.isTester) badges = '<span class="tester-badge">Тестировщик</span>';
             view.innerHTML = `
                 <div class="avatar-large">${user.avatar || '👤'}</div>
-                <div class="name">${escapeHtml(user.name)}</div>
+                <div class="name">${escapeHtml(user.name)} ${badges}</div>
                 <div class="bio">${escapeHtml(user.bio || i18n.t('noBio'))}</div>
                 <div class="status">${statusText}</div>
             `;
@@ -2477,18 +2735,36 @@
             document.getElementById('userProfileModal').classList.remove('active');
         }
 
-        function openCurrentChatProfile() {
+        // ==================== ИНФОРМАЦИЯ О ЧАТЕ ====================
+        function openChatInfoModal() {
             if (!currentChat) return;
-            if (currentChat.isPrivate) {
-                const otherUserId = currentChat.members.find(id => id !== currentUser.id);
-                if (otherUserId) openUserProfile(otherUserId);
+            const modal = document.getElementById('chatInfoModal');
+            document.getElementById('chatInfoName').innerHTML = escapeHtml(currentChat.name) + (currentChat.password ? ' 🔒' : '');
+            const details = document.getElementById('chatInfoDetails');
+            const creator = users[currentChat.createdBy] || { name: currentChat.createdByName || 'Неизвестно' };
+            const membersCount = currentChat.members ? currentChat.members.length : 1;
+            details.innerHTML = `
+                <div><strong>${i18n.t('createdBy')}:</strong> ${escapeHtml(creator.name)}</div>
+                <div><strong>${i18n.t('description')}:</strong> ${escapeHtml(currentChat.info || currentChat.description || '')}</div>
+                <div><strong>${i18n.t('members')}:</strong> ${membersCount}</div>
+            `;
+            // Показываем кнопку удаления, если пользователь админ или создатель
+            const deleteBtn = document.getElementById('deleteChatBtn');
+            if (currentUser.isAdmin || currentChat.createdBy === currentUser.id) {
+                deleteBtn.style.display = 'block';
+            } else {
+                deleteBtn.style.display = 'none';
             }
+            modal.classList.add('active');
+        }
+
+        function closeChatInfoModal() {
+            document.getElementById('chatInfoModal').classList.remove('active');
         }
 
         // ==================== НАСТРОЙКИ ====================
         function openSettingsModal() {
             document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
-            document.getElementById('themeToggle').className = currentUser.theme === 'light' ? 'toggle-switch active' : 'toggle-switch';
             document.getElementById('currentLanguage').textContent = currentUser.language === 'ru' ? 'Русский' : 'English';
             document.getElementById('settingsModal').classList.add('active');
         }
@@ -2511,6 +2787,7 @@
                     avatar: currentUser.avatar,
                     bio: currentUser.bio,
                     isAdmin: currentUser.isAdmin,
+                    isTester: currentUser.isTester,
                     status: currentUser.status,
                     hideLastSeen: currentUser.hideLastSeen,
                     email: currentUser.email
@@ -2540,15 +2817,39 @@
             renderMessages();
         }
 
-        function toggleTheme() {
-            const newTheme = currentUser.theme === 'dark' ? 'light' : 'dark';
-            currentUser.theme = newTheme;
-            document.documentElement.setAttribute('data-theme', newTheme);
-            document.getElementById('themeToggle').className = newTheme === 'light' ? 'toggle-switch active' : 'toggle-switch';
+        function openThemeModal() {
+            document.getElementById('hueSlider').value = currentUser.hue || 210;
+            document.getElementById('saturationSlider').value = currentUser.saturation || 80;
+            document.getElementById('lightnessSlider').value = currentUser.lightness || 60;
+            document.getElementById('themeModal').classList.add('active');
+        }
+
+        function closeThemeModal() {
+            document.getElementById('themeModal').classList.remove('active');
+        }
+
+        function updateThemeFromSliders() {
+            const hue = document.getElementById('hueSlider').value;
+            const sat = document.getElementById('saturationSlider').value;
+            const light = document.getElementById('lightnessSlider').value;
+            document.documentElement.style.setProperty('--hue', hue);
+            document.documentElement.style.setProperty('--saturation', sat + '%');
+            document.documentElement.style.setProperty('--lightness', light + '%');
+        }
+
+        function saveTheme() {
+            currentUser.hue = parseInt(document.getElementById('hueSlider').value);
+            currentUser.saturation = parseInt(document.getElementById('saturationSlider').value);
+            currentUser.lightness = parseInt(document.getElementById('lightnessSlider').value);
             const userKey = currentUser.name.toLowerCase();
-            if (users[userKey]) users[userKey].theme = newTheme;
+            if (users[userKey]) {
+                users[userKey].hue = currentUser.hue;
+                users[userKey].saturation = currentUser.saturation;
+                users[userKey].lightness = currentUser.lightness;
+            }
             localStorage.setItem('telegram_users', JSON.stringify(users));
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            closeThemeModal();
         }
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -2589,8 +2890,8 @@
         function closeCreateChatModal() {
             document.getElementById('createChatModal').classList.remove('active');
             document.getElementById('chatNameInput').value = '';
+            document.getElementById('chatInfoInput').value = '';
             document.getElementById('chatPasswordInput').value = '';
-            document.getElementById('chatDescriptionInput').value = '';
         }
 
         function closeJoinChatModal() {
@@ -2685,7 +2986,14 @@
         });
 
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeMediaViewer();
+            if (e.key === 'Escape') {
+                closeMediaViewer();
+                closeChatInfoModal();
+                closeSettingsModal();
+                closeLanguageModal();
+                closeThemeModal();
+                closeUserProfileModal();
+            }
         });
 
         document.addEventListener('click', function(e) {
@@ -2696,7 +3004,6 @@
             }
         });
 
-        // Медиа-просмотрщик (заглушка)
         function closeMediaViewer() {}
     </script>
 </body>
