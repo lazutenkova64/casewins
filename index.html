@@ -1242,13 +1242,9 @@
                 
                 for (const file of files) {
                     if (file.name.endsWith('.json')) {
-                        // GitHub API отдает файл с content в base64
-                        const fileResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/users/${file.name}`);
-                        const fileData = await fileResponse.json();
-                        
-                        // Декодируем из base64
-                        const content = atob(fileData.content);
-                        const userData = JSON.parse(content);
+                        // Получаем содержимое файла
+                        const fileResponse = await fetch(file.download_url);
+                        const userData = await fileResponse.json();
                         
                         const userKey = userData.login.toLowerCase();
                         newUsers[userKey] = userData;
@@ -1277,10 +1273,8 @@
                 
                 for (const file of files) {
                     if (file.name.endsWith('.json')) {
-                        const fileResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/chats/${file.name}`);
-                        const fileData = await fileResponse.json();
-                        const content = atob(fileData.content);
-                        const chatData = JSON.parse(content);
+                        const fileResponse = await fetch(file.download_url);
+                        const chatData = await fileResponse.json();
                         loadedChats.push(chatData);
                     }
                 }
