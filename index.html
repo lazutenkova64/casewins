@@ -125,10 +125,9 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            background: linear-gradient(to right, #fff, var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .profile-status {
@@ -1240,6 +1239,9 @@
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
 
+        // ID для отслеживания удаленных сообщений
+        let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
+
         // Check for saved session
         function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
@@ -1413,6 +1415,16 @@
                 adminChannel.subscribe('delete-message', (message) => {
                     const { chatId, messageId } = message.data;
                     
+                    // Добавляем в список удаленных
+                    if (!deletedMessages[chatId]) {
+                        deletedMessages[chatId] = [];
+                    }
+                    if (!deletedMessages[chatId].includes(messageId)) {
+                        deletedMessages[chatId].push(messageId);
+                        localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+                    }
+                    
+                    // Удаляем из сообщений
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
                         localStorage.setItem('messages', JSON.stringify(messages));
@@ -1442,6 +1454,11 @@
             
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
+                
+                // Проверяем не было ли это сообщение удалено
+                if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) {
+                    return;
+                }
                 
                 // Check if message already exists
                 if (!messages[chat.id]) messages[chat.id] = [];
@@ -1480,6 +1497,16 @@
             
             chatChannel.subscribe('delete', (data) => {
                 const { messageId } = data.data;
+                
+                // Добавляем в список удаленных
+                if (!deletedMessages[chat.id]) {
+                    deletedMessages[chat.id] = [];
+                }
+                if (!deletedMessages[chat.id].includes(messageId)) {
+                    deletedMessages[chat.id].push(messageId);
+                    localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+                }
+                
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
                     localStorage.setItem('messages', JSON.stringify(messages));
@@ -1512,6 +1539,12 @@
                     
                     resultPage.items.forEach(item => {
                         const msg = item.data;
+                        
+                        // Проверяем не было ли сообщение удалено
+                        if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) {
+                            return;
+                        }
+                        
                         const exists = messages[chat.id].some(m => m.id === msg.id);
                         if (!exists) {
                             messages[chat.id].push({
@@ -1923,7 +1956,7 @@
             updateChatsList();
         }
 
-        // Delete message - ИСПРАВЛЕНО!
+        // Delete message - ТОЛЬКО СВОИ СООБЩЕНИЯ
         function deleteMessage(messageId, event) {
             if (event) {
                 event.stopPropagation();
@@ -1934,44 +1967,42 @@
             
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             
-            // Check if user can delete (owner or admin)
-            if (msg.sender !== currentUser.id && !currentUser.isAdmin) {
+            // Проверяем что пользователь удаляет только свои сообщения
+            if (msg.sender !== currentUser.id) {
                 alert('Вы можете удалять только свои сообщения');
                 return;
             }
             
             if (!confirm('Удалить сообщение?')) return;
             
+            // Добавляем в список удаленных
+            if (!deletedMessages[currentChat.id]) {
+                deletedMessages[currentChat.id] = [];
+            }
+            if (!deletedMessages[currentChat.id].includes(messageId)) {
+                deletedMessages[currentChat.id].push(messageId);
+                localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+            }
+            
             // Remove message immediately
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
             localStorage.setItem('messages', JSON.stringify(messages));
             
-            // Broadcast deletion immediately through multiple channels for reliability
+            // Broadcast deletion immediately
             if (ably) {
-                // Send through chat channel
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('delete', {
                     messageId: messageId,
                     senderId: currentUser.id,
                     timestamp: Date.now()
                 });
-                
-                // If admin, also send through admin channel
-                if (currentUser.isAdmin) {
-                    const adminChannel = ably.channels.get('admin-actions');
-                    adminChannel.publish('delete-message', {
-                        chatId: currentChat.id,
-                        messageId: messageId,
-                        timestamp: Date.now()
-                    });
-                }
             }
             
             renderMessages(true);
             updateChatsList();
         }
 
-        // Edit message
+        // Edit message - ТОЛЬКО СВОИ СООБЩЕНИЯ
         function editMessage(messageId, event) {
             if (event) {
                 event.stopPropagation();
@@ -1981,6 +2012,8 @@
             if (!currentChat) return;
             
             const msg = messages[currentChat.id].find(m => m.id === messageId);
+            
+            // Проверяем что пользователь редактирует только свои сообщения
             if (msg && msg.sender === currentUser.id) {
                 messageToEdit = msg;
                 document.getElementById('editMessageText').value = msg.text || '';
@@ -2015,7 +2048,7 @@
             }
         }
 
-        // Render messages - ИСПРАВЛЕНО!
+        // Render messages
         function renderMessages(animate = true) {
             const container = document.getElementById('messagesContainer');
             if (!container) return;
@@ -2058,11 +2091,11 @@
                 }
                 
                 let actions = '';
-                // Show delete button for owner or admin (ТОЛЬКО АДМИН!)
-                if (msg.sender === currentUser.id || (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME)) {
+                // Show delete button только для своих сообщений
+                if (msg.sender === currentUser.id) {
                     actions = `
                         <div class="message-actions">
-                            ${msg.sender === currentUser.id ? `<button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>` : ''}
+                            <button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>
                             <button class="message-action-btn" onclick="deleteMessage('${msg.id}', event)">🗑️</button>
                         </div>
                     `;
@@ -2094,11 +2127,12 @@
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
                 const msg = messages[currentChat.id].find(m => m.id === messageId);
-                if (msg && (msg.sender === currentUser.id || (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME))) {
-                    const action = confirm('Что сделать с сообщением?\nOK - редактировать (только свои)\nОтмена - удалить');
-                    if (action && msg.sender === currentUser.id) {
+                // Только свои сообщения
+                if (msg && msg.sender === currentUser.id) {
+                    const action = confirm('Что сделать с сообщением?\nOK - редактировать\nОтмена - удалить');
+                    if (action) {
                         editMessage(messageId);
-                    } else if (!action) {
+                    } else {
                         deleteMessage(messageId);
                     }
                 }
