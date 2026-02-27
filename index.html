@@ -1199,51 +1199,47 @@
         let ably;
         let currentUser = null;
         
-        // Data structures
-        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
-        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
+        // Data structures - теперь пустые, все данные из GitHub
+        let users = {};
+        let publicChats = [];
         let myChats = [];
         let onlineUsers = {};
         let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
-        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
+        let messages = {};
+        let unreadCounts = {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // ===== НОВЫЕ ФУНКЦИИ ДЛЯ GITHUB =====
+        // ===== ФУНКЦИИ ДЛЯ GITHUB =====
         
         // Загрузка пользователей из GitHub
         async function loadUsersFromGitHub() {
             try {
                 const response = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/users/`);
-                if (!response.ok) return;
+                if (!response.ok) {
+                    console.log('❌ Папка users не найдена');
+                    return;
+                }
                 
                 const files = await response.json();
+                const newUsers = {};
                 
                 for (const file of files) {
                     if (file.name.endsWith('.json')) {
                         const userResponse = await fetch(file.download_url);
                         const userData = await userResponse.json();
-                        
-                        // Сохраняем в localStorage
                         const userKey = userData.login.toLowerCase();
-                        users[userKey] = userData;
+                        newUsers[userKey] = userData;
                     }
                 }
                 
-                localStorage.setItem('telegram_users', JSON.stringify(users));
+                users = newUsers; // Заменяем, а не добавляем
                 console.log('✅ Загружено пользователей из GitHub:', Object.keys(users).length);
             } catch (error) {
                 console.log('Не удалось загрузить пользователей из GitHub');
+                users = {};
             }
-        }
-
-        // Сохранение пользователя в GitHub
-        async function saveUserToGitHub(userData) {
-            // GitHub API требует токен для записи, поэтому пока сохраняем только локально
-            console.log('Сохранение в GitHub требует токен. Пользователь сохранен локально.');
-            return false;
         }
 
         // Загрузка публичных чатов из GitHub
@@ -1263,14 +1259,11 @@
                     }
                 }
                 
-                if (loadedChats.length > 0) {
-                    publicChats = loadedChats;
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                }
-                
+                publicChats = loadedChats; // Заменяем, а не добавляем
                 console.log('✅ Загружено чатов из GitHub:', loadedChats.length);
             } catch (error) {
                 console.log('Не удалось загрузить чаты из GitHub');
+                publicChats = [];
             }
         }
 
@@ -1278,30 +1271,54 @@
         loadUsersFromGitHub();
         loadPublicChatsFromGitHub();
 
-        // Check for saved session
-        function checkSavedSession() {
+        // Check for saved session - теперь проверяем в GitHub
+        async function checkSavedSession() {
+            // Сначала загружаем свежие данные
+            await loadUsersFromGitHub();
+            
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
-                    currentUser = JSON.parse(savedUser);
+                    const tempUser = JSON.parse(savedUser);
                     
-                    // Load user's chats
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    document.getElementById('profileName').textContent = currentUser.name;
-                    if (currentUser.isAdmin) {
-                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                    // Проверяем, есть ли этот пользователь в GitHub
+                    const userKey = tempUser.name.toLowerCase();
+                    if (users[userKey]) {
+                        // Пользователь есть в GitHub - пускаем
+                        currentUser = {
+                            id: users[userKey].id,
+                            name: users[userKey].name,
+                            avatar: users[userKey].avatar || '👤',
+                            bio: users[userKey].bio || '',
+                            isAdmin: tempUser.name === ADMIN_USERNAME
+                        };
+                        
+                        // Load user's chats
+                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                        
+                        document.getElementById('loginModal').classList.remove('active');
+                        document.getElementById('appContainer').style.display = 'flex';
+                        document.getElementById('profileName').textContent = currentUser.name;
+                        if (currentUser.isAdmin) {
+                            document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                        }
+                        document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
+                        document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
+                        document.getElementById('profileBioInput').value = currentUser.bio || '';
+                        
+                        setTimeout(() => {
+                            initAbly();
+                            checkUrlForChat();
+                        }, 100);
+                    } else {
+                        // Пользователя нет в GitHub - удаляем сессию
+                        console.log('❌ Пользователь не найден в GitHub, очищаем сессию');
+                        localStorage.removeItem('currentUser');
+                        localStorage.removeItem('telegram_users');
+                        localStorage.removeItem('publicChats');
+                        localStorage.removeItem('messages');
+                        localStorage.removeItem('unreadCounts');
                     }
-                    document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
-                    document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
-                    document.getElementById('profileBioInput').value = currentUser.bio || '';
-                    
-                    setTimeout(() => {
-                        initAbly();
-                        checkUrlForChat();
-                    }, 100);
                 } catch (e) {
                     console.error('Failed to load session', e);
                 }
@@ -1402,7 +1419,6 @@
                     const newChat = message.data;
                     if (!publicChats.find(c => c.id === newChat.id)) {
                         publicChats.push(newChat);
-                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
                         if (currentTab === 'public') {
                             updateChatsList();
                         }
@@ -1415,14 +1431,12 @@
                     const { chatId } = message.data;
                     
                     publicChats = publicChats.filter(c => c.id !== chatId);
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
                     
                     myChats = myChats.filter(c => c.id !== chatId);
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                     
                     if (messages[chatId]) {
                         delete messages[chatId];
-                        localStorage.setItem('messages', JSON.stringify(messages));
                     }
                     
                     if (currentChat && currentChat.id === chatId) {
@@ -1439,7 +1453,6 @@
                     
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        localStorage.setItem('messages', JSON.stringify(messages));
                         
                         if (currentChat && currentChat.id === chatId) {
                             renderMessages();
@@ -1483,15 +1496,11 @@
                     
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
                     updateChatsList();
@@ -1502,7 +1511,6 @@
                 const { messageId } = data.data;
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    localStorage.setItem('messages', JSON.stringify(messages));
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                     }
@@ -1517,7 +1525,6 @@
                     if (msgIndex !== -1) {
                         messages[chat.id][msgIndex].text = newText;
                         messages[chat.id][msgIndex].edited = true;
-                        localStorage.setItem('messages', JSON.stringify(messages));
                         if (currentChat?.id === chat.id) {
                             renderMessages(true);
                         }
@@ -1546,12 +1553,9 @@
                         return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
                     });
                     
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                 }
             });
@@ -1568,12 +1572,11 @@
                 return;
             }
             
-            // Сначала загружаем свежие данные из GitHub
+            // Загружаем свежие данные из GitHub
             await loadUsersFromGitHub();
             
             const userKey = username.toLowerCase();
             
-            // Проверяем в GitHub пользователях
             if (users[userKey] && users[userKey].password === password) {
                 currentUser = {
                     id: users[userKey].id,
@@ -1587,6 +1590,7 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
+                // Загружаем чаты пользователя
                 myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 
                 document.getElementById('loginModal').classList.remove('active');
@@ -1602,13 +1606,13 @@
                 initAbly();
                 checkUrlForChat();
             } else {
-                alert('Неверное имя пользователя или пароль');
+                alert('❌ Неверное имя пользователя или пароль.\n\nУбедитесь, что вы добавили пользователя через Python скрипт.');
             }
         }
 
-        // Register - теперь сохраняет в GitHub (через твой Python скрипт)
+        // Register - теперь только через Python
         function register() {
-            alert('❌ Регистрация временно отключена.\n\nНовых пользователей может добавлять только администратор через Python скрипт.\n\nИспользуй команду:\npython register.py');
+            alert('❌ Регистрация доступна только через Python скрипт.\n\nИспользуйте:\npython register.py\n\nПосле добавления пользователя, войдите на сайт.');
         }
 
         // Logout
@@ -1675,7 +1679,6 @@
             };
             
             publicChats.push(newChat);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             if (ably) {
                 const globalChatsChannel = ably.channels.get('global-chats');
@@ -1702,7 +1705,6 @@
             }
             
             publicChats = publicChats.filter(c => c.id !== chatId);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             const allUsers = Object.keys(users);
             allUsers.forEach(userKey => {
@@ -1714,7 +1716,6 @@
             
             if (messages[chatId]) {
                 delete messages[chatId];
-                localStorage.setItem('messages', JSON.stringify(messages));
             }
             
             if (ably) {
@@ -1774,7 +1775,6 @@
             });
             
             unreadCounts[chat.id] = 0;
-            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
             renderMessages(true);
             updateChatsList();
@@ -1846,8 +1846,6 @@
                 return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
             });
             
-            localStorage.setItem('messages', JSON.stringify(messages));
-            
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('message', message);
@@ -1873,7 +1871,6 @@
             if (!confirm('Удалить сообщение?')) return;
             
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
-            localStorage.setItem('messages', JSON.stringify(messages));
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1918,7 +1915,6 @@
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
-                localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -2198,11 +2194,7 @@
             }
             
             currentUser.bio = newBio;
-            if (users[currentUser.name.toLowerCase()]) {
-                users[currentUser.name.toLowerCase()].bio = newBio;
-            }
             
-            localStorage.setItem('telegram_users', JSON.stringify(users));
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             closeProfileModal();
