@@ -6,7 +6,7 @@
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        /* Базовые CSS-переменные (тема по умолчанию) */
+        /* CSS-переменные для динамической темы */
         :root {
             --hue: 210;
             --saturation: 80%;
@@ -14,7 +14,7 @@
             --bg-primary: hsl(var(--hue), 20%, 10%);
             --bg-secondary: hsl(var(--hue), 20%, 15%);
             --bg-tertiary: hsl(var(--hue), 20%, 20%);
-            --bg-glass: hsla(var(--hue), 20%, 20%, 0.7);
+            --bg-glass: hsla(var(--hue), 20%, 20%, 0.8);
             --text-primary: #ffffff;
             --text-secondary: #b0b0b0;
             --accent-blue: hsl(var(--hue), var(--saturation), var(--lightness));
@@ -32,7 +32,8 @@
             --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            --tester-pink: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            --tester-bg: #000000;
+            --tester-text: #ffffff;
             --toggle-bg: hsl(var(--hue), 20%, 25%);
             --toggle-active: var(--accent-blue);
         }
@@ -74,6 +75,7 @@
             background: radial-gradient(circle at 20% 30%, var(--bg-secondary), var(--bg-primary));
         }
 
+        /* Боковая панель */
         .sidebar {
             width: 350px;
             background: var(--bg-glass);
@@ -314,6 +316,7 @@
             margin-left: 4px;
         }
 
+        /* Область чата */
         .chat-area {
             flex: 1;
             display: flex;
@@ -473,6 +476,7 @@
             color: var(--text-primary);
         }
 
+        /* Поле ввода */
         .message-input-container {
             padding: 16px 20px;
             background: var(--bg-glass);
@@ -574,6 +578,7 @@
             background: var(--bg-tertiary);
         }
 
+        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -703,6 +708,10 @@
             color: var(--text-secondary);
             cursor: pointer;
             font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
         }
 
         .remember-checkbox {
@@ -747,8 +756,8 @@
             display: inline-block;
         }
         .tester-badge {
-            background: var(--tester-pink);
-            color: #000;
+            background: var(--tester-bg);
+            color: var(--tester-text);
             font-size: 11px;
             padding: 3px 10px;
             border-radius: 16px;
@@ -877,6 +886,9 @@
         .profile-view .name {
             font-size: 22px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .profile-view .bio {
             color: var(--text-secondary);
@@ -911,7 +923,7 @@
             cursor: pointer;
         }
 
-        /* Стили для радио-кнопок статуса */
+        /* Радио-кнопки статуса */
         .status-options {
             display: flex;
             flex-direction: column;
@@ -1143,7 +1155,6 @@
             <input type="email" class="modal-input" id="profileEmailInput" placeholder="Email" readonly data-i18n-placeholder="emailPlaceholder">
             <input type="text" class="modal-input" id="profileBioInput" placeholder="О себе" data-i18n-placeholder="bioPlaceholder">
 
-            <!-- Новый стильный выбор статуса -->
             <div class="status-options">
                 <label class="status-option">
                     <input type="radio" name="status" value="online" onchange="changeStatus('online')">
@@ -1168,7 +1179,7 @@
         </div>
     </div>
 
-    <!-- Модалка информации о чате (открывается по клику на название) -->
+    <!-- Модалка информации о чате -->
     <div class="modal" id="chatInfoModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeChatInfoModal()">×</button>
@@ -1220,7 +1231,7 @@
         </div>
     </div>
 
-    <!-- Модалка настройки темы (с ползунками) -->
+    <!-- Модалка настройки темы -->
     <div class="modal" id="themeModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeThemeModal()">×</button>
@@ -1468,20 +1479,20 @@
         let sendBtnDisabled = false;
         let loginAttempts = 0;
         let lastLoginAttemptTime = 0;
-        const MAX_LOGIN_ATTEMPTS = 3;
+        const MAX_LOGIN_ATTEMPTS = 15; // увеличено до 15
         const LOGIN_TIMEFRAME = 60000;
 
-        // Распознавание речи
+        // Распознавание речи (непрерывное)
         let recognition = null;
         let isRecording = false;
 
         // Эмодзи (полный набор)
         const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊', '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄', '💋', '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '🔄', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💭', '🗯️', '💬', '👁️‍🗨️', '🗨️', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'];
 
-        // Новые забавные аватарки
+        // Забавные аватарки
         const weirdEmojis = ['👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥', '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥', '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂', '🍑', '🍆', '🥑', '🌮', '🍕', '🍔', '🍟', '🌭', '🍿', '🥨', '🧀', '🥩', '🥓', '🍗', '🍖', '🦴', '🥡', '🥢', '🍽️', '🔪', '🪓', '⚰️', '⚱️', '🧿', '🔮', '📿', '💎', '🔫', '💣', '🧨', '🛡️', '🏹', '🗡️', '⚔️', '🔧', '🔨', '⛏️', '⚒️', '🛠️', '🔩', '🐉', '🐲', '🌊', '🧙', '🧝', '🧞', '🧟', '🧌', '🦄', '🐲', '🦥', '🦦', '🦨', '🦩', '🦚', '🦜', '🐧', '🐣', '🐤', '🐥', '🐦', '🐧', '🐦‍⬛', '🕊️', '🦅', '🦆', '🦉', '🐺', '🐗', '🐴', '🦄', '🐝', '🐞', '🦋', '🐌', '🐛', '🦟', '🦗', '🐜', '🐝', '🐞', '🦂', '🕷️', '🕸️', '🦠', '🌿', '🍀', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '🍃', '🍂', '🍁', '🌺', '🌻', '🌼', '🌷', '🌸', '💐', '🥀', '🌹', '🪻', '🪷', '🌽', '🥕', '🥔', '🧄', '🧅', '🥦', '🥬', '🥒', '🌶️', '🫑', '🥕', '🍠', '🥜', '🫘', '🌰', '🍄', '🪴', '🎍', '🪵', '🪨', '🏔️', '⛰️', '🌋', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🏘️', '🏚️', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛲', '⛺', '🌁', '🌃', '🌆', '🌇', '🌉', '🎠', '🎡', '🎢', '🚂', '🚃', '🚄', '🚅', '🚆', '🚇', '🚈', '🚉', '🚊', '🚝', '🚞', '🚋', '🚌', '🚍', '🚎', '🚐', '🚑', '🚒', '🚓', '🚔', '🚕', '🚖', '🚗', '🚘', '🚙', '🚚', '🚛', '🚜', '🛵', '🏍️', '🛺', '🚲', '🛴', '🚏', '🛑', '🛞', '🛟', '⛵', '🛶', '🚤', '🛳️', '⛴️', '🛥️', '🚢', '✈️', '🛩️', '🛫', '🛬', '🪂', '🚁', '🚟', '🚠', '🚡', '🛰️', '🚀', '🛸', '🌌', '⏱️', '⏲️', '🕰️', '⌛', '⏳', '⌚', '⏰', '🌡️', '☀️', '☁️', '⛅', '⛈️', '🌤️', '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '🌀', '🌈', '🌂', '☔', '⛱️', '⚡', '❄️', '☃️', '⛄', '🔥', '💧', '🌊'];
 
-        // ==================== ИНИЦИАЛИЗАЦИЯ (с предустановленными аккаунтами) ====================
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
         function initDefaultUsers() {
             // Создаём тестового пользователя martin_dev, если его нет
             const testerKey = TESTER_USERNAME.toLowerCase();
@@ -1508,7 +1519,7 @@
                     id: 'user_' + Date.now() + '_admin',
                     name: ADMIN_USERNAME,
                     email: 'admin@example.com',
-                    password: 'admin123', // можно сменить позже
+                    password: 'admin123', // пароль admin123
                     avatar: '👑',
                     bio: 'Создатель',
                     status: 'online',
@@ -1519,14 +1530,13 @@
                     createdAt: new Date().toISOString()
                 };
             } else {
-                // Обновляем существующего админа: добавляем флаг isAdmin и меняем bio
                 users[adminKey].isAdmin = true;
                 users[adminKey].bio = 'Создатель';
             }
             localStorage.setItem('telegram_users', JSON.stringify(users));
         }
 
-        // Заполняем недостающие поля у старых пользователей
+        // Миграция старых пользователей
         function migrateUsers() {
             for (let key in users) {
                 const u = users[key];
@@ -1551,10 +1561,9 @@
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    // Обновляем данные пользователя из users (на случай изменений)
                     const userKey = currentUser.name.toLowerCase();
                     if (users[userKey]) {
-                        currentUser = { ...users[userKey], password: undefined }; // не храним пароль в сессии
+                        currentUser = { ...users[userKey], password: undefined };
                         currentUser.isAdmin = users[userKey].isAdmin || false;
                         currentUser.isTester = users[userKey].isTester || false;
                     }
@@ -1580,7 +1589,6 @@
                 document.documentElement.style.setProperty('--saturation', (currentUser.saturation || '80') + '%');
                 document.documentElement.style.setProperty('--lightness', (currentUser.lightness || '60') + '%');
             }
-            // Запрос разрешения на уведомления
             if (Notification.permission === 'default') {
                 document.getElementById('notificationPermission').style.display = 'flex';
             }
@@ -1611,7 +1619,6 @@
             document.getElementById('profileEmailInput').value = currentUser.email || '';
             document.getElementById('profileBioInput').value = currentUser.bio || '';
 
-            // Отметить радио-кнопку статуса
             const radios = document.querySelectorAll('input[name="status"]');
             for (let r of radios) {
                 if (r.value === currentUser.status) r.checked = true;
@@ -2043,6 +2050,8 @@
         }
 
         function logout() {
+            // Закрываем модалку профиля, если открыта
+            closeProfileModal();
             if (ably) {
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.leave();
@@ -2126,7 +2135,7 @@
             }, MESSAGE_COOLDOWN);
         }
 
-        // ==================== РАСПОЗНАВАНИЕ РЕЧИ (вкл/выкл) ====================
+        // ==================== РАСПОЗНАВАНИЕ РЕЧИ (непрерывное) ====================
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert(i18n.t('speechNotSupported'));
@@ -2135,9 +2144,9 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition();
             rec.lang = i18n.currentLang === 'ru' ? 'ru-RU' : 'en-US';
-            rec.interimResults = false;
+            rec.interimResults = true;
             rec.maxAlternatives = 1;
-            rec.continuous = false;
+            rec.continuous = true; // непрерывное распознавание
             return rec;
         }
 
@@ -2157,16 +2166,32 @@
                 document.getElementById('micBtn').textContent = '⏹️';
             };
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('messageInput').value = transcript;
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    }
+                }
+                if (finalTranscript) {
+                    const input = document.getElementById('messageInput');
+                    input.value += (input.value ? ' ' : '') + finalTranscript;
+                }
             };
             recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
-                alert(i18n.t('microphoneError'));
+                if (event.error !== 'no-speech') {
+                    alert(i18n.t('microphoneError'));
+                }
                 stopSpeechRecognition();
             };
             recognition.onend = () => {
-                stopSpeechRecognition();
+                // Если запись ещё активна, перезапускаем (для непрерывности)
+                if (isRecording) {
+                    recognition.start();
+                } else {
+                    stopSpeechRecognition();
+                }
             };
             recognition.start();
         }
@@ -2231,9 +2256,21 @@
                     badges = '<span class="tester-badge">Тестировщик</span>';
                 }
 
+                // Для входящих сообщений показываем аватар отправителя
+                let senderHtml = '';
+                if (msg.type === 'in') {
+                    const senderUser = users[msg.sender] || { avatar: '👤' };
+                    senderHtml = `
+                        <div class="message-sender" onclick="openUserProfile('${msg.sender}')">
+                            <span class="chat-avatar" style="width: 20px; height: 20px; font-size: 14px; display: inline-block; margin-right: 4px;">${senderUser.avatar || '👤'}</span>
+                            ${escapeHtml(msg.senderName)} ${badges}
+                        </div>
+                    `;
+                }
+
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender" onclick="openUserProfile('${msg.sender}')">${escapeHtml(msg.senderName)} ${badges}</div>` : ''}
+                    ${senderHtml}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -2265,7 +2302,7 @@
                 items = [...publicChats];
             }
 
-            // Добавляем всех пользователей (из users) с пометкой isUser
+            // Все пользователи (для поиска)
             const allUsers = Object.values(users).map(u => ({
                 id: u.id,
                 name: u.name,
@@ -2293,11 +2330,8 @@
                 );
                 items = [...filteredChats, ...filteredUsers];
             } else {
-                // Без поиска показываем только чаты
-                // (пользователей не показываем, чтобы не засорять список)
-                // Но можно показывать только если вкладка users, но у нас её нет.
-                // Оставляем только чаты.
-                // items остаётся как есть.
+                // Без поиска показываем только чаты (пользователей не показываем)
+                // items остаётся как есть (чаты)
             }
 
             // Сортируем: сначала чаты (по последнему сообщению), потом пользователи (по имени)
@@ -2427,6 +2461,10 @@
                     user: user,
                     members: [currentUser.id, user.id]
                 };
+                // Добавляем в myChats сразу, чтобы он появился в списке
+                myChats.push(privateChat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                if (ably) subscribeToChat(privateChat);
             }
             joinChat(privateChat);
         }
@@ -2588,7 +2626,6 @@
             document.getElementById('profileNameInput').value = currentUser.name;
             document.getElementById('profileEmailInput').value = currentUser.email || '';
             document.getElementById('profileBioInput').value = currentUser.bio || '';
-            // Отметить радио-кнопку статуса
             const radios = document.querySelectorAll('input[name="status"]');
             for (let r of radios) {
                 if (r.value === currentUser.status) r.checked = true;
@@ -2602,7 +2639,6 @@
         }
 
         function changeStatus(value) {
-            // Временно сохраняем в currentUser, окончательно при saveProfile
             currentUser.status = value;
         }
 
@@ -2635,7 +2671,6 @@
                 if (users[userKey]) users[userKey].bio = newBio;
             }
 
-            // Статус уже обновлён через changeStatus
             if (currentUser.status) {
                 const userKey = currentUser.name.toLowerCase();
                 if (users[userKey]) users[userKey].status = currentUser.status;
@@ -2748,7 +2783,6 @@
                 <div><strong>${i18n.t('description')}:</strong> ${escapeHtml(currentChat.info || currentChat.description || '')}</div>
                 <div><strong>${i18n.t('members')}:</strong> ${membersCount}</div>
             `;
-            // Показываем кнопку удаления, если пользователь админ или создатель
             const deleteBtn = document.getElementById('deleteChatBtn');
             if (currentUser.isAdmin || currentChat.createdBy === currentUser.id) {
                 deleteBtn.style.display = 'block';
@@ -2987,12 +3021,16 @@
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeMediaViewer();
                 closeChatInfoModal();
                 closeSettingsModal();
                 closeLanguageModal();
                 closeThemeModal();
                 closeUserProfileModal();
+                closeEditMessageModal();
+                closeJoinChatModal();
+                closeCreateChatModal();
+                closeAvatarModal();
+                closeProfileModal();
             }
         });
 
@@ -3003,8 +3041,6 @@
                 emojiPicker.style.display = 'none';
             }
         });
-
-        function closeMediaViewer() {}
     </script>
 </body>
 </html>
