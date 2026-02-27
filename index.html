@@ -1199,7 +1199,7 @@
         let ably;
         let currentUser = null;
         
-        // Data structures - теперь пустые, все данные из GitHub
+        // Data structures
         let users = {};
         let publicChats = [];
         let myChats = [];
@@ -1234,11 +1234,13 @@
                     }
                 }
                 
-                users = newUsers; // Заменяем, а не добавляем
+                users = newUsers;
                 console.log('✅ Загружено пользователей из GitHub:', Object.keys(users).length);
+                return users;
             } catch (error) {
                 console.log('Не удалось загрузить пользователей из GitHub');
                 users = {};
+                return {};
             }
         }
 
@@ -1259,7 +1261,7 @@
                     }
                 }
                 
-                publicChats = loadedChats; // Заменяем, а не добавляем
+                publicChats = loadedChats;
                 console.log('✅ Загружено чатов из GitHub:', loadedChats.length);
             } catch (error) {
                 console.log('Не удалось загрузить чаты из GitHub');
@@ -1271,7 +1273,7 @@
         loadUsersFromGitHub();
         loadPublicChatsFromGitHub();
 
-        // Check for saved session - теперь проверяем в GitHub
+        // Проверка сохраненной сессии
         async function checkSavedSession() {
             // Сначала загружаем свежие данные
             await loadUsersFromGitHub();
@@ -1293,7 +1295,7 @@
                             isAdmin: tempUser.name === ADMIN_USERNAME
                         };
                         
-                        // Load user's chats
+                        // Загружаем чаты пользователя
                         myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                         
                         document.getElementById('loginModal').classList.remove('active');
@@ -1314,10 +1316,6 @@
                         // Пользователя нет в GitHub - удаляем сессию
                         console.log('❌ Пользователь не найден в GitHub, очищаем сессию');
                         localStorage.removeItem('currentUser');
-                        localStorage.removeItem('telegram_users');
-                        localStorage.removeItem('publicChats');
-                        localStorage.removeItem('messages');
-                        localStorage.removeItem('unreadCounts');
                     }
                 } catch (e) {
                     console.error('Failed to load session', e);
@@ -1325,7 +1323,7 @@
             }
         }
 
-        // Check URL for chat ID
+        // Проверка URL на ID чата
         function checkUrlForChat() {
             const hash = window.location.hash.substring(1);
             if (hash) {
@@ -1338,7 +1336,7 @@
             }
         }
 
-        // Update URL with chat ID
+        // Обновление URL с ID чата
         function updateUrlWithChat(chat) {
             if (chat) {
                 const newUrl = `${window.location.pathname}#${chat.id}`;
@@ -1351,10 +1349,10 @@
             }
         }
 
-        // Call on load
+        // Вызываем при загрузке
         checkSavedSession();
 
-        // Initialize Ably with optimized settings
+        // Инициализация Ably
         function initAbly() {
             if (!currentUser) return;
             
@@ -1370,7 +1368,7 @@
             ably.connection.on('connected', () => {
                 console.log('✅ Connected to Ably');
                 
-                // Global presence
+                // Глобальное присутствие
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.enter({ 
                     name: currentUser.name, 
@@ -1413,7 +1411,7 @@
                     if (currentTab === 'users') updateChatsList();
                 });
 
-                // Global chats channel for public chats
+                // Глобальный канал для публичных чатов
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.subscribe('new-chat', (message) => {
                     const newChat = message.data;
@@ -1425,7 +1423,7 @@
                     }
                 });
 
-                // Admin actions channel
+                // Канал для действий администратора
                 const adminChannel = ably.channels.get('admin-actions');
                 adminChannel.subscribe('delete-chat', (message) => {
                     const { chatId } = message.data;
@@ -1461,7 +1459,7 @@
                     }
                 });
 
-                // Subscribe to all my chats
+                // Подписка на все мои чаты
                 myChats.forEach(chat => {
                     subscribeToChat(chat);
                 });
@@ -1470,7 +1468,7 @@
             updateChatsList();
         }
 
-        // Subscribe to chat channel
+        // Подписка на канал чата
         function subscribeToChat(chat) {
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             
@@ -1532,6 +1530,7 @@
                 }
             });
             
+            // Получение истории
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -1561,7 +1560,7 @@
             });
         }
 
-        // Login
+        // Вход
         async function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -1573,16 +1572,18 @@
             }
             
             // Загружаем свежие данные из GitHub
-            await loadUsersFromGitHub();
+            const githubUsers = await loadUsersFromGitHub();
             
             const userKey = username.toLowerCase();
             
-            if (users[userKey] && users[userKey].password === password) {
+            if (githubUsers[userKey] && githubUsers[userKey].password === password) {
+                const userData = githubUsers[userKey];
+                
                 currentUser = {
-                    id: users[userKey].id,
-                    name: users[userKey].name,
-                    avatar: users[userKey].avatar || '👤',
-                    bio: users[userKey].bio || '',
+                    id: userData.id,
+                    name: userData.name,
+                    avatar: userData.avatar || '👤',
+                    bio: userData.bio || '',
                     isAdmin: username === ADMIN_USERNAME
                 };
                 
@@ -1606,16 +1607,16 @@
                 initAbly();
                 checkUrlForChat();
             } else {
-                alert('❌ Неверное имя пользователя или пароль.\n\nУбедитесь, что вы добавили пользователя через Python скрипт.');
+                alert('❌ Неверное имя пользователя или пароль');
             }
         }
 
-        // Register - теперь только через Python
+        // Регистрация (отключена)
         function register() {
-            alert('❌ Регистрация доступна только через Python скрипт.\n\nИспользуйте:\npython register.py\n\nПосле добавления пользователя, войдите на сайт.');
+            alert('❌ Регистрация временно недоступна');
         }
 
-        // Logout
+        // Выход
         function logout() {
             if (ably) {
                 const presenceChannel = ably.channels.get('presence');
@@ -1636,7 +1637,7 @@
             document.getElementById('registerConfirmPassword').value = '';
         }
 
-        // Switch auth mode
+        // Переключение режима авторизации
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -1656,7 +1657,7 @@
             }
         }
 
-        // Create public chat
+        // Создание публичного чата
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
@@ -1689,7 +1690,7 @@
             closeCreateChatModal();
         }
 
-        // Delete chat (admin only)
+        // Удаление чата (только админ)
         function deleteChat(chatId, event) {
             if (event) {
                 event.stopPropagation();
@@ -1705,14 +1706,6 @@
             }
             
             publicChats = publicChats.filter(c => c.id !== chatId);
-            
-            const allUsers = Object.keys(users);
-            allUsers.forEach(userKey => {
-                const user = users[userKey];
-                const userChats = JSON.parse(localStorage.getItem(`myChats_${user.id}`)) || [];
-                const filteredChats = userChats.filter(c => c.id !== chatId);
-                localStorage.setItem(`myChats_${user.id}`, JSON.stringify(filteredChats));
-            });
             
             if (messages[chatId]) {
                 delete messages[chatId];
@@ -1732,7 +1725,7 @@
             updateChatsList();
         }
 
-        // Join chat
+        // Присоединение к чату
         function joinChat(chat) {
             if (!chat) return;
             
@@ -1784,7 +1777,7 @@
             }
         }
 
-        // Join protected chat
+        // Присоединение к защищенному чату
         function joinProtectedChat() {
             const password = document.getElementById('joinPasswordInput').value;
             
@@ -1799,7 +1792,7 @@
             }
         }
 
-        // Send message
+        // Отправка сообщения
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -1857,7 +1850,7 @@
             updateChatsList();
         }
 
-        // Delete message
+        // Удаление сообщения
         function deleteMessage(messageId) {
             if (!currentChat) return;
             
@@ -1892,7 +1885,7 @@
             updateChatsList();
         }
 
-        // Edit message
+        // Редактирование сообщения
         function editMessage(messageId) {
             if (!currentChat) return;
             
@@ -1906,7 +1899,7 @@
             }
         }
 
-        // Save edited message
+        // Сохранение отредактированного сообщения
         function saveEditedMessage() {
             const newText = document.getElementById('editMessageText').value.trim();
             if (!newText || !messageToEdit || !currentChat) return;
@@ -1929,7 +1922,7 @@
             }
         }
 
-        // Render messages
+        // Отрисовка сообщений
         function renderMessages(animate = true) {
             const container = document.getElementById('messagesContainer');
             if (!container) return;
@@ -1997,7 +1990,7 @@
             }
         }
 
-        // Handle message click (for mobile)
+        // Обработка клика по сообщению (для мобильных)
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
                 const msg = messages[currentChat.id].find(m => m.id === messageId);
@@ -2012,7 +2005,7 @@
             }
         }
 
-        // Open media in fullscreen
+        // Открытие медиа в полноэкранном режиме
         function openMedia(url) {
             const viewer = document.getElementById('mediaViewer');
             const content = document.getElementById('mediaViewerContent');
@@ -2026,13 +2019,13 @@
             viewer.classList.add('active');
         }
 
-        // Close media viewer
+        // Закрытие медиа-просмотрщика
         function closeMediaViewer() {
             document.getElementById('mediaViewer').classList.remove('active');
             document.getElementById('mediaViewerContent').innerHTML = '';
         }
 
-        // Update chats list
+        // Обновление списка чатов
         function updateChatsList() {
             const list = document.getElementById('chatsList');
             if (!list) return;
@@ -2106,7 +2099,7 @@
             });
         }
 
-        // Switch tabs
+        // Переключение вкладок
         function switchTab(tab) {
             currentTab = tab;
             
@@ -2118,7 +2111,7 @@
             updateChatsList();
         }
 
-        // Create private chat
+        // Создание приватного чата
         function createPrivateChat(user) {
             const chatId = [currentUser.id, user.id].sort().join('-');
             
@@ -2137,12 +2130,12 @@
             joinChat(privateChat);
         }
 
-        // Search handler
+        // Обработка поиска
         function handleSearch() {
             updateChatsList();
         }
 
-        // Modal functions
+        // Функции для модальных окон
         function openCreateChatModal() {
             document.getElementById('createChatModal').classList.add('active');
         }
@@ -2186,21 +2179,15 @@
                 if (currentUser.isAdmin) {
                     document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Admin</span>`;
                 }
-                
-                const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) {
-                    users[userKey].name = newName;
-                }
             }
             
             currentUser.bio = newBio;
-            
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             closeProfileModal();
         }
 
-        // Utility functions
+        // Вспомогательные функции
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             input.type = input.type === 'password' ? 'text' : 'password';
@@ -2235,6 +2222,7 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
+        // Обработчики событий
         window.addEventListener('popstate', function(event) {
             const hash = window.location.hash.substring(1);
             if (hash) {
