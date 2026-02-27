@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1193,7 +1193,6 @@
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         const GITHUB_USERNAME = "lazutenkova64";
         const GITHUB_REPO = "userdata";
-        const ADMIN_USERNAME = "K1lame";
         
         let ably;
         let currentUser = null;
@@ -1210,7 +1209,7 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // ===== ИСПРАВЛЕННАЯ ЗАГРУЗКА ИЗ GITHUB =====
+        // ===== ЗАГРУЗКА ИЗ GITHUB =====
         
         async function loadUsersFromGitHub() {
             try {
@@ -1263,8 +1262,7 @@
                             id: users[userKey].id,
                             name: users[userKey].name,
                             avatar: users[userKey].avatar || '👤',
-                            bio: users[userKey].bio || '',
-                            isAdmin: tempUser.name === ADMIN_USERNAME
+                            bio: users[userKey].bio || ''
                         };
                         
                         myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
@@ -1272,9 +1270,6 @@
                         document.getElementById('loginModal').classList.remove('active');
                         document.getElementById('appContainer').style.display = 'flex';
                         document.getElementById('profileName').textContent = currentUser.name;
-                        if (currentUser.isAdmin) {
-                            document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
-                        }
                         document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                         document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                         document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1386,40 +1381,7 @@
                     }
                 });
 
-                const adminChannel = ably.channels.get('admin-actions');
-                adminChannel.subscribe('delete-chat', (message) => {
-                    const { chatId } = message.data;
-                    
-                    publicChats = publicChats.filter(c => c.id !== chatId);
-                    myChats = myChats.filter(c => c.id !== chatId);
-                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-                    
-                    if (messages[chatId]) {
-                        delete messages[chatId];
-                    }
-                    
-                    if (currentChat && currentChat.id === chatId) {
-                        currentChat = null;
-                        renderMessages();
-                        updateUrlWithChat(null);
-                    }
-                    
-                    updateChatsList();
-                });
-
-                adminChannel.subscribe('delete-message', (message) => {
-                    const { chatId, messageId } = message.data;
-                    
-                    if (messages[chatId]) {
-                        messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        
-                        if (currentChat && currentChat.id === chatId) {
-                            renderMessages();
-                        }
-                        updateChatsList();
-                    }
-                });
-
+                // Подписка на все мои чаты
                 myChats.forEach(chat => {
                     subscribeToChat(chat);
                 });
@@ -1453,11 +1415,15 @@
                     
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
+                    
+                    localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
                     updateChatsList();
@@ -1468,6 +1434,7 @@
                 const { messageId } = data.data;
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
+                    localStorage.setItem('messages', JSON.stringify(messages));
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                     }
@@ -1482,6 +1449,7 @@
                     if (msgIndex !== -1) {
                         messages[chat.id][msgIndex].text = newText;
                         messages[chat.id][msgIndex].edited = true;
+                        localStorage.setItem('messages', JSON.stringify(messages));
                         if (currentChat?.id === chat.id) {
                             renderMessages(true);
                         }
@@ -1510,9 +1478,12 @@
                         return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
                     });
                     
+                    localStorage.setItem('messages', JSON.stringify(messages));
+                    
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
+                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                 }
             });
@@ -1529,7 +1500,6 @@
                 return;
             }
             
-            // Загружаем свежие данные
             const githubUsers = await loadUsersFromGitHub();
             
             if (githubUsers[username] && githubUsers[username].password === password) {
@@ -1539,8 +1509,7 @@
                     id: userData.id,
                     name: userData.name,
                     avatar: userData.avatar || '👤',
-                    bio: userData.bio || '',
-                    isAdmin: username === ADMIN_USERNAME.toLowerCase()
+                    bio: userData.bio || ''
                 };
                 
                 if (remember) {
@@ -1552,9 +1521,6 @@
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('profileName').textContent = currentUser.name;
-                if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
-                }
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1569,7 +1535,7 @@
         }
 
         function register() {
-            alert('❌ Регистрация временно недоступна');
+            alert('❌ Регистрация доступна только через Python скрипт');
         }
 
         function logout() {
@@ -1611,6 +1577,7 @@
             }
         }
 
+        // ===== ИСПРАВЛЕННОЕ СОЗДАНИЕ ЧАТА =====
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
@@ -1629,10 +1596,12 @@
                 createdBy: currentUser.id,
                 createdByName: currentUser.name,
                 members: [currentUser.id],
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                lastMessage: 'собака'
             };
             
             publicChats.push(newChat);
+            localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             if (ably) {
                 const globalChatsChannel = ably.channels.get('global-chats');
@@ -1643,40 +1612,7 @@
             closeCreateChatModal();
         }
 
-        function deleteChat(chatId, event) {
-            if (event) {
-                event.stopPropagation();
-            }
-            
-            if (!currentUser || !currentUser.isAdmin) {
-                alert('Только администратор может удалять чаты');
-                return;
-            }
-            
-            if (!confirm('Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить.')) {
-                return;
-            }
-            
-            publicChats = publicChats.filter(c => c.id !== chatId);
-            
-            if (messages[chatId]) {
-                delete messages[chatId];
-            }
-            
-            if (ably) {
-                const adminChannel = ably.channels.get('admin-actions');
-                adminChannel.publish('delete-chat', { chatId });
-            }
-            
-            if (currentChat && currentChat.id === chatId) {
-                currentChat = null;
-                renderMessages();
-                updateUrlWithChat(null);
-            }
-            
-            updateChatsList();
-        }
-
+        // ===== ИСПРАВЛЕННОЕ ПРИСОЕДИНЕНИЕ К ЧАТУ =====
         function joinChat(chat) {
             if (!chat) return;
             
@@ -1690,6 +1626,7 @@
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
+                localStorage.setItem('publicChats', JSON.stringify(publicChats));
             }
             
             if (!myChats.find(c => c.id === chat.id)) {
@@ -1706,11 +1643,14 @@
             
             document.getElementById('currentChatName').innerHTML = `
                 ${chat.name} ${chat.password ? '🔒' : ''}
-                ${currentUser && currentUser.isAdmin ? `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>` : ''}
+                ${currentUser && currentUser.id === 'user_admin' ? `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>` : ''}
             `;
-            document.getElementById('chatStatus').textContent = chat.description || 'Чат';
+            document.getElementById('chatStatus').textContent = chat.description || 'собака';
             
-            if (!messages[chat.id]) messages[chat.id] = [];
+            if (!messages[chat.id]) {
+                messages[chat.id] = [];
+                localStorage.setItem('messages', JSON.stringify(messages));
+            }
             
             messages[chat.id].sort((a, b) => {
                 const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
@@ -1719,6 +1659,7 @@
             });
             
             unreadCounts[chat.id] = 0;
+            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
             renderMessages(true);
             updateChatsList();
@@ -1734,6 +1675,7 @@
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
+                localStorage.setItem('publicChats', JSON.stringify(publicChats));
                 
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
@@ -1742,6 +1684,61 @@
             }
         }
 
+        // ===== ИСПРАВЛЕННОЕ УДАЛЕНИЕ ЧАТА =====
+        function deleteChat(chatId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            if (!currentUser || currentUser.id !== 'user_admin') {
+                alert('Только администратор может удалять чаты');
+                return;
+            }
+            
+            if (!confirm('Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить.')) {
+                return;
+            }
+            
+            // Удаляем из публичных чатов
+            publicChats = publicChats.filter(c => c.id !== chatId);
+            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+            
+            // Удаляем из моих чатов у всех пользователей
+            const allUsers = Object.keys(users);
+            allUsers.forEach(userKey => {
+                const user = users[userKey];
+                const userChats = JSON.parse(localStorage.getItem(`myChats_${user.id}`)) || [];
+                const filteredChats = userChats.filter(c => c.id !== chatId);
+                localStorage.setItem(`myChats_${user.id}`, JSON.stringify(filteredChats));
+            });
+            
+            // Удаляем сообщения
+            if (messages[chatId]) {
+                delete messages[chatId];
+                localStorage.setItem('messages', JSON.stringify(messages));
+            }
+            
+            // Уведомляем всех через Ably
+            if (ably) {
+                const adminChannel = ably.channels.get('admin-actions');
+                adminChannel.publish('delete-chat', { chatId });
+            }
+            
+            // Если текущий чат удален, очищаем
+            if (currentChat && currentChat.id === chatId) {
+                currentChat = null;
+                renderMessages();
+                updateUrlWithChat(null);
+            }
+            
+            // Обновляем список моих чатов
+            myChats = myChats.filter(c => c.id !== chatId);
+            localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+            
+            updateChatsList();
+        }
+
+        // ===== ИСПРАВЛЕННАЯ ОТПРАВКА СООБЩЕНИЯ =====
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -1772,21 +1769,21 @@
                 sender: currentUser.id,
                 senderName: currentUser.name,
                 text: text,
-                time: timeString
+                time: timeString,
+                type: 'out'
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
             
-            messages[currentChat.id].push({
-                ...message,
-                type: 'out'
-            });
+            messages[currentChat.id].push(message);
             
             messages[currentChat.id].sort((a, b) => {
                 const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
                 const timeB = b.time ? b.time.split(':').map(Number) : [0, 0];
                 return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
             });
+            
+            localStorage.setItem('messages', JSON.stringify(messages));
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1799,12 +1796,14 @@
             updateChatsList();
         }
 
+        // ===== ИСПРАВЛЕННОЕ УДАЛЕНИЕ СООБЩЕНИЯ =====
         function deleteMessage(messageId) {
             if (!currentChat) return;
             
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             
-            if (msg.sender !== currentUser.id && !currentUser.isAdmin) {
+            // Разрешаем удалять любые сообщения в личных чатах
+            if (!currentChat.isPrivate && msg.sender !== currentUser.id) {
                 alert('Вы можете удалять только свои сообщения');
                 return;
             }
@@ -1812,6 +1811,7 @@
             if (!confirm('Удалить сообщение?')) return;
             
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
+            localStorage.setItem('messages', JSON.stringify(messages));
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1819,14 +1819,6 @@
                     messageId: messageId,
                     senderId: currentUser.id
                 });
-                
-                if (currentUser.isAdmin) {
-                    const adminChannel = ably.channels.get('admin-actions');
-                    adminChannel.publish('delete-message', {
-                        chatId: currentChat.id,
-                        messageId: messageId
-                    });
-                }
             }
             
             renderMessages(true);
@@ -1854,6 +1846,7 @@
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
+                localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1890,7 +1883,7 @@
             
             messages[currentChat.id].forEach(msg => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.type}`;
+                messageDiv.className = `message ${msg.sender === currentUser.id ? 'out' : 'in'}`;
                 if (!animate) {
                     messageDiv.style.animation = 'none';
                 }
@@ -1908,7 +1901,8 @@
                 }
                 
                 let actions = '';
-                if (msg.sender === currentUser.id || currentUser.isAdmin) {
+                // В личных чатах можно удалять любые сообщения
+                if (currentChat.isPrivate || msg.sender === currentUser.id) {
                     actions = `
                         <div class="message-actions">
                             ${msg.sender === currentUser.id ? '<button class="message-action-btn" onclick="editMessage(\'' + msg.id + '\')">✏️</button>' : ''}
@@ -1919,7 +1913,7 @@
                 
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${currentUser && currentUser.isAdmin && msg.sender !== currentUser.id ? ' <span class="admin-badge">Admin</span>' : ''}</div>` : ''}
+                    ${msg.sender !== currentUser.id ? `<div class="message-sender">${msg.senderName}</div>` : ''}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -1938,7 +1932,7 @@
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
                 const msg = messages[currentChat.id].find(m => m.id === messageId);
-                if (msg && (msg.sender === currentUser.id || currentUser.isAdmin)) {
+                if (msg && (currentChat.isPrivate || msg.sender === currentUser.id)) {
                     const action = confirm('Что сделать с сообщением?\nOK - редактировать (только свои)\nОтмена - удалить');
                     if (action && msg.sender === currentUser.id) {
                         editMessage(messageId);
@@ -2009,7 +2003,7 @@
                                 ${item.name}
                                 ${item.online ? '<span class="online-indicator"></span>' : ''}
                             </div>
-                            <div class="chat-last-message">${item.bio || 'Нет информации'}</div>
+                            <div class="chat-last-message">${item.bio || 'собака'}</div>
                         </div>
                     `;
                 } else {
@@ -2023,10 +2017,10 @@
                             <div class="chat-name">
                                 ${item.name || 'Без названия'}
                                 ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
-                                ${currentUser && currentUser.isAdmin && currentTab === 'public' ? `<button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>` : ''}
+                                ${currentUser && currentUser.id === 'user_admin' && currentTab === 'public' ? `<button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>` : ''}
                             </div>
                             <div class="chat-last-message">
-                                ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
+                                ${lastMsg ? (lastMsg.text || 'собака') : (item.description || 'собака')}
                             </div>
                         </div>
                         <div class="chat-meta">
@@ -2062,8 +2056,13 @@
                     name: user.name,
                     isPrivate: true,
                     user: user,
-                    members: [currentUser.id, user.id]
+                    members: [currentUser.id, user.id],
+                    description: 'собака',
+                    lastMessage: 'собака'
                 };
+                
+                myChats.push(privateChat);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             }
             
             joinChat(privateChat);
@@ -2113,9 +2112,6 @@
             if (newName && newName !== currentUser.name) {
                 currentUser.name = newName;
                 document.getElementById('profileName').textContent = newName;
-                if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Admin</span>`;
-                }
             }
             
             currentUser.bio = newBio;
