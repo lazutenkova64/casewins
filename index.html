@@ -1213,13 +1213,28 @@
 
         // ===== ФУНКЦИИ ДЛЯ GITHUB =====
         
+        // Функция для декодирования base64
+        function decodeBase64(str) {
+            try {
+                // Декодируем из base64 в строку
+                const decoded = atob(str);
+                // Парсим JSON
+                return JSON.parse(decoded);
+            } catch (e) {
+                console.error('Ошибка декодирования:', e);
+                return null;
+            }
+        }
+
         // Загрузка пользователей из GitHub
         async function loadUsersFromGitHub() {
             try {
+                console.log('Загружаем пользователей из GitHub...');
                 const response = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/users/`);
+                
                 if (!response.ok) {
                     console.log('❌ Папка users не найдена');
-                    return;
+                    return {};
                 }
                 
                 const files = await response.json();
@@ -1227,18 +1242,25 @@
                 
                 for (const file of files) {
                     if (file.name.endsWith('.json')) {
-                        const userResponse = await fetch(file.download_url);
-                        const userData = await userResponse.json();
+                        // GitHub API отдает файл с content в base64
+                        const fileResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/users/${file.name}`);
+                        const fileData = await fileResponse.json();
+                        
+                        // Декодируем из base64
+                        const content = atob(fileData.content);
+                        const userData = JSON.parse(content);
+                        
                         const userKey = userData.login.toLowerCase();
                         newUsers[userKey] = userData;
+                        console.log('✅ Загружен пользователь:', userData.login);
                     }
                 }
                 
                 users = newUsers;
-                console.log('✅ Загружено пользователей из GitHub:', Object.keys(users).length);
+                console.log('✅ Всего пользователей в GitHub:', Object.keys(users).length);
                 return users;
             } catch (error) {
-                console.log('Не удалось загрузить пользователей из GitHub');
+                console.error('Ошибка загрузки пользователей:', error);
                 users = {};
                 return {};
             }
@@ -1255,8 +1277,10 @@
                 
                 for (const file of files) {
                     if (file.name.endsWith('.json')) {
-                        const chatResponse = await fetch(file.download_url);
-                        const chatData = await chatResponse.json();
+                        const fileResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/chats/${file.name}`);
+                        const fileData = await fileResponse.json();
+                        const content = atob(fileData.content);
+                        const chatData = JSON.parse(content);
                         loadedChats.push(chatData);
                     }
                 }
@@ -1270,8 +1294,12 @@
         }
 
         // Загружаем данные при старте
-        loadUsersFromGitHub();
-        loadPublicChatsFromGitHub();
+        async function initData() {
+            await loadUsersFromGitHub();
+            await loadPublicChatsFromGitHub();
+        }
+        
+        initData();
 
         // Проверка сохраненной сессии
         async function checkSavedSession() {
@@ -1350,7 +1378,7 @@
         }
 
         // Вызываем при загрузке
-        checkSavedSession();
+        setTimeout(() => checkSavedSession(), 1000);
 
         // Инициализация Ably
         function initAbly() {
@@ -1576,38 +1604,45 @@
             
             const userKey = username.toLowerCase();
             
-            if (githubUsers[userKey] && githubUsers[userKey].password === password) {
+            if (githubUsers[userKey]) {
                 const userData = githubUsers[userKey];
                 
-                currentUser = {
-                    id: userData.id,
-                    name: userData.name,
-                    avatar: userData.avatar || '👤',
-                    bio: userData.bio || '',
-                    isAdmin: username === ADMIN_USERNAME
-                };
-                
-                if (remember) {
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                // Проверяем пароль
+                if (userData.password === password) {
+                    currentUser = {
+                        id: userData.id,
+                        name: userData.name,
+                        avatar: userData.avatar || '👤',
+                        bio: userData.bio || '',
+                        isAdmin: username === ADMIN_USERNAME
+                    };
+                    
+                    if (remember) {
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
+                    
+                    // Загружаем чаты пользователя
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    document.getElementById('profileName').textContent = currentUser.name;
+                    if (currentUser.isAdmin) {
+                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                    }
+                    document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
+                    document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
+                    document.getElementById('profileBioInput').value = currentUser.bio || '';
+                    
+                    initAbly();
+                    checkUrlForChat();
+                    
+                    console.log('✅ Вход выполнен для пользователя:', username);
+                } else {
+                    alert('❌ Неверный пароль');
                 }
-                
-                // Загружаем чаты пользователя
-                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                
-                document.getElementById('loginModal').classList.remove('active');
-                document.getElementById('appContainer').style.display = 'flex';
-                document.getElementById('profileName').textContent = currentUser.name;
-                if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
-                }
-                document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
-                document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
-                document.getElementById('profileBioInput').value = currentUser.bio || '';
-                
-                initAbly();
-                checkUrlForChat();
             } else {
-                alert('❌ Неверное имя пользователя или пароль');
+                alert('❌ Пользователь не найден');
             }
         }
 
