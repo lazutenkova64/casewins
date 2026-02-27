@@ -36,6 +36,9 @@
             --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            --status-sent: #4a5568;
+            --status-delivered: #2b9aff;
+            --status-read: #2b9a6b;
         }
 
         body {
@@ -484,9 +487,10 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            min-width: 200px;
+            min-width: 240px;
             background: transparent;
             padding: 8px;
+            position: relative;
         }
 
         .audio-play-btn {
@@ -547,18 +551,47 @@
             transition: width 0.1s linear;
         }
 
-        .message-media {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 16px;
-            margin-bottom: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            box-shadow: var(--shadow-sm);
+        .message-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 4px;
+            margin-right: 4px;
         }
 
-        .message-media:active {
-            transform: scale(0.98);
+        .message-status {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .status-sent {
+            color: var(--status-sent);
+        }
+
+        .status-delivered {
+            color: var(--status-delivered);
+        }
+
+        .status-read {
+            color: var(--status-read);
+        }
+
+        .status-pending {
+            color: var(--text-secondary);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: var(--text-secondary);
         }
 
         .message-sender {
@@ -570,13 +603,6 @@
             display: flex;
             align-items: center;
             gap: 4px;
-        }
-
-        .message-time {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            margin-left: 8px;
         }
 
         .message-actions {
@@ -682,18 +708,13 @@
             pointer-events: none;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
         .input-wrapper {
             flex: 1;
             display: flex;
             flex-direction: column;
             gap: 8px;
             min-width: 0;
+            position: relative;
         }
 
         .message-input {
@@ -1162,7 +1183,7 @@
             }
 
             .audio-message {
-                min-width: 160px;
+                min-width: 200px;
             }
         }
 
@@ -1188,7 +1209,7 @@
             }
 
             .audio-message {
-                min-width: 140px;
+                min-width: 180px;
             }
         }
     </style>
@@ -1399,6 +1420,10 @@
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
 
+        // Message delivery tracking
+        let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
+        let pendingDeliveries = {};
+
         // Deleted messages tracking
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
 
@@ -1418,6 +1443,11 @@
         let currentlyPlayingAudio = null;
         let activeAudioMessage = null;
         let audioUpdateInterval = null;
+
+        // WebRTC for audio streaming
+        let peerConnections = {};
+        let audioElements = {};
+        let pendingAudioMessages = {};
 
         // Timers
         let saveMessagesTimeout;
@@ -1466,12 +1496,10 @@
         function setupMicrophoneHandlers() {
             const micBtn = document.getElementById('micBtn');
             
-            // Mouse events
             micBtn.addEventListener('mousedown', startRecording);
             micBtn.addEventListener('mouseup', stopRecording);
             micBtn.addEventListener('mouseleave', stopRecording);
             
-            // Touch events for mobile
             micBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 startRecording();
@@ -1482,7 +1510,6 @@
             });
             micBtn.addEventListener('touchcancel', stopRecording);
             
-            // Prevent click interference
             micBtn.addEventListener('click', (e) => {
                 e.preventDefault();
             });
@@ -1502,13 +1529,10 @@
                 dismissArea.classList.remove('active');
             });
             
-            // Dismiss keyboard when tapping outside
             dismissArea.addEventListener('click', dismissKeyboard);
             
-            // Handle viewport changes on mobile
             window.addEventListener('resize', () => {
                 if (document.activeElement === input) {
-                    // Scroll to keep input visible
                     setTimeout(() => {
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 100);
@@ -1522,10 +1546,8 @@
         }
 
         function handleInputFocus() {
-            // Close emoji picker when keyboard opens
             document.getElementById('emojiPicker').style.display = 'none';
             
-            // Scroll to keep input visible on mobile
             setTimeout(() => {
                 document.getElementById('messageInput').scrollIntoView({ 
                     behavior: 'smooth', 
@@ -1535,7 +1557,6 @@
         }
 
         function handleInputBlur() {
-            // Small delay to prevent interference with touch events
             setTimeout(() => {
                 if (!isKeyboardVisible) {
                     document.getElementById('keyboardDismissArea').classList.remove('active');
@@ -1645,10 +1666,248 @@
             });
         }
 
+        // ========== Message Status Management ==========
+        function updateMessageStatus(messageId, status) {
+            if (!messageStatuses[messageId]) {
+                messageStatuses[messageId] = {};
+            }
+            messageStatuses[messageId].status = status;
+            messageStatuses[messageId].timestamp = Date.now();
+            
+            localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+            
+            // Update UI if message is visible
+            const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
+            if (statusElement) {
+                updateStatusElement(statusElement, status);
+            }
+        }
+
+        function updateStatusElement(element, status) {
+            element.className = 'message-status';
+            switch(status) {
+                case 'pending':
+                    element.innerHTML = '⏳';
+                    element.classList.add('status-pending');
+                    break;
+                case 'sent':
+                    element.innerHTML = '✓';
+                    element.classList.add('status-sent');
+                    break;
+                case 'delivered':
+                    element.innerHTML = '✓✓';
+                    element.classList.add('status-delivered');
+                    break;
+                case 'read':
+                    element.innerHTML = '✓✓';
+                    element.classList.add('status-read');
+                    break;
+            }
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'pending': return '⏳';
+                case 'sent': return '✓';
+                case 'delivered': return '✓✓';
+                case 'read': return '✓✓';
+                default: return '';
+            }
+        }
+
+        // ========== WebRTC Audio Streaming ==========
+        async function setupWebRTCForAudio(messageId, audioData) {
+            try {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                };
+                
+                const peerConnection = new RTCPeerConnection(configuration);
+                peerConnections[messageId] = peerConnection;
+                
+                // Create data channel for signaling
+                const dataChannel = peerConnection.createDataChannel('audioSignal');
+                dataChannel.onopen = () => {
+                    console.log('Data channel opened for message:', messageId);
+                };
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate && ably) {
+                        const signalChannel = ably.channels.get(`signaling-${currentChat.id}`);
+                        signalChannel.publish('ice-candidate', {
+                            messageId: messageId,
+                            candidate: event.candidate,
+                            senderId: currentUser.id
+                        });
+                    }
+                };
+                
+                // Create and set local description
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Send offer via Ably
+                if (ably) {
+                    const signalChannel = ably.channels.get(`signaling-${currentChat.id}`);
+                    signalChannel.publish('offer', {
+                        messageId: messageId,
+                        offer: offer,
+                        senderId: currentUser.id
+                    });
+                }
+                
+                // Store audio data for later streaming
+                pendingAudioMessages[messageId] = audioData;
+                
+                // Update status to pending
+                updateMessageStatus(messageId, 'pending');
+                
+            } catch (error) {
+                console.error('WebRTC setup error:', error);
+                // Fallback to base64
+                sendAudioViaAbly(messageId, audioData);
+            }
+        }
+
+        async function handleWebRTCOffer(messageId, offer, senderId) {
+            try {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                };
+                
+                const peerConnection = new RTCPeerConnection(configuration);
+                peerConnections[messageId] = peerConnection;
+                
+                peerConnection.ondatachannel = (event) => {
+                    const receiveChannel = event.channel;
+                    receiveChannel.onmessage = (e) => {
+                        // Receive audio data chunks
+                        const audioData = e.data;
+                        // Create audio blob and play
+                        const audioBlob = new Blob([audioData], { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        // Update message with audio URL
+                        const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
+                        if (msgIndex !== -1) {
+                            messages[currentChat.id][msgIndex].audio = audioUrl;
+                            messages[currentChat.id][msgIndex].audioBlob = audioBlob;
+                            saveMessagesDebounced();
+                            
+                            if (currentChat && currentChat.id === currentChat.id) {
+                                renderMessages(true);
+                            }
+                        }
+                    };
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate && ably) {
+                        const signalChannel = ably.channels.get(`signaling-${currentChat.id}`);
+                        signalChannel.publish('ice-candidate', {
+                            messageId: messageId,
+                            candidate: event.candidate,
+                            senderId: currentUser.id
+                        });
+                    }
+                };
+                
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                if (ably) {
+                    const signalChannel = ably.channels.get(`signaling-${currentChat.id}`);
+                    signalChannel.publish('answer', {
+                        messageId: messageId,
+                        answer: answer,
+                        senderId: currentUser.id
+                    });
+                }
+                
+                // Send delivery confirmation
+                sendDeliveryConfirmation(messageId);
+                
+            } catch (error) {
+                console.error('WebRTC answer error:', error);
+            }
+        }
+
+        async function handleWebRTCAnswer(messageId, answer) {
+            const peerConnection = peerConnections[messageId];
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                
+                // Send audio data through data channel
+                if (pendingAudioMessages[messageId]) {
+                    const audioData = pendingAudioMessages[messageId];
+                    const dataChannel = peerConnection.createDataChannel('audioData');
+                    dataChannel.onopen = () => {
+                        // Send audio in chunks
+                        const chunkSize = 16384; // 16KB chunks
+                        for (let i = 0; i < audioData.length; i += chunkSize) {
+                            const chunk = audioData.slice(i, i + chunkSize);
+                            dataChannel.send(chunk);
+                        }
+                        dataChannel.close();
+                        
+                        // Update status to sent after sending
+                        updateMessageStatus(messageId, 'sent');
+                        delete pendingAudioMessages[messageId];
+                    };
+                }
+            }
+        }
+
+        async function handleICECandidate(messageId, candidate) {
+            const peerConnection = peerConnections[messageId];
+            if (peerConnection) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (error) {
+                    console.error('Error adding ICE candidate:', error);
+                }
+            }
+        }
+
+        function sendDeliveryConfirmation(messageId) {
+            if (ably && currentChat) {
+                const statusChannel = ably.channels.get(`status-${currentChat.id}`);
+                statusChannel.publish('delivered', {
+                    messageId: messageId,
+                    userId: currentUser.id,
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        // Fallback method using Ably
+        function sendAudioViaAbly(messageId, audioData) {
+            if (ably && currentChat) {
+                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                chatChannel.publish('audio-data', {
+                    messageId: messageId,
+                    audioData: audioData,
+                    senderId: currentUser.id
+                });
+                
+                // Update status after sending
+                setTimeout(() => {
+                    updateMessageStatus(messageId, 'sent');
+                }, 1000);
+            }
+        }
+
         // ========== Audio Playback Management ==========
         function playAudioMessage(audioElement, messageId, playBtn) {
             if (currentlyPlayingAudio && currentlyPlayingAudio !== audioElement) {
-                // Pause other audio
                 currentlyPlayingAudio.pause();
                 if (activeAudioMessage) {
                     const prevBtn = document.querySelector(`.audio-play-btn[data-message-id="${activeAudioMessage}"]`);
@@ -1667,7 +1926,6 @@
                 currentlyPlayingAudio = audioElement;
                 activeAudioMessage = messageId;
                 
-                // Start progress update
                 startAudioProgressUpdate(audioElement, messageId);
                 
                 audioElement.onended = () => {
@@ -1677,7 +1935,6 @@
                     activeAudioMessage = null;
                     stopAudioProgressUpdate();
                     
-                    // Reset progress bar
                     const progressBar = document.querySelector(`.audio-progress[data-message-id="${messageId}"]`);
                     if (progressBar) {
                         progressBar.style.width = '0%';
@@ -1704,7 +1961,6 @@
                         progressBar.style.width = progress + '%';
                     }
                     
-                    // Update time display
                     const timeDisplay = document.querySelector(`.audio-time[data-message-id="${messageId}"]`);
                     if (timeDisplay) {
                         const current = formatTime(audioElement.currentTime);
@@ -1886,8 +2142,18 @@
 
         function subscribeToChat(chat) {
             if (!ably) return;
+            
+            // Main chat channel
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             chatChannel.unsubscribe();
+            
+            // Signaling channel for WebRTC
+            const signalChannel = ably.channels.get(`signaling-${chat.id}`);
+            signalChannel.unsubscribe();
+            
+            // Status channel for delivery confirmations
+            const statusChannel = ably.channels.get(`status-${chat.id}`);
+            statusChannel.unsubscribe();
             
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
@@ -1920,30 +2186,67 @@
                 }
             });
             
-            chatChannel.subscribe('delete', (data) => {
-                const { messageId } = data.data;
-                if (!deletedMessages[chat.id]) deletedMessages[chat.id] = [];
-                if (!deletedMessages[chat.id].includes(messageId)) {
-                    deletedMessages[chat.id].push(messageId);
-                    localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
-                }
-                if (messages[chat.id]) {
-                    messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
+            chatChannel.subscribe('audio-data', (message) => {
+                const { messageId, audioData, senderId } = message.data;
+                if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(messageId)) return;
+                
+                // Convert base64 to blob and create URL
+                const audioBlob = base64ToBlob(audioData.split(',')[1], 'audio/webm');
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
+                if (msgIndex !== -1) {
+                    messages[chat.id][msgIndex].audio = audioUrl;
+                    messages[chat.id][msgIndex].audioBlob = audioBlob;
                     saveMessagesDebounced();
-                    if (currentChat?.id === chat.id) renderMessages(true);
-                    updateChatsList();
+                    
+                    if (currentChat && currentChat.id === chat.id) {
+                        renderMessages(true);
+                    }
+                }
+                
+                // Send delivery confirmation
+                sendDeliveryConfirmation(messageId);
+            });
+            
+            // WebRTC signaling handlers
+            signalChannel.subscribe('offer', (message) => {
+                const { messageId, offer, senderId } = message.data;
+                handleWebRTCOffer(messageId, offer, senderId);
+            });
+            
+            signalChannel.subscribe('answer', (message) => {
+                const { messageId, answer } = message.data;
+                handleWebRTCAnswer(messageId, answer);
+            });
+            
+            signalChannel.subscribe('ice-candidate', (message) => {
+                const { messageId, candidate } = message.data;
+                handleICECandidate(messageId, candidate);
+            });
+            
+            // Status handlers
+            statusChannel.subscribe('delivered', (message) => {
+                const { messageId, userId } = message.data;
+                if (messageId && messageStatuses[messageId]) {
+                    updateMessageStatus(messageId, 'delivered');
+                    
+                    // Update UI if visible
+                    const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
+                    if (statusElement) {
+                        updateStatusElement(statusElement, 'delivered');
+                    }
                 }
             });
             
-            chatChannel.subscribe('edit', (data) => {
-                const { messageId, newText } = data.data;
-                if (messages[chat.id]) {
-                    const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
-                    if (msgIndex !== -1) {
-                        messages[chat.id][msgIndex].text = newText;
-                        messages[chat.id][msgIndex].edited = true;
-                        saveMessagesDebounced();
-                        if (currentChat?.id === chat.id) renderMessages(true);
+            statusChannel.subscribe('read', (message) => {
+                const { messageId, userId } = message.data;
+                if (messageId && messageStatuses[messageId]) {
+                    updateMessageStatus(messageId, 'read');
+                    
+                    const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
+                    if (statusElement) {
+                        updateStatusElement(statusElement, 'read');
                     }
                 }
             });
@@ -1971,6 +2274,25 @@
                     }
                 }
             });
+        }
+
+        function base64ToBlob(base64, type) {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            
+            return new Blob(byteArrays, { type: type });
         }
 
         function updateChatLastMessageTime(chatId, timestamp) {
@@ -2214,6 +2536,9 @@
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
+            // Set initial status
+            updateMessageStatus(messageId, 'sent');
+            
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('message', message);
@@ -2267,9 +2592,27 @@
 
                 updateChatLastMessageTime(currentChat.id, timestamp);
 
+                // Set initial pending status
+                updateMessageStatus(messageId, 'pending');
+
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('message', message);
+                    
+                    // Try WebRTC first
+                    setupWebRTCForAudio(messageId, base64Audio).catch(() => {
+                        // Fallback to Ably if WebRTC fails
+                        chatChannel.publish('audio-data', {
+                            messageId: messageId,
+                            audioData: base64Audio,
+                            senderId: currentUser.id,
+                            duration: duration
+                        });
+                        
+                        // Update to sent after a delay
+                        setTimeout(() => {
+                            updateMessageStatus(messageId, 'sent');
+                        }, 1000);
+                    });
                 }
 
                 renderMessages(true);
@@ -2296,7 +2639,6 @@
                 return;
             }
             
-            // Stop any playing audio
             if (currentlyPlayingAudio) {
                 currentlyPlayingAudio.pause();
                 currentlyPlayingAudio = null;
@@ -2317,7 +2659,6 @@
                     } 
                 });
                 
-                // Try different MIME types for better mobile support
                 const mimeTypes = [
                     'audio/webm;codecs=opus',
                     'audio/webm',
@@ -2355,11 +2696,10 @@
                     }
                 };
 
-                mediaRecorder.start(100); // Collect data every 100ms for better mobile performance
+                mediaRecorder.start(100);
                 isRecording = true;
                 document.getElementById('micBtn').classList.add('recording');
                 
-                // Auto-stop after 60 seconds
                 recordingTimeout = setTimeout(() => {
                     if (isRecording) stopRecording();
                 }, 60000);
@@ -2419,6 +2759,9 @@
                 } else if (msg.audio) {
                     const audioId = `audio-${msg.id}`;
                     const duration = msg.duration || 30;
+                    const status = messageStatuses[msg.id]?.status || (msg.type === 'out' ? 'sent' : 'delivered');
+                    const statusIcon = getStatusIcon(status);
+                    
                     content = `
                         <div class="message-bubble audio-message">
                             <button class="audio-play-btn" data-message-id="${msg.id}" onclick="playAudioMessage(document.getElementById('${audioId}'), '${msg.id}', this)">▶</button>
@@ -2429,6 +2772,14 @@
                             <div class="audio-progress" data-message-id="${msg.id}" style="width: 0%;"></div>
                             <audio id="${audioId}" src="${msg.audio}" preload="metadata"></audio>
                         </div>
+                        ${msg.type === 'out' ? `
+                            <div class="message-footer">
+                                <span class="message-status" data-message-id="${msg.id}">${statusIcon}</span>
+                                <span class="message-time">${msg.time}</span>
+                            </div>
+                        ` : `
+                            <div class="message-time">${msg.time}</div>
+                        `}
                     `;
                 } else if (msg.media) {
                     if (msg.media.type.startsWith('image/')) {
@@ -2436,6 +2787,7 @@
                     } else if (msg.media.type.startsWith('video/')) {
                         content = `<video src="${msg.media.url}" class="message-media" controls onclick="event.stopPropagation()"></video>`;
                     }
+                    content += `<div class="message-time">${msg.time}</div>`;
                 }
                 
                 let actions = '';
@@ -2450,17 +2802,33 @@
                 
                 const showAdminBadge = msg.isAdmin && msg.senderName === ADMIN_USERNAME;
                 
-                messageDiv.innerHTML = `
-                    ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
-                    ${content}
-                    <div class="message-time">${msg.time}</div>
-                `;
+                if (!msg.audio) {
+                    messageDiv.innerHTML = `
+                        ${actions}
+                        ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
+                        ${content}
+                    `;
+                } else {
+                    messageDiv.innerHTML = `
+                        ${actions}
+                        ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
+                        ${content}
+                    `;
+                }
                 
                 fragment.appendChild(messageDiv);
             });
             
             container.appendChild(fragment);
+            
+            // Update status elements with proper classes
+            Object.keys(messageStatuses).forEach(messageId => {
+                const status = messageStatuses[messageId].status;
+                const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
+                if (statusElement) {
+                    updateStatusElement(statusElement, status);
+                }
+            });
             
             if (isAtBottom) {
                 container.scrollTo({
@@ -3017,7 +3385,6 @@
             const picker = document.getElementById('emojiPicker');
             picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
             
-            // Hide keyboard when showing emoji picker on mobile
             if (picker.style.display === 'flex') {
                 dismissKeyboard();
             }
