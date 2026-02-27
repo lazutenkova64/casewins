@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
+        /* Твои стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -43,7 +45,6 @@
             overflow: hidden;
         }
 
-        /* Современный скроллбар */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -942,6 +943,16 @@
             margin-left: 6px;
         }
 
+        .github-badge {
+            background: #24292e;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 6px;
+            border: 1px solid #6e7681;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -1189,7 +1200,14 @@
 
     <script>
         // ============================================================
-        // ВАШ ABLY API KEY
+        // GitHub CONFIGURATION
+        // ============================================================
+        const GITHUB_TOKEN = "";
+        const GITHUB_USERNAME = "lazutenkova64";
+        const GITHUB_REPO = "userdata";
+        
+        // ============================================================
+        // ABLY CONFIGURATION
         // ============================================================
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
@@ -1197,20 +1215,231 @@
         let currentUser = null;
         
         // Data structures
-        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
-        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
+        let users = {};
+        let publicChats = [];
         let myChats = [];
         let onlineUsers = {};
         let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
-        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
+        let messages = {};
+        let unreadCounts = {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
 
+        // ============================================================
+        // GITHUB API FUNCTIONS
+        // ============================================================
+        
+        // Загрузить всех пользователей из GitHub
+        async function loadUsersFromGitHub() {
+            try {
+                const response = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/users/`, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`
+                    }
+                });
+                
+                users = {};
+                for (const file of response.data) {
+                    if (file.name.endsWith('.json')) {
+                        const fileResponse = await axios.get(file.download_url);
+                        const userData = fileResponse.data;
+                        users[userData.login.toLowerCase()] = userData;
+                    }
+                }
+                console.log('✅ Users loaded from GitHub:', Object.keys(users).length);
+            } catch (error) {
+                console.log('No users found or error loading:', error);
+                users = {};
+            }
+        }
+
+        // Сохранить пользователя в GitHub
+        async function saveUserToGitHub(userData) {
+            try {
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
+                const fileName = `users/${userData.login.toLowerCase()}.json`;
+                
+                try {
+                    // Check if file exists
+                    const existing = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`
+                        }
+                    });
+                    
+                    // Update existing file
+                    await axios.put(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                        message: `Update user ${userData.login}`,
+                        content: content,
+                        sha: existing.data.sha
+                    }, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`
+                        }
+                    });
+                    console.log('✅ User updated on GitHub');
+                } catch (error) {
+                    if (error.response && error.response.status === 404) {
+                        // Create new file
+                        await axios.put(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                            message: `Create user ${userData.login}`,
+                            content: content
+                        }, {
+                            headers: {
+                                'Authorization': `token ${GITHUB_TOKEN}`
+                            }
+                        });
+                        console.log('✅ User saved to GitHub');
+                    } else {
+                        throw error;
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving user to GitHub:', error);
+            }
+        }
+
+        // Обновить статус пользователя в GitHub
+        async function updateUserStatus(username, status) {
+            try {
+                const userKey = username.toLowerCase();
+                if (users[userKey]) {
+                    users[userKey].status = status;
+                    users[userKey].lastSeen = new Date().toISOString();
+                    await saveUserToGitHub(users[userKey]);
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        // Загрузить публичные чаты из GitHub
+        async function loadPublicChatsFromGitHub() {
+            try {
+                const response = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/chats/`, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`
+                    }
+                });
+                
+                publicChats = [];
+                for (const file of response.data) {
+                    if (file.name.endsWith('.json')) {
+                        const fileResponse = await axios.get(file.download_url);
+                        publicChats.push(fileResponse.data);
+                    }
+                }
+                console.log('✅ Chats loaded from GitHub:', publicChats.length);
+            } catch (error) {
+                console.log('No chats found or error loading:', error);
+                publicChats = [];
+            }
+        }
+
+        // Сохранить чат в GitHub
+        async function saveChatToGitHub(chatData) {
+            try {
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(chatData, null, 2))));
+                const fileName = `chats/${chatData.id}.json`;
+                
+                try {
+                    const existing = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`
+                        }
+                    });
+                    
+                    await axios.put(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                        message: `Update chat ${chatData.name}`,
+                        content: content,
+                        sha: existing.data.sha
+                    }, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`
+                        }
+                    });
+                } catch (error) {
+                    if (error.response && error.response.status === 404) {
+                        await axios.put(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                            message: `Create chat ${chatData.name}`,
+                            content: content
+                        }, {
+                            headers: {
+                                'Authorization': `token ${GITHUB_TOKEN}`
+                            }
+                        });
+                    } else {
+                        throw error;
+                    }
+                }
+                console.log('✅ Chat saved to GitHub');
+            } catch (error) {
+                console.error('Error saving chat to GitHub:', error);
+            }
+        }
+
+        // Загрузить сообщения чата из GitHub
+        async function loadMessagesFromGitHub(chatId) {
+            try {
+                const response = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/messages/${chatId}/`, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`
+                    }
+                });
+                
+                messages[chatId] = [];
+                for (const file of response.data) {
+                    if (file.name.endsWith('.json')) {
+                        const fileResponse = await axios.get(file.download_url);
+                        messages[chatId].push(fileResponse.data);
+                    }
+                }
+                
+                // Sort by time
+                messages[chatId].sort((a, b) => {
+                    const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
+                    const timeB = b.time ? b.time.split(':').map(Number) : [0, 0];
+                    return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+                });
+                
+                console.log(`✅ Messages loaded for chat ${chatId}:`, messages[chatId].length);
+            } catch (error) {
+                console.log(`No messages for chat ${chatId} or error loading:`, error);
+                messages[chatId] = [];
+            }
+        }
+
+        // Сохранить сообщение в GitHub
+        async function saveMessageToGitHub(chatId, messageData) {
+            try {
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(messageData, null, 2))));
+                const fileName = `messages/${chatId}/${messageData.id}.json`;
+                
+                try {
+                    await axios.put(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`, {
+                        message: `Add message to ${chatId}`,
+                        content: content
+                    }, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`
+                        }
+                    });
+                    console.log('✅ Message saved to GitHub');
+                } catch (error) {
+                    console.error('Error saving message:', error);
+                }
+            } catch (error) {
+                console.error('Error saving message to GitHub:', error);
+            }
+        }
+
         // Check for saved session
-        function checkSavedSession() {
+        async function checkSavedSession() {
+            await loadUsersFromGitHub();
+            await loadPublicChatsFromGitHub();
+            
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
@@ -1218,6 +1447,17 @@
                     
                     // Load user's chats
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    
+                    // Verify user exists in GitHub
+                    const userKey = currentUser.name.toLowerCase();
+                    if (!users[userKey]) {
+                        // User deleted from GitHub, logout
+                        localStorage.removeItem('currentUser');
+                        return;
+                    }
+                    
+                    // Update status to online
+                    await updateUserStatus(currentUser.name, 'online');
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -1330,7 +1570,6 @@
                     const newChat = message.data;
                     if (!publicChats.find(c => c.id === newChat.id)) {
                         publicChats.push(newChat);
-                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
                         if (currentTab === 'public') {
                             updateChatsList();
                         }
@@ -1344,7 +1583,6 @@
                     
                     // Remove from public chats
                     publicChats = publicChats.filter(c => c.id !== chatId);
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
                     
                     // Remove from my chats
                     myChats = myChats.filter(c => c.id !== chatId);
@@ -1353,7 +1591,6 @@
                     // Remove messages
                     if (messages[chatId]) {
                         delete messages[chatId];
-                        localStorage.setItem('messages', JSON.stringify(messages));
                     }
                     
                     // If current chat is deleted, clear it
@@ -1371,7 +1608,6 @@
                     
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        localStorage.setItem('messages', JSON.stringify(messages));
                         
                         if (currentChat && currentChat.id === chatId) {
                             renderMessages();
@@ -1419,17 +1655,16 @@
                     // Update unread count if not in this chat
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
-                    localStorage.setItem('messages', JSON.stringify(messages));
+                    // Save to GitHub
+                    saveMessageToGitHub(chat.id, msg);
                     
                     if (currentChat && currentChat.id === chat.id) {
                         // Render only new messages with animation
                         renderMessages(true);
                         // Clear unread for this chat
                         unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
                     updateChatsList();
@@ -1440,7 +1675,6 @@
                 const { messageId, senderId } = data.data;
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    localStorage.setItem('messages', JSON.stringify(messages));
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                     }
@@ -1455,7 +1689,6 @@
                     if (msgIndex !== -1) {
                         messages[chat.id][msgIndex].text = newText;
                         messages[chat.id][msgIndex].edited = true;
-                        localStorage.setItem('messages', JSON.stringify(messages));
                         if (currentChat?.id === chat.id) {
                             renderMessages(true);
                         }
@@ -1463,43 +1696,18 @@
                 }
             });
             
-            // Get history for this chat
-            chatChannel.history({ limit: 200 }, (err, resultPage) => {
-                if (resultPage && resultPage.items.length > 0) {
-                    if (!messages[chat.id]) messages[chat.id] = [];
-                    
-                    resultPage.items.forEach(item => {
-                        const msg = item.data;
-                        const exists = messages[chat.id].some(m => m.id === msg.id);
-                        if (!exists) {
-                            messages[chat.id].push({
-                                ...msg,
-                                type: msg.sender === currentUser.id ? 'out' : 'in'
-                            });
-                        }
-                    });
-                    
-                    // Sort messages by time
-                    messages[chat.id].sort((a, b) => {
-                        const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
-                        const timeB = b.time ? b.time.split(':').map(Number) : [0, 0];
-                        return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
-                    });
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
-                    if (currentChat?.id === chat.id) {
-                        renderMessages(true);
-                        // Clear unread for this chat
-                        unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                    }
+            // Load messages from GitHub
+            loadMessagesFromGitHub(chat.id).then(() => {
+                if (currentChat?.id === chat.id) {
+                    renderMessages(true);
+                    // Clear unread for this chat
+                    unreadCounts[chat.id] = 0;
                 }
             });
         }
 
         // Login
-        function login() {
+        async function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
             const remember = document.getElementById('rememberMe').checked;
@@ -1510,6 +1718,10 @@
             }
             
             const userKey = username.toLowerCase();
+            
+            // Reload users from GitHub to ensure latest data
+            await loadUsersFromGitHub();
+            
             if (users[userKey] && users[userKey].password === password) {
                 currentUser = {
                     id: users[userKey].id,
@@ -1523,6 +1735,9 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
                 
+                // Update status to online
+                await updateUserStatus(username, 'online');
+                
                 // Load user's chats
                 myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 
@@ -1530,7 +1745,7 @@
                 document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('profileName').textContent = currentUser.name;
                 if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span> <span class="github-badge">GitHub</span>`;
                 }
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
@@ -1544,7 +1759,7 @@
         }
 
         // Register
-        function register() {
+        async function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
@@ -1566,6 +1781,10 @@
             }
             
             const userKey = username.toLowerCase();
+            
+            // Reload users from GitHub
+            await loadUsersFromGitHub();
+            
             if (users[userKey]) {
                 alert('Пользователь с таким именем уже существует');
                 return;
@@ -1573,15 +1792,21 @@
             
             const newUser = {
                 id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                login: username,
                 name: username,
                 password: password,
                 avatar: '👤',
                 bio: '',
-                createdAt: new Date().toISOString()
+                status: 'online',
+                createdAt: new Date().toISOString(),
+                lastSeen: new Date().toISOString()
             };
             
+            // Save to GitHub
+            await saveUserToGitHub(newUser);
+            
+            // Update local users object
             users[userKey] = newUser;
-            localStorage.setItem('telegram_users', JSON.stringify(users));
             
             currentUser = {
                 id: newUser.id,
@@ -1599,7 +1824,7 @@
             document.getElementById('appContainer').style.display = 'flex';
             document.getElementById('profileName').textContent = currentUser.name;
             if (currentUser.isAdmin) {
-                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span> <span class="github-badge">GitHub</span>`;
             }
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
@@ -1608,7 +1833,11 @@
         }
 
         // Logout
-        function logout() {
+        async function logout() {
+            if (currentUser) {
+                await updateUserStatus(currentUser.name, 'offline');
+            }
+            
             if (ably) {
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.leave();
@@ -1649,7 +1878,7 @@
         }
 
         // Create public chat
-        function createPublicChat() {
+        async function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
             const description = document.getElementById('chatDescriptionInput').value.trim();
@@ -1671,7 +1900,9 @@
             };
             
             publicChats.push(newChat);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+            
+            // Save to GitHub
+            await saveChatToGitHub(newChat);
             
             if (ably) {
                 // Broadcast new chat to all users
@@ -1684,7 +1915,7 @@
         }
 
         // Delete chat (admin only)
-        function deleteChat(chatId, event) {
+        async function deleteChat(chatId, event) {
             if (event) {
                 event.stopPropagation();
             }
@@ -1700,7 +1931,6 @@
             
             // Remove from public chats
             publicChats = publicChats.filter(c => c.id !== chatId);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             // Remove from all users' myChats (will be synced via Ably)
             const allUsers = Object.keys(users);
@@ -1714,7 +1944,6 @@
             // Remove messages
             if (messages[chatId]) {
                 delete messages[chatId];
-                localStorage.setItem('messages', JSON.stringify(messages));
             }
             
             // Broadcast deletion to all users
@@ -1734,7 +1963,7 @@
         }
 
         // Join chat
-        function joinChat(chat) {
+        async function joinChat(chat) {
             if (!chat) return;
             
             // Check password
@@ -1749,6 +1978,7 @@
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
+                await saveChatToGitHub(chat);
             }
             
             // Add to my chats
@@ -1759,6 +1989,9 @@
                 // Subscribe to this chat
                 if (ably) {
                     subscribeToChat(chat);
+                } else {
+                    // Load messages directly
+                    await loadMessagesFromGitHub(chat.id);
                 }
             }
             
@@ -1772,18 +2005,21 @@
             `;
             document.getElementById('chatStatus').textContent = chat.description || 'Чат';
             
-            if (!messages[chat.id]) messages[chat.id] = [];
+            if (!messages[chat.id]) {
+                await loadMessagesFromGitHub(chat.id);
+            }
             
             // Sort messages by time
-            messages[chat.id].sort((a, b) => {
-                const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
-                const timeB = b.time ? b.time.split(':').map(Number) : [0, 0];
-                return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
-            });
+            if (messages[chat.id]) {
+                messages[chat.id].sort((a, b) => {
+                    const timeA = a.time ? a.time.split(':').map(Number) : [0, 0];
+                    const timeB = b.time ? b.time.split(':').map(Number) : [0, 0];
+                    return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+                });
+            }
             
             // Clear unread count for this chat
             unreadCounts[chat.id] = 0;
-            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
             renderMessages(true);
             updateChatsList();
@@ -1794,13 +2030,14 @@
         }
 
         // Join protected chat
-        function joinProtectedChat() {
+        async function joinProtectedChat() {
             const password = document.getElementById('joinPasswordInput').value;
             
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
                 
+                await saveChatToGitHub(pendingChatToJoin);
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
             } else {
@@ -1809,7 +2046,7 @@
         }
 
         // Send message
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
@@ -1840,7 +2077,8 @@
                 sender: currentUser.id,
                 senderName: currentUser.name,
                 text: text,
-                time: timeString
+                time: timeString,
+                timestamp: now.toISOString()
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
@@ -1857,7 +2095,8 @@
                 return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
             });
             
-            localStorage.setItem('messages', JSON.stringify(messages));
+            // Save to GitHub
+            await saveMessageToGitHub(currentChat.id, message);
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1871,7 +2110,7 @@
         }
 
         // Delete message
-        function deleteMessage(messageId) {
+        async function deleteMessage(messageId) {
             if (!currentChat) return;
             
             const msg = messages[currentChat.id].find(m => m.id === messageId);
@@ -1885,7 +2124,6 @@
             if (!confirm('Удалить сообщение?')) return;
             
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
-            localStorage.setItem('messages', JSON.stringify(messages));
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1923,7 +2161,7 @@
         }
 
         // Save edited message
-        function saveEditedMessage() {
+        async function saveEditedMessage() {
             const newText = document.getElementById('editMessageText').value.trim();
             if (!newText || !messageToEdit || !currentChat) return;
             
@@ -1931,7 +2169,6 @@
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
-                localStorage.setItem('messages', JSON.stringify(messages));
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -2198,7 +2435,7 @@
             document.getElementById('profileModal').classList.remove('active');
         }
 
-        function saveProfile() {
+        async function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             const newBio = document.getElementById('profileBioInput').value.trim();
             
@@ -2206,21 +2443,23 @@
                 currentUser.name = newName;
                 document.getElementById('profileName').textContent = newName;
                 if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Admin</span>`;
+                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Admin</span> <span class="github-badge">GitHub</span>`;
                 }
                 
                 const userKey = currentUser.name.toLowerCase();
                 if (users[userKey]) {
                     users[userKey].name = newName;
+                    await saveUserToGitHub(users[userKey]);
                 }
             }
             
             currentUser.bio = newBio;
-            if (users[currentUser.name.toLowerCase()]) {
-                users[currentUser.name.toLowerCase()].bio = newBio;
+            const userKey = currentUser.name.toLowerCase();
+            if (users[userKey]) {
+                users[userKey].bio = newBio;
+                await saveUserToGitHub(users[userKey]);
             }
             
-            localStorage.setItem('telegram_users', JSON.stringify(users));
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             closeProfileModal();
