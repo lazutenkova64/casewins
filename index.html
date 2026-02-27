@@ -6,6 +6,7 @@
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
+        /* ==================== РћРЎРќРћР’РќР«Р• РЎРўРР›Р ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -21,8 +22,8 @@
             --text-secondary: #a0a0a0;
             --accent-blue: #2b9aff;
             --accent-green: #2b9a6b;
-            --accent-purple: #9f7aea;
             --accent-red: #f56565;
+            --accent-purple: #9f7aea;
             --accent-orange: #f6ad55;
             --border-color: #2a2a2a;
             --message-out: #1e4a7a;
@@ -57,6 +58,7 @@
             background: radial-gradient(circle at 20% 30%, #1a1a2e, #0a0a0a);
         }
 
+        /* ==================== Р‘РћРљРћР’РђРЇ РџРђРќР•Р›Р¬ ==================== */
         .sidebar {
             width: 350px;
             background: var(--bg-glass);
@@ -99,7 +101,6 @@
             flex-shrink: 0;
             box-shadow: var(--shadow-sm);
             overflow: hidden;
-            object-fit: cover;
         }
         .avatar img {
             width: 100%;
@@ -296,6 +297,7 @@
             box-shadow: 0 2px 8px rgba(43, 154, 255, 0.3);
         }
 
+        /* ==================== РћР‘Р›РђРЎРўР¬ Р§РђРўРђ ==================== */
         .chat-area {
             flex: 1;
             display: flex;
@@ -552,7 +554,7 @@
             box-shadow: 0 4px 15px rgba(43, 154, 255, 0.4);
         }
 
-        /* РјРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° */
+        /* ==================== РњРћР”РђР›Р¬РќР«Р• РћРљРќРђ ==================== */
         .modal {
             display: none;
             position: fixed;
@@ -593,6 +595,7 @@
             background: var(--gradient-1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .modal-input {
             width: 100%;
@@ -604,6 +607,7 @@
             font-size: 16px;
             outline: none;
             margin-bottom: 16px;
+            transition: all 0.2s;
         }
         .modal-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(43, 154, 255, 0.1); }
         .modal-btn {
@@ -628,9 +632,58 @@
             cursor: pointer;
             float: right;
             padding: 0 8px;
+            transition: all 0.2s;
+        }
+        .close-btn:hover { color: var(--text-primary); }
+
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .auth-tab.active {
+            background: var(--gradient-1);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
-        /* Р°РІР°С‚Р°СЂРєРё */
+        .password-input-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .remember-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* РђРІР°С‚Р°СЂРєРё */
         .avatar-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -678,9 +731,10 @@
             text-align: center;
             cursor: pointer;
             color: var(--accent-blue);
+            margin-bottom: 16px;
         }
 
-        /* СЃС‚Р°С‚СѓСЃ-СЃРµР»РµРєС‚РѕСЂ */
+        /* РЎС‚Р°С‚СѓСЃ-СЃРµР»РµРєС‚РѕСЂ */
         .status-selector {
             display: flex;
             gap: 8px;
@@ -702,7 +756,7 @@
             border-color: var(--accent-blue);
         }
 
-        /* СѓРІРµРґРѕРјР»РµРЅРёСЏ */
+        /* РЈРІРµРґРѕРјР»РµРЅРёСЏ */
         .toast-notification {
             position: fixed;
             bottom: 20px;
@@ -719,7 +773,6 @@
             animation: slideInRight 0.3s ease;
             cursor: pointer;
         }
-        .toast-notification:hover { opacity: 0.9; }
         .toast-notification.fade-out { animation: fadeOut 0.3s ease forwards; }
         @keyframes slideInRight {
             from { transform: translateX(120%); opacity: 0; }
@@ -727,7 +780,7 @@
         }
         @keyframes fadeOut { to { opacity: 0; transform: translateX(120%); } }
 
-        /* РјРµРґРёР°-РІСЊСЋРµСЂ */
+        /* РњРµРґРёР°-РІСЊСЋРµСЂ */
         .media-viewer {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -749,12 +802,38 @@
             color: white; font-size: 32px; cursor: pointer;
             width: 50px; height: 50px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
         }
+        .media-viewer-close:hover { background: var(--bg-tertiary); transform: scale(1.1); }
 
         .admin-badge {
             background: var(--admin-gold); color: #000; font-size: 11px;
             padding: 3px 10px; border-radius: 16px; margin-left: 6px;
             font-weight: bold; display: inline-block;
+        }
+        .delete-chat-btn {
+            background: var(--gradient-2);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.2s;
+        }
+        .delete-chat-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3); }
+
+        .chat-deleted-message {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        .empty-chat, .empty-list {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px;
         }
 
         @media (max-width: 768px) {
@@ -774,46 +853,47 @@
         <button class="media-viewer-close" onclick="closeMediaViewer()">Г—</button>
     </div>
 
-    <!-- РњРѕРґР°Р»РєР° РІС…РѕРґР°/СЂРµРіРёСЃС‚СЂР°С†РёРё -->
+    <!-- РњРѕРґР°Р»РєР° РІС…РѕРґР° / СЂРµРіРёСЃС‚СЂР°С†РёРё -->
     <div class="modal active" id="loginModal">
         <div class="modal-content">
             <h2>Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ!</h2>
-            <div class="auth-tabs" style="display:flex; gap:8px; margin-bottom:24px;">
-                <button class="auth-tab active" onclick="switchAuthMode('login')" id="loginTabBtn" style="flex:1; padding:12px; background:none; border:none; color:var(--text-secondary); border-radius:12px;">Р’С…РѕРґ</button>
-                <button class="auth-tab" onclick="switchAuthMode('register')" id="registerTabBtn" style="flex:1; padding:12px; background:none; border:none; color:var(--text-secondary); border-radius:12px;">Р РµРіРёСЃС‚СЂР°С†РёСЏ</button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthMode('login')" id="loginTabBtn">Р’С…РѕРґ</button>
+                <button class="auth-tab" onclick="switchAuthMode('register')" id="registerTabBtn">Р РµРіРёСЃС‚СЂР°С†РёСЏ</button>
             </div>
             <div id="loginForm">
                 <input type="text" class="modal-input" id="loginUsername" placeholder="РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ" autocomplete="off">
-                <div class="password-input-container" style="position:relative;">
+                <div class="password-input-container">
                     <input type="password" class="modal-input" id="loginPassword" placeholder="РџР°СЂРѕР»СЊ">
-                    <button class="toggle-password" onclick="togglePassword('loginPassword')" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-secondary);">рџ‘ЃпёЏ</button>
+                    <button class="toggle-password" onclick="togglePassword('loginPassword')">рџ‘ЃпёЏ</button>
                 </div>
-                <div class="remember-checkbox" style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
-                    <input type="checkbox" id="rememberMe" checked> <label for="rememberMe">Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ</label>
-                </div>
+                <label class="remember-checkbox">
+                    <input type="checkbox" id="rememberMe" checked> Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ
+                </label>
                 <button class="modal-btn" onclick="login()">Р’РѕР№С‚Рё</button>
             </div>
             <div id="registerForm" style="display:none;">
                 <input type="text" class="modal-input" id="registerUsername" placeholder="РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ" maxlength="20">
                 <input type="email" class="modal-input" id="registerEmail" placeholder="Email" maxlength="50">
-                <div class="password-input-container" style="position:relative;">
+                <div class="password-input-container">
                     <input type="password" class="modal-input" id="registerPassword" placeholder="РџР°СЂРѕР»СЊ">
-                    <button class="toggle-password" onclick="togglePassword('registerPassword')" style="position:absolute; right:14px; top:50%; transform:translateY(-50%);">рџ‘ЃпёЏ</button>
+                    <button class="toggle-password" onclick="togglePassword('registerPassword')">рџ‘ЃпёЏ</button>
                 </div>
-                <div class="password-input-container" style="position:relative;">
+                <div class="password-input-container">
                     <input type="password" class="modal-input" id="registerConfirmPassword" placeholder="РџРѕРґС‚РІРµСЂРґРёС‚Рµ РїР°СЂРѕР»СЊ">
-                    <button class="toggle-password" onclick="togglePassword('registerConfirmPassword')" style="position:absolute; right:14px; top:50%; transform:translateY(-50%);">рџ‘ЃпёЏ</button>
+                    <button class="toggle-password" onclick="togglePassword('registerConfirmPassword')">рџ‘ЃпёЏ</button>
                 </div>
-                <div class="remember-checkbox" style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
-                    <input type="checkbox" id="rememberMeRegister" checked> <label for="rememberMeRegister">Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ</label>
-                </div>
+                <label class="remember-checkbox">
+                    <input type="checkbox" id="rememberMeRegister" checked> Р—Р°РїРѕРјРЅРёС‚СЊ РјРµРЅСЏ
+                </label>
                 <button class="modal-btn" onclick="register()">Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ</button>
             </div>
         </div>
     </div>
 
     <!-- РћСЃРЅРѕРІРЅРѕРµ РїСЂРёР»РѕР¶РµРЅРёРµ -->
-    <div class="app-container" id="appContainer" style="display: none;">
+    <div class="app-container" id="appContainer" style="display:none;">
+        <!-- Р‘РѕРєРѕРІР°СЏ РїР°РЅРµР»СЊ -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header" onclick="openProfileModal()">
                 <div class="avatar" id="profileAvatar">рџ‘¤</div>
@@ -822,22 +902,19 @@
                     <div class="profile-status" id="profileStatusText">РѕРЅР»Р°Р№РЅ</div>
                 </div>
             </div>
-
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('chats')" id="tabChats">РњРѕРё С‡Р°С‚С‹</button>
                 <button class="tab" onclick="switchTab('public')" id="tabPublic">РџСѓР±Р»РёС‡РЅС‹Рµ</button>
                 <button class="tab" onclick="switchTab('users')" id="tabUsers">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё</button>
             </div>
-
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="РџРѕРёСЃРє..." oninput="handleSearch()">
+                <input type="text" id="searchInput" placeholder="РџРѕРёСЃРє...">
                 <button class="create-chat-btn" onclick="openCreateChatModal()">+</button>
             </div>
-
             <div class="chats-list" id="chatsList"></div>
-            <!-- РљРЅРѕРїРєР° РІС‹С…РѕРґР° СѓР±СЂР°РЅР° РѕС‚СЃСЋРґР° -->
         </div>
 
+        <!-- РћР±Р»Р°СЃС‚СЊ С‡Р°С‚Р° -->
         <div class="chat-area">
             <div class="chat-header">
                 <button class="back-button" onclick="toggleSidebar()">в†ђ</button>
@@ -845,7 +922,6 @@
                     <div class="chat-title" id="currentChatName">Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚</div>
                     <div class="chat-subtitle" id="chatStatus"></div>
                 </div>
-                <!-- РёРєРѕРЅРєР° РїСЂРѕС„РёР»СЏ СѓРґР°Р»РµРЅР° -->
             </div>
 
             <div class="messages-container" id="messagesContainer"></div>
@@ -856,9 +932,7 @@
                 <button class="action-btn" onclick="document.getElementById('fileInput').click()">рџ“Ћ</button>
                 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
                 <div class="input-wrapper">
-                    <div class="emoji-picker" id="emojiPicker" style="display: none;">
-                        <!-- Р±РѕР»СЊС€РѕР№ РЅР°Р±РѕСЂ СЌРјРѕРґР·Рё Р±СѓРґРµС‚ РІСЃС‚Р°РІР»РµРЅ СЃРєСЂРёРїС‚РѕРј -->
-                    </div>
+                    <div class="emoji-picker" id="emojiPicker" style="display:none;"></div>
                     <textarea class="message-input" id="messageInput" placeholder="РќР°РїРёС€РёС‚Рµ СЃРѕРѕР±С‰РµРЅРёРµ..." rows="1" onkeydown="handleKeyPress(event)"></textarea>
                 </div>
                 <button class="send-btn" onclick="sendMessage()">вћ¤</button>
@@ -872,9 +946,9 @@
             <button class="close-btn" onclick="closeCreateChatModal()">Г—</button>
             <h2>РЎРѕР·РґР°С‚СЊ РїСѓР±Р»РёС‡РЅС‹Р№ С‡Р°С‚</h2>
             <input type="text" class="modal-input" id="chatNameInput" placeholder="РќР°Р·РІР°РЅРёРµ С‡Р°С‚Р°" maxlength="30">
-            <div class="password-input-container" style="position:relative;">
+            <div class="password-input-container">
                 <input type="password" class="modal-input" id="chatPasswordInput" placeholder="РџР°СЂРѕР»СЊ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)">
-                <button class="toggle-password" onclick="togglePassword('chatPasswordInput')" style="position:absolute; right:14px; top:50%; transform:translateY(-50%);">рџ‘ЃпёЏ</button>
+                <button class="toggle-password" onclick="togglePassword('chatPasswordInput')">рџ‘ЃпёЏ</button>
             </div>
             <input type="text" class="modal-input" id="chatDescriptionInput" placeholder="РћРїРёСЃР°РЅРёРµ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)">
             <button class="modal-btn" onclick="createPublicChat()">РЎРѕР·РґР°С‚СЊ С‡Р°С‚</button>
@@ -886,9 +960,9 @@
         <div class="modal-content">
             <button class="close-btn" onclick="closeJoinChatModal()">Г—</button>
             <h2 id="joinChatTitle">Р’РІРµРґРёС‚Рµ РїР°СЂРѕР»СЊ</h2>
-            <div class="password-input-container" style="position:relative;">
+            <div class="password-input-container">
                 <input type="password" class="modal-input" id="joinPasswordInput" placeholder="РџР°СЂРѕР»СЊ С‡Р°С‚Р°">
-                <button class="toggle-password" onclick="togglePassword('joinPasswordInput')" style="position:absolute; right:14px; top:50%; transform:translateY(-50%);">рџ‘ЃпёЏ</button>
+                <button class="toggle-password" onclick="togglePassword('joinPasswordInput')">рџ‘ЃпёЏ</button>
             </div>
             <button class="modal-btn" onclick="joinProtectedChat()">Р’РѕР№С‚Рё</button>
         </div>
@@ -904,7 +978,7 @@
         </div>
     </div>
 
-    <!-- РњРѕРґР°Р»РєР° РїСЂРѕС„РёР»СЏ (СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ) -->
+    <!-- РњРѕРґР°Р»РєР° РїСЂРѕС„РёР»СЏ -->
     <div class="modal" id="profileModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeProfileModal()">Г—</button>
@@ -937,255 +1011,174 @@
     </div>
 
     <script>
-        // ============================================================
-        // ABLY API KEY
-        // ============================================================
+        // ==================== Р“Р›РћР‘РђР›Р¬РќР«Р• РџР•Р Р•РњР•РќРќР«Р• ====================
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
+        const ADMIN_USERNAME = "K1lame";
 
-        // ---------------------- Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ ----------------------
         let ably;
         let currentUser = null;
         let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
-        let onlineUsers = {};          // РґР»СЏ presence (СЂРµР°Р»СЊРЅС‹Р№ СЃС‚Р°С‚СѓСЃ)
-        let userStatus = {};            // С…СЂР°РЅРёРј Р¶РµР»Р°РµРјС‹Р№ СЃС‚Р°С‚СѓСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ (online/offline/dnd)
+        let onlineUsers = {};
         let currentChat = null;
         let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
-        const ADMIN_USERNAME = "K1lame";
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
 
-        // Р”Р»СЏ Р°СѓРґРёРѕР·Р°РїРёСЃРё
+        // РђСѓРґРёРѕ Р·Р°РїРёСЃСЊ
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
-        let recordingStartTime;
 
         // Р—Р°С‰РёС‚Р° РѕС‚ С„Р»СѓРґР°
         let messageCooldown = false;
-        let loginAttempts = {}; // email: {count, timestamp}
+        let loginAttempts = {};
 
-        // РЈРІРµРґРѕРјР»РµРЅРёСЏ
-        let notificationPermission = false;
-        if (Notification && Notification.permission !== 'granted') {
-            Notification.requestPermission();
-        }
+        // РњРµРґРёР° РїРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№
+        let pendingMedia = null;
 
-        // Р‘РѕР»СЊС€РѕР№ РЅР°Р±РѕСЂ СЌРјРѕРґР·Рё
-        const emojiList = ['рџЂ','рџѓ','рџ„','рџЃ','рџ†','рџ…','рџ‚','рџ¤Ј','рџЉ','рџ‡','рџ™‚','рџ™ѓ','рџ‰','рџЊ','рџЌ','рџҐ°','рџ','рџ—','рџ™','рџљ','рџ‹','рџ›','рџќ','рџњ','рџ¤Є','рџ¤Ё','рџ§ђ','рџ¤“','рџЋ','рџҐё','рџ¤©','рџҐі','рџЏ','рџ’','рџћ','рџ”','рџџ','рџ•','рџ™Ѓ','в№пёЏ','рџЈ','рџ–','рџ«','рџ©','рџҐє','рџў','рџ­','рџ¤','рџ ','рџЎ','рџ¤¬','рџ¤Ї','рџі','рџҐµ','рџҐ¶','рџ±','рџЁ','рџ°','рџҐ','рџ“','рџ¤—','рџ¤”','рџ¤­','рџ¤«','рџ¤Ґ','рџ¶','рџђ','рџ‘','рџ¬','рџ™„','рџЇ','рџ¦','рџ§','рџ®','рџІ','рџҐ±','рџґ','рџ¤¤','рџЄ','рџµ','рџ¤ђ','рџҐґ','рџ¤ў','рџ¤®','рџ¤§','рџ·','рџ¤’','рџ¤•','рџ¤‘','рџ¤ ','рџ€','рџ‘ї','рџ‘№','рџ‘є','рџ¤Ў','рџ’©','рџ‘»','рџ’Ђ','в пёЏ','рџ‘Ѕ','рџ‘ѕ','рџ¤–','рџЋѓ','рџє','рџё','рџ№','рџ»','рџј','рџЅ','рџ™Ђ','рџї','рџѕ','вќ¤пёЏ','рџ§Ў','рџ’›','рџ’љ','рџ’™','рџ’њ','рџ–¤','рџ¤Ќ','рџ¤Ћ','рџ’”','вќЈпёЏ','рџ’•','рџ’ћ','рџ’“','рџ’—','рџ’–','рџ’','рџ’ќ','рџ’џ','в®пёЏ','вњќпёЏ','вЄпёЏ','рџ•‰пёЏ','вёпёЏ','вњЎпёЏ','рџ”Ї','рџ•Ћ','вЇпёЏ','в¦пёЏ','рџ›ђ','в›Ћ','в™€','в™‰','в™Љ','в™‹','в™Њ','в™Ќ','в™Ћ','в™Џ','в™ђ','в™‘','в™’','в™“','рџ†”','вљ›пёЏ','рџ‰‘','вўпёЏ','вЈпёЏ','рџ“ґ','рџ“і','рџ€¶','рџ€љ','рџ€ё','рџ€є','рџ€·пёЏ','вњґпёЏ','рџ†љ','рџ’®','рџ‰ђ','гЉ™пёЏ','гЉ—пёЏ','рџ€ґ','рџ€µ','рџ€№','рџ€І','рџ…°пёЏ','рџ…±пёЏ','рџ†Ћ','рџ†‘','рџ…ѕпёЏ','рџ†','вќЊ','в­•','рџ›‘','в›”','рџ“›','рџљ«','рџ’Ї','рџ’ў','в™ЁпёЏ','рџљ·','рџљЇ','рџљі','рџљ±','рџ”ћ','рџ“µ','рџљ­','вќ—','вќ•','вќ“','вќ”','вќ•','вЂјпёЏ','вЃ‰пёЏ','рџ”…','рџ”†','гЂЅпёЏ','вљ пёЏ','рџљё','рџ”±','вљњпёЏ','рџ”°','в™»пёЏ','вњ…','рџ€ЇпёЏ','рџ’№','вќ‡пёЏ','вњіпёЏ','вќЋ','рџЊђ','рџ’ ','в“‚пёЏ','рџЊЂ','рџ’¤','рџЏ§','рџљ®','в™їпёЏ','рџљ№','рџљє','рџљј','рџљ»','рџљ°','рџљѕ','рџ›‚','рџ›ѓ','рџ›„','рџ›…','вљ пёЏ','рџљё','вљ§пёЏ','рџЏіпёЏвЂЌрџЊ€','рџЏіпёЏвЂЌвљ§пёЏ'];
-
-        // РЎС‚СЂР°РЅРЅС‹Рµ СЌРјРѕРґР·Рё РґР»СЏ Р°РІР°С‚Р°СЂР° (РѕСЃС‚Р°РІРёРј С‚Рµ Р¶Рµ)
+        // Р­РјРѕРґР·Рё
         const weirdEmojis = ['рџ‘ѕ','рџ¤–','рџ‘Ѕ','рџ’Ђ','рџ‘»','рџ‘№','рџ‘є','рџ¤Ў','рџ’©','рџ”Ґ','рџЊЂ','рџЊљ','рџЊќ','в­ђ','рџЊџ','рџ’«','вњЁ','вљЎ','в„пёЏ','рџ’Ґ','рџ•іпёЏ','рџ‘ЃпёЏ','рџ§ ','рџ‘…','рџ‘„','рџ¦·','рџ¦ґ','рџ‘Ђ','рџ‘ѓ','рџ‘‚','рџЌ‘','рџЌ†','рџҐ‘','рџЊ®','рџЌ•','рџЌ”','рџЌџ','рџЊ­','рџЌї','рџҐЁ','рџ§Ђ','рџҐ©','рџҐ“','рџЌ—','рџЌ–','рџ¦ґ','рџҐЎ','рџҐў','рџЌЅпёЏ','рџ”Є','рџЄ“','вљ°пёЏ','вљ±пёЏ','рџ§ї','рџ”®','рџ“ї','рџ’Ћ','рџ”«','рџ’Ј','рџ§Ё','рџ›ЎпёЏ','рџЏ№','рџ—ЎпёЏ','вљ”пёЏ','рџ”§','рџ”Ё','в›ЏпёЏ','вљ’пёЏ','рџ› пёЏ','рџ”©'];
+        const emojiList = ['рџЂ','рџѓ','рџ„','рџЃ','рџ†','рџ…','рџ‚','рџ¤Ј','рџЉ','рџ‡','рџ™‚','рџ™ѓ','рџ‰','рџЊ','рџЌ','рџҐ°','рџ','рџ—','рџ™','рџљ','рџ‹','рџ›','рџќ','рџњ','рџ¤Є','рџ¤Ё','рџ§ђ','рџ¤“','рџЋ','рџҐё','рџ¤©','рџҐі','рџЏ','рџ’','рџћ','рџ”','рџџ','рџ•','рџ™Ѓ','в№пёЏ','рџЈ','рџ–','рџ«','рџ©','рџҐє','рџў','рџ­','рџ¤','рџ ','рџЎ','рџ¤¬','рџ¤Ї','рџі','рџҐµ','рџҐ¶','рџ±','рџЁ','рџ°','рџҐ','рџ“','рџ¤—','рџ¤”','рџ¤­','рџ¤«','рџ¤Ґ','рџ¶','рџђ','рџ‘','рџ¬','рџ™„','рџЇ','рџ¦','рџ§','рџ®','рџІ','рџҐ±','рџґ','рџ¤¤','рџЄ','рџµ','рџ¤ђ','рџҐґ','рџ¤ў','рџ¤®','рџ¤§','рџ·','рџ¤’','рџ¤•','рџ¤‘','рџ¤ ','рџ€','рџ‘ї','рџ‘№','рџ‘є','рџ¤Ў','рџ’©','рџ‘»','рџ’Ђ','в пёЏ','рџ‘Ѕ','рџ‘ѕ','рџ¤–','рџЋѓ','рџє','рџё','рџ№','рџ»','рџј','рџЅ','рџ™Ђ','рџї','рџѕ','вќ¤пёЏ','рџ§Ў','рџ’›','рџ’љ','рџ’™','рџ’њ','рџ–¤','рџ¤Ќ','рџ¤Ћ','рџ’”','вќЈпёЏ','рџ’•','рџ’ћ','рџ’“','рџ’—','рџ’–','рџ’','рџ’ќ','рџ’џ'];
 
-        // ---------------------- РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Рё СЃРµСЃСЃРёСЏ ----------------------
+        // ==================== РРќРР¦РРђР›РР—РђР¦РРЇ ====================
+        (function init() {
+            checkSavedSession();
+            window.addEventListener('resize', () => { if (window.innerWidth > 768) document.getElementById('sidebar').classList.remove('active'); });
+            window.addEventListener('popstate', (e) => {
+                const hash = window.location.hash.substring(1);
+                if (hash) {
+                    const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
+                    if (chat) joinChat(chat);
+                } else {
+                    currentChat = null;
+                    renderMessages();
+                    updateUrlWithChat(null);
+                }
+            });
+            if (Notification && Notification.permission !== 'granted') Notification.requestPermission();
+        })();
+
         function checkSavedSession() {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
                 try {
-                    currentUser = JSON.parse(savedUser);
+                    currentUser = JSON.parse(saved);
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
                     updateProfileUI();
                     initAbly();
                     checkUrlForChat();
-                } catch (e) { console.error('Failed to load session', e); }
+                } catch (e) { console.warn('Session load failed', e); }
             }
         }
 
-        function updateProfileUI() {
-            if (!currentUser) return;
-            const nameSpan = document.getElementById('profileName');
-            if (currentUser.isAdmin) {
-                nameSpan.innerHTML = `${currentUser.name} <span class="admin-badge">ADMIN</span>`;
-            } else {
-                nameSpan.textContent = currentUser.name;
-            }
-            document.getElementById('profileAvatar').innerHTML = currentUser.avatar ? (currentUser.avatar.startsWith('data:') ? `<img src="${currentUser.avatar}">` : currentUser.avatar) : 'рџ‘¤';
-            document.getElementById('profileAvatarLarge').innerHTML = currentUser.avatar ? (currentUser.avatar.startsWith('data:') ? `<img src="${currentUser.avatar}">` : currentUser.avatar) : 'рџ‘¤';
-            document.getElementById('profileEmailInput').value = currentUser.email || '';
-            // СЃС‚Р°С‚СѓСЃ
-            const status = currentUser.status || 'online';
-            document.querySelectorAll('.status-option').forEach(opt => opt.classList.remove('active'));
-            document.querySelector(`.status-option[data-status="${status}"]`).classList.add('active');
-            document.getElementById('profileStatusText').innerText = status === 'online' ? 'РѕРЅР»Р°Р№РЅ' : (status === 'offline' ? 'РЅРµ РІ СЃРµС‚Рё' : 'РЅРµ Р±РµСЃРїРѕРєРѕРёС‚СЊ');
-        }
-
-        // ---------------------- Ably ----------------------
+        // ==================== ABLY ====================
         function initAbly() {
             if (!currentUser) return;
-            ably = new Ably.Realtime({
-                key: ABLY_API_KEY,
-                clientId: currentUser.id,
-                transports: ['web_socket'],
-                disconnectedRetryTimeout: 1000,
-                suspendedRetryTimeout: 2000
-            });
-
+            ably = new Ably.Realtime({ key: ABLY_API_KEY, clientId: currentUser.id });
             ably.connection.on('connected', () => {
-                console.log('вњ… Connected to Ably');
-                const presenceChannel = ably.channels.get('presence');
-                // Р•СЃР»Рё СЃС‚Р°С‚СѓСЃ offline - РЅРµ РІС…РѕРґРёС‚СЊ РІ presence (РЅРµРІРёРґРёРјРєР°)
+                const presence = ably.channels.get('presence');
                 if (currentUser.status !== 'offline') {
-                    presenceChannel.presence.enter({ 
-                        name: currentUser.name, 
-                        avatar: currentUser.avatar || 'рџ‘¤',
-                        bio: currentUser.bio || '',
-                        isAdmin: currentUser.isAdmin,
-                        status: currentUser.status || 'online'
-                    });
+                    presence.presence.enter({ name: currentUser.name, avatar: currentUser.avatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: currentUser.status });
                 }
-                presenceChannel.presence.subscribe('enter', (member) => {
-                    if (member.clientId !== currentUser.id && member.data.status !== 'offline') {
-                        onlineUsers[member.clientId] = {
-                            id: member.clientId,
-                            name: member.data.name,
-                            avatar: member.data.avatar || 'рџ‘¤',
-                            bio: member.data.bio || '',
-                            online: true,
-                            isAdmin: member.data.isAdmin || false
-                        };
+                presence.presence.subscribe('enter', (m) => {
+                    if (m.clientId !== currentUser.id && m.data.status !== 'offline') {
+                        onlineUsers[m.clientId] = { id: m.clientId, name: m.data.name, avatar: m.data.avatar, bio: m.data.bio, online: true, isAdmin: m.data.isAdmin };
                         if (currentTab === 'users') updateChatsList();
                     }
                 });
-                presenceChannel.presence.subscribe('leave', (member) => {
-                    delete onlineUsers[member.clientId];
-                    if (currentTab === 'users') updateChatsList();
-                });
-                presenceChannel.presence.get((err, members) => {
-                    members.forEach(member => {
-                        if (member.clientId !== currentUser.id && member.data.status !== 'offline') {
-                            onlineUsers[member.clientId] = {
-                                id: member.clientId,
-                                name: member.data.name,
-                                avatar: member.data.avatar || 'рџ‘¤',
-                                bio: member.data.bio || '',
-                                online: true,
-                                isAdmin: member.data.isAdmin || false
-                            };
-                        }
-                    });
+                presence.presence.subscribe('leave', (m) => { delete onlineUsers[m.clientId]; if (currentTab === 'users') updateChatsList(); });
+                presence.presence.get((err, members) => {
+                    members.forEach(m => { if (m.clientId !== currentUser.id && m.data.status !== 'offline') onlineUsers[m.clientId] = { id: m.clientId, name: m.data.name, avatar: m.data.avatar, bio: m.data.bio, online: true, isAdmin: m.data.isAdmin }; });
                     if (currentTab === 'users') updateChatsList();
                 });
 
-                // Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РєР°РЅР°Р»С‹
-                const globalChatsChannel = ably.channels.get('global-chats');
-                globalChatsChannel.subscribe('new-chat', (msg) => {
-                    const newChat = msg.data;
-                    if (!publicChats.find(c => c.id === newChat.id)) {
-                        publicChats.push(newChat);
-                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                        if (currentTab === 'public') updateChatsList();
-                    }
+                ably.channels.get('global-chats').subscribe('new-chat', (msg) => {
+                    const chat = msg.data;
+                    if (!publicChats.find(c => c.id === chat.id)) { publicChats.push(chat); localStorage.setItem('publicChats', JSON.stringify(publicChats)); if (currentTab === 'public') updateChatsList(); }
                 });
 
-                const adminChannel = ably.channels.get('admin-actions');
-                adminChannel.subscribe('delete-chat', (msg) => {
+                ably.channels.get('admin-actions').subscribe('delete-chat', (msg) => {
                     const { chatId } = msg.data;
                     publicChats = publicChats.filter(c => c.id !== chatId);
                     myChats = myChats.filter(c => c.id !== chatId);
                     localStorage.setItem('publicChats', JSON.stringify(publicChats));
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-                    if (messages[chatId]) { delete messages[chatId]; localStorage.setItem('messages',JSON.stringify(messages)); }
-                    if (currentChat && currentChat.id === chatId) {
-                        currentChat = null;
-                        document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">вљ пёЏ Р§Р°С‚ СѓРґР°Р»РµРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј</div>';
-                        document.getElementById('currentChatName').innerHTML = 'Р§Р°С‚ СѓРґР°Р»РµРЅ';
-                    }
+                    if (messages[chatId]) { delete messages[chatId]; localStorage.setItem('messages', JSON.stringify(messages)); }
+                    if (currentChat?.id === chatId) { currentChat = null; document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">вљ пёЏ Р§Р°С‚ СѓРґР°Р»С‘РЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј</div>'; document.getElementById('currentChatName').innerHTML = 'Р§Р°С‚ СѓРґР°Р»С‘РЅ'; }
                     updateChatsList();
                 });
 
-                adminChannel.subscribe('delete-message', (msg) => {
+                ably.channels.get('admin-actions').subscribe('delete-message', (msg) => {
                     const { chatId, messageId } = msg.data;
                     if (!deletedMessages[chatId]) deletedMessages[chatId] = [];
-                    if (!deletedMessages[chatId].includes(messageId)) {
-                        deletedMessages[chatId].push(messageId);
-                        localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
-                    }
-                    if (messages[chatId]) {
-                        messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        if (currentChat && currentChat.id === chatId) renderMessages();
-                    }
+                    if (!deletedMessages[chatId].includes(messageId)) { deletedMessages[chatId].push(messageId); localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages)); }
+                    if (messages[chatId]) { messages[chatId] = messages[chatId].filter(m => m.id !== messageId); localStorage.setItem('messages', JSON.stringify(messages)); if (currentChat?.id === chatId) renderMessages(); }
                 });
 
                 myChats.forEach(chat => subscribeToChat(chat));
             });
-            updateChatsList();
         }
 
         function subscribeToChat(chat) {
-            const chatChannel = ably.channels.get(`chat-${chat.id}`);
-            chatChannel.unsubscribe();
-            chatChannel.subscribe('message', (msg) => {
+            const channel = ably.channels.get(`chat-${chat.id}`);
+            channel.unsubscribe();
+            channel.subscribe('message', (msg) => {
                 const message = msg.data;
-                if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(message.id)) return;
+                if (deletedMessages[chat.id]?.includes(message.id)) return;
                 if (!messages[chat.id]) messages[chat.id] = [];
-                const exists = messages[chat.id].some(m => m.id === message.id);
-                if (!exists) {
+                if (!messages[chat.id].some(m => m.id === message.id)) {
                     messages[chat.id].push({ ...message, type: message.sender === currentUser.id ? 'out' : 'in' });
                     messages[chat.id].sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
                     localStorage.setItem('messages', JSON.stringify(messages));
 
-                    // РџРѕРґРЅРёРјР°РµРј С‡Р°С‚ РІРІРµСЂС…
-                    const chatIndex = myChats.findIndex(c => c.id === chat.id);
-                    if (chatIndex !== -1) {
-                        const chatObj = myChats.splice(chatIndex, 1)[0];
-                        chatObj.lastMessageTime = Date.now();
-                        myChats.unshift(chatObj);
+                    // РџРѕРґРЅСЏС‚СЊ С‡Р°С‚ РІРІРµСЂС…
+                    const idx = myChats.findIndex(c => c.id === chat.id);
+                    if (idx !== -1) {
+                        const c = myChats.splice(idx, 1)[0];
+                        c.lastMessageTime = Date.now();
+                        myChats.unshift(c);
                         localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                     }
 
-                    if (currentChat && currentChat.id === chat.id) {
+                    if (currentChat?.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
                     } else if (message.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                        // РЈРІРµРґРѕРјР»РµРЅРёРµ
                         showNotification(chat, message);
                     }
                     localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     updateChatsList();
                 }
             });
-            chatChannel.subscribe('delete', (data) => {
+            channel.subscribe('delete', (data) => {
                 const { messageId } = data.data;
                 if (!deletedMessages[chat.id]) deletedMessages[chat.id] = [];
-                if (!deletedMessages[chat.id].includes(messageId)) {
-                    deletedMessages[chat.id].push(messageId);
-                    localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
-                }
-                if (messages[chat.id]) {
-                    messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    if (currentChat?.id === chat.id) renderMessages(true);
-                }
+                if (!deletedMessages[chat.id].includes(messageId)) { deletedMessages[chat.id].push(messageId); localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages)); }
+                if (messages[chat.id]) { messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId); localStorage.setItem('messages', JSON.stringify(messages)); if (currentChat?.id === chat.id) renderMessages(true); }
             });
-            chatChannel.subscribe('edit', (data) => {
+            channel.subscribe('edit', (data) => {
                 const { messageId, newText } = data.data;
                 if (messages[chat.id]) {
                     const idx = messages[chat.id].findIndex(m => m.id === messageId);
-                    if (idx !== -1) {
-                        messages[chat.id][idx].text = newText;
-                        messages[chat.id][idx].edited = true;
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        if (currentChat?.id === chat.id) renderMessages(true);
-                    }
+                    if (idx !== -1) { messages[chat.id][idx].text = newText; messages[chat.id][idx].edited = true; localStorage.setItem('messages', JSON.stringify(messages)); if (currentChat?.id === chat.id) renderMessages(true); }
                 }
             });
-            // history
-            chatChannel.history({ limit: 200 }, (err, resultPage) => {
-                if (resultPage && resultPage.items.length) {
+            // РџРѕР»СѓС‡РёС‚СЊ РёСЃС‚РѕСЂРёСЋ
+            channel.history({ limit: 200 }, (err, page) => {
+                if (page && page.items.length) {
                     if (!messages[chat.id]) messages[chat.id] = [];
-                    resultPage.items.forEach(item => {
+                    page.items.forEach(item => {
                         const msg = item.data;
-                        if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
-                        const exists = messages[chat.id].some(m => m.id === msg.id);
-                        if (!exists) messages[chat.id].push({ ...msg, type: msg.sender === currentUser.id ? 'out' : 'in' });
+                        if (deletedMessages[chat.id]?.includes(msg.id)) return;
+                        if (!messages[chat.id].some(m => m.id === msg.id)) messages[chat.id].push({ ...msg, type: msg.sender === currentUser.id ? 'out' : 'in' });
                     });
                     messages[chat.id].sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
                     localStorage.setItem('messages', JSON.stringify(messages));
@@ -1194,54 +1187,43 @@
             });
         }
 
-        // ---------------------- РЈРІРµРґРѕРјР»РµРЅРёСЏ ----------------------
+        // ==================== РЈР’Р•Р”РћРњР›Р•РќРРЇ ====================
         function showNotification(chat, message) {
-            if (currentUser.status === 'dnd') return; // РЅРµ Р±РµСЃРїРѕРєРѕРёС‚СЊ
-            const senderName = message.senderName || 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ';
+            if (currentUser.status === 'dnd') return;
+            const sender = message.senderName || 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ';
             const text = message.text || (message.media ? 'рџ“· Р¤РѕС‚Рѕ' : (message.audio ? 'рџЋ¤ Р“РѕР»РѕСЃРѕРІРѕРµ' : 'РЎРѕРѕР±С‰РµРЅРёРµ'));
-            // Р•СЃР»Рё РІРєР»Р°РґРєР° Р°РєС‚РёРІРЅР° вЂ“ РїРѕРєР°Р·С‹РІР°РµРј РІСЃРїР»С‹РІР°С€РєСѓ СЃРїСЂР°РІР° СЃРЅРёР·Сѓ
             if (!document.hidden) {
-                showToast(`${senderName}: ${text}`, chat);
+                const toast = document.createElement('div');
+                toast.className = 'toast-notification';
+                toast.innerText = `${sender}: ${text}`;
+                toast.onclick = () => { joinChat(chat); toast.remove(); };
+                document.body.appendChild(toast);
+                setTimeout(() => toast.classList.add('fade-out'), 2800);
+                setTimeout(() => toast.remove(), 3100);
             } else {
-                // Р‘СЂР°СѓР·РµСЂРЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ
                 if (Notification && Notification.permission === 'granted') {
-                    new Notification(`РЎРѕРѕР±С‰РµРЅРёРµ РѕС‚ ${senderName}`, { body: text, icon: '/favicon.ico' });
+                    new Notification(`РЎРѕРѕР±С‰РµРЅРёРµ РѕС‚ ${sender}`, { body: text, icon: '/favicon.ico' });
                 }
             }
         }
 
-        function showToast(text, chat) {
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.innerText = text;
-            toast.onclick = () => { joinChat(chat); closeToast(toast); };
-            document.body.appendChild(toast);
-            setTimeout(() => closeToast(toast), 3000);
-        }
-        function closeToast(toast) {
-            toast.classList.add('fade-out');
-            setTimeout(() => toast.remove(), 300);
-        }
-
-        // ---------------------- РђСѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ ----------------------
+        // ==================== РђРЈРўР•РќРўРР¤РРљРђР¦РРЇ ====================
         function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
-            const remember = document.getElementById('rememberMe').checked;
-            if (!username || !password) { alert('Р’РІРµРґРёС‚Рµ РёРјСЏ Рё РїР°СЂРѕР»СЊ'); return; }
-            const userKey = username.toLowerCase();
-            if (users[userKey] && users[userKey].password === password) {
-                const isAdmin = username === ADMIN_USERNAME;
+            if (!username || !password) return alert('Р’РІРµРґРёС‚Рµ РёРјСЏ Рё РїР°СЂРѕР»СЊ');
+            const key = username.toLowerCase();
+            if (users[key] && users[key].password === password) {
                 currentUser = {
-                    id: users[userKey].id,
-                    name: users[userKey].name,
-                    avatar: users[userKey].avatar || 'рџ‘¤',
-                    bio: users[userKey].bio || '',
-                    email: users[userKey].email || '',
-                    status: users[userKey].status || 'online',
-                    isAdmin: isAdmin
+                    id: users[key].id,
+                    name: users[key].name,
+                    avatar: users[key].avatar || 'рџ‘¤',
+                    bio: users[key].bio || '',
+                    email: users[key].email || '',
+                    status: users[key].status || 'online',
+                    isAdmin: username === ADMIN_USERNAME
                 };
-                if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                if (document.getElementById('rememberMe').checked) localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
@@ -1254,41 +1236,28 @@
         function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const email = document.getElementById('registerEmail').value.trim().toLowerCase();
-            const password = document.getElementById('registerPassword').value;
+            const pass = document.getElementById('registerPassword').value;
             const confirm = document.getElementById('registerConfirmPassword').value;
-            const remember = document.getElementById('rememberMeRegister').checked;
-            if (!username || !email || !password) { alert('Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ'); return; }
-            if (password !== confirm) { alert('РџР°СЂРѕР»Рё РЅРµ СЃРѕРІРїР°РґР°СЋС‚'); return; }
-            if (password.length < 3) { alert('РџР°СЂРѕР»СЊ РјРёРЅРёРјСѓРј 3 СЃРёРјРІРѕР»Р°'); return; }
-            // РџСЂРѕРІРµСЂРєР° email РЅР° СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚СЊ
-            for (let key in users) {
-                if (users[key].email === email) { alert('Р­С‚РѕС‚ email СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ'); return; }
-            }
-            const userKey = username.toLowerCase();
-            if (users[userKey]) { alert('РРјСЏ СѓР¶Рµ Р·Р°РЅСЏС‚Рѕ'); return; }
-            const isAdmin = username === ADMIN_USERNAME;
+            if (!username || !email || !pass) return alert('Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ');
+            if (pass !== confirm) return alert('РџР°СЂРѕР»Рё РЅРµ СЃРѕРІРїР°РґР°СЋС‚');
+            if (pass.length < 3) return alert('РџР°СЂРѕР»СЊ РјРёРЅРёРјСѓРј 3 СЃРёРјРІРѕР»Р°');
+            for (let k in users) if (users[k].email === email) return alert('Р­С‚РѕС‚ email СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ');
+            const key = username.toLowerCase();
+            if (users[key]) return alert('РРјСЏ Р·Р°РЅСЏС‚Рѕ');
             const newUser = {
                 id: 'user_' + Date.now() + Math.random().toString(36).substr(2,5),
                 name: username,
                 email: email,
-                password: password,
+                password: pass,
                 avatar: 'рџ‘¤',
                 bio: '',
                 status: 'online',
                 createdAt: new Date().toISOString()
             };
-            users[userKey] = newUser;
+            users[key] = newUser;
             localStorage.setItem('telegram_users', JSON.stringify(users));
-            currentUser = {
-                id: newUser.id,
-                name: newUser.name,
-                avatar: newUser.avatar,
-                bio: newUser.bio,
-                email: newUser.email,
-                status: 'online',
-                isAdmin: isAdmin
-            };
-            if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            currentUser = { id: newUser.id, name: newUser.name, avatar: newUser.avatar, bio: newUser.bio, email: newUser.email, status: 'online', isAdmin: username === ADMIN_USERNAME };
+            if (document.getElementById('rememberMeRegister').checked) localStorage.setItem('currentUser', JSON.stringify(currentUser));
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('appContainer').style.display = 'flex';
             updateProfileUI();
@@ -1296,11 +1265,7 @@
         }
 
         function logout() {
-            if (ably) {
-                const presenceChannel = ably.channels.get('presence');
-                presenceChannel.presence.leave();
-                ably.close();
-            }
+            if (ably) { ably.channels.get('presence').presence.leave(); ably.close(); }
             localStorage.removeItem('currentUser');
             currentUser = null;
             currentChat = null;
@@ -1309,7 +1274,13 @@
             updateUrlWithChat(null);
         }
 
-        // ---------------------- Р Р°Р±РѕС‚Р° СЃ С‡Р°С‚Р°РјРё ----------------------
+        function switchAuthMode(mode) {
+            document.getElementById('loginForm').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = mode === 'register' ? 'block' : 'none';
+            document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && mode==='login') || (i===1 && mode==='register')));
+        }
+
+        // ==================== Р РђР‘РћРўРђ РЎ Р§РђРўРђРњР ====================
         function joinChat(chat) {
             if (!chat) return;
             if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
@@ -1327,11 +1298,9 @@
             }
             currentChat = chat;
             updateUrlWithChat(chat);
-            let chatTitleHTML = `${chat.name} ${chat.password ? 'рџ”’' : ''}`;
-            if (currentUser && currentUser.isAdmin) {
-                chatTitleHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">РЈРґР°Р»РёС‚СЊ С‡Р°С‚</button>`;
-            }
-            document.getElementById('currentChatName').innerHTML = chatTitleHTML;
+            let title = `${chat.name} ${chat.password ? 'рџ”’' : ''}`;
+            if (currentUser.isAdmin) title += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">РЈРґР°Р»РёС‚СЊ С‡Р°С‚</button>`;
+            document.getElementById('currentChatName').innerHTML = title;
             document.getElementById('chatStatus').textContent = chat.description || 'Р§Р°С‚';
             if (!messages[chat.id]) messages[chat.id] = [];
             messages[chat.id].sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
@@ -1342,23 +1311,20 @@
             if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
         }
 
-        function deleteChat(chatId, event) {
-            event?.stopPropagation();
-            if (!currentUser?.isAdmin) { alert('РўРѕР»СЊРєРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ'); return; }
+        function deleteChat(chatId, e) {
+            e?.stopPropagation();
+            if (!currentUser.isAdmin) return alert('РўРѕР»СЊРєРѕ Р°РґРјРёРЅ');
             if (!confirm('РЈРґР°Р»РёС‚СЊ С‡Р°С‚?')) return;
             publicChats = publicChats.filter(c => c.id !== chatId);
             myChats = myChats.filter(c => c.id !== chatId);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-            if (messages[chatId]) { delete messages[chatId]; localStorage.setItem('messages',JSON.stringify(messages)); }
-            if (ably) {
-                const adminChannel = ably.channels.get('admin-actions');
-                adminChannel.publish('delete-chat', { chatId, deletedBy: currentUser.id });
-            }
-            if (currentChat && currentChat.id === chatId) {
+            if (messages[chatId]) { delete messages[chatId]; localStorage.setItem('messages', JSON.stringify(messages)); }
+            if (ably) ably.channels.get('admin-actions').publish('delete-chat', { chatId, deletedBy: currentUser.id });
+            if (currentChat?.id === chatId) {
                 currentChat = null;
-                document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">вљ пёЏ Р§Р°С‚ СѓРґР°Р»РµРЅ</div>';
-                document.getElementById('currentChatName').innerHTML = 'Р§Р°С‚ СѓРґР°Р»РµРЅ';
+                document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">вљ пёЏ Р§Р°С‚ СѓРґР°Р»С‘РЅ</div>';
+                document.getElementById('currentChatName').innerHTML = 'Р§Р°С‚ СѓРґР°Р»С‘РЅ';
             }
             updateChatsList();
         }
@@ -1375,14 +1341,12 @@
 
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
-            const password = document.getElementById('chatPasswordInput').value.trim();
-            const desc = document.getElementById('chatDescriptionInput').value.trim();
-            if (!name) { alert('Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ'); return; }
+            if (!name) return alert('Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ');
             const newChat = {
                 id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2,8),
                 name: name,
-                description: desc || '',
-                password: password || null,
+                description: document.getElementById('chatDescriptionInput').value.trim() || '',
+                password: document.getElementById('chatPasswordInput').value.trim() || null,
                 createdBy: currentUser.id,
                 createdByName: currentUser.name,
                 members: [currentUser.id],
@@ -1390,23 +1354,19 @@
             };
             publicChats.push(newChat);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
-            if (ably) {
-                const globalChatsChannel = ably.channels.get('global-chats');
-                globalChatsChannel.publish('new-chat', newChat);
-            }
+            if (ably) ably.channels.get('global-chats').publish('new-chat', newChat);
             joinChat(newChat);
             closeCreateChatModal();
         }
 
-        // ---------------------- РћС‚РїСЂР°РІРєР° СЃРѕРѕР±С‰РµРЅРёР№ (С‚РµРєСЃС‚, С„РѕС‚Рѕ, Р°СѓРґРёРѕ) ----------------------
+        // ==================== РћРўРџР РђР’РљРђ РЎРћРћР‘Р©Р•РќРР™ ====================
         function sendMessage(textOverride) {
-            if (messageCooldown) { alert('РЎР»РёС€РєРѕРј С‡Р°СЃС‚Рѕ'); return; }
+            if (messageCooldown) return alert('РЎР»РёС€РєРѕРј С‡Р°СЃС‚Рѕ');
             const input = document.getElementById('messageInput');
             let text = textOverride !== undefined ? textOverride : input.value.trim();
-            if (!currentChat) { alert('Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚'); return; }
+            if (!currentChat) return alert('Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚');
             if (!text && !pendingMedia) return;
 
-            // Р·Р°С‰РёС‚Р° РѕС‚ С„Р»СѓРґР°
             messageCooldown = true;
             setTimeout(() => messageCooldown = false, 1000);
 
@@ -1417,140 +1377,102 @@
             }
 
             const now = Date.now();
-            const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const messageId = now + Math.random().toString(36).substr(2,5);
-            const message = {
-                id: messageId,
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const msg = {
+                id: now + Math.random().toString(36).substr(2,5),
                 chatId: currentChat.id,
                 sender: currentUser.id,
                 senderName: currentUser.name,
-                text: text || null,
-                time: timeString,
+                time: timeStr,
                 timestamp: now,
                 isAdmin: currentUser.isAdmin || false
             };
-
-            // РµСЃР»Рё РµСЃС‚СЊ РјРµРґРёР° (С„РѕС‚Рѕ РёР»Рё Р°СѓРґРёРѕ)
             if (pendingMedia) {
-                if (pendingMedia.type.startsWith('image')) {
-                    message.media = { type: pendingMedia.type, url: pendingMedia.data };
-                } else if (pendingMedia.type.startsWith('audio')) {
-                    message.audio = { data: pendingMedia.data }; // base64
-                }
+                if (pendingMedia.type.startsWith('image')) msg.media = { type: pendingMedia.type, url: pendingMedia.data };
+                else if (pendingMedia.type.startsWith('audio')) msg.audio = { data: pendingMedia.data };
                 pendingMedia = null;
+            } else {
+                msg.text = text;
             }
 
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
-            messages[currentChat.id].push({ ...message, type: 'out' });
+            messages[currentChat.id].push({ ...msg, type: 'out' });
             messages[currentChat.id].sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
             localStorage.setItem('messages', JSON.stringify(messages));
 
-            // РїРѕРґРЅРёРјР°РµРј С‡Р°С‚
-            const chatIndex = myChats.findIndex(c => c.id === currentChat.id);
-            if (chatIndex !== -1) {
-                const chatObj = myChats.splice(chatIndex, 1)[0];
-                chatObj.lastMessageTime = now;
-                myChats.unshift(chatObj);
+            // РџРѕРґРЅСЏС‚СЊ С‡Р°С‚
+            const idx = myChats.findIndex(c => c.id === currentChat.id);
+            if (idx !== -1) {
+                const c = myChats.splice(idx, 1)[0];
+                c.lastMessageTime = now;
+                myChats.unshift(c);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             }
 
-            if (ably) {
-                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                chatChannel.publish('message', message);
-            }
-
+            if (ably) ably.channels.get(`chat-${currentChat.id}`).publish('message', msg);
             input.value = '';
             input.style.height = 'auto';
             renderMessages(true);
             updateChatsList();
         }
 
-        let pendingMedia = null; // РґР»СЏ РІСЂРµРјРµРЅРЅРѕРіРѕ С…СЂР°РЅРµРЅРёСЏ РїРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!file.type.startsWith('image/')) { alert('РўРѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ'); return; }
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return alert('РўРѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ');
             const reader = new FileReader();
-            reader.onload = (e) => {
-                pendingMedia = { type: file.type, data: e.target.result };
-                sendMessage('рџ“· Р¤РѕС‚Рѕ'); // РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ РїРѕРґРїРёСЃСЊ
-            };
+            reader.onload = (ev) => { pendingMedia = { type: file.type, data: ev.target.result }; sendMessage('рџ“· Р¤РѕС‚Рѕ'); };
             reader.readAsDataURL(file);
         }
 
-        // РђСѓРґРёРѕР·Р°РїРёСЃСЊ
+        // РђСѓРґРёРѕ
         async function toggleRecording() {
-            if (!currentChat) { alert('Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚'); return; }
-            if (isRecording) {
-                stopRecording();
-            } else {
-                startRecording();
-            }
-        }
-        async function startRecording() {
-            if (!navigator.mediaDevices) { alert('РњРёРєСЂРѕС„РѕРЅ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ'); return; }
+            if (!currentChat) return alert('Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚');
+            if (isRecording) { stopRecording(); return; }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                 mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
-                    reader.onload = () => {
-                        pendingMedia = { type: 'audio/webm', data: reader.result };
-                        sendMessage('рџЋ¤ Р“РѕР»РѕСЃРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ');
-                    };
-                    reader.readAsDataURL(audioBlob);
+                    reader.onload = () => { pendingMedia = { type: 'audio/webm', data: reader.result }; sendMessage('рџЋ¤ Р“РѕР»РѕСЃРѕРІРѕРµ'); };
+                    reader.readAsDataURL(blob);
                     stream.getTracks().forEach(t => t.stop());
                 };
                 mediaRecorder.start();
                 isRecording = true;
                 document.getElementById('micBtn').classList.add('recording');
-                // РѕРіСЂР°РЅРёС‡РёРј 30 СЃРµРєСѓРЅРґ
                 setTimeout(() => { if (isRecording) stopRecording(); }, 30000);
-            } catch (err) {
-                alert('РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї Рє РјРёРєСЂРѕС„РѕРЅСѓ');
-            }
+            } catch { alert('РњРёРєСЂРѕС„РѕРЅ РЅРµРґРѕСЃС‚СѓРїРµРЅ'); }
         }
         function stopRecording() {
-            if (mediaRecorder && isRecording) {
-                mediaRecorder.stop();
-                isRecording = false;
-                document.getElementById('micBtn').classList.remove('recording');
-            }
+            if (mediaRecorder && isRecording) { mediaRecorder.stop(); isRecording = false; document.getElementById('micBtn').classList.remove('recording'); }
         }
 
-        // ---------------------- Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ / СѓРґР°Р»РµРЅРёРµ СЃРѕРѕР±С‰РµРЅРёР№ ----------------------
-        function deleteMessage(messageId, event) {
-            event?.stopPropagation();
+        // ==================== Р Р•Р”РђРљРўРР РћР’РђРќРР• / РЈР”РђР›Р•РќРР• ====================
+        function deleteMessage(id, e) {
+            e?.stopPropagation();
             if (!currentChat) return;
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
-            if (!currentUser.isAdmin && msg.sender !== currentUser.id) { alert('РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ С‡СѓР¶РѕРµ'); return; }
+            const msg = messages[currentChat.id].find(m => m.id === id);
+            if (!currentUser.isAdmin && msg.sender !== currentUser.id) return alert('РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ С‡СѓР¶РѕРµ');
             if (!confirm('РЈРґР°Р»РёС‚СЊ?')) return;
             if (!deletedMessages[currentChat.id]) deletedMessages[currentChat.id] = [];
-            if (!deletedMessages[currentChat.id].includes(messageId)) {
-                deletedMessages[currentChat.id].push(messageId);
-                localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
-            }
-            messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
+            if (!deletedMessages[currentChat.id].includes(id)) { deletedMessages[currentChat.id].push(id); localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages)); }
+            messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== id);
             localStorage.setItem('messages', JSON.stringify(messages));
             if (ably) {
-                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                chatChannel.publish('delete', { messageId, senderId: currentUser.id, timestamp: Date.now() });
-                if (currentUser.isAdmin) {
-                    const adminChannel = ably.channels.get('admin-actions');
-                    adminChannel.publish('delete-message', { chatId: currentChat.id, messageId });
-                }
+                ably.channels.get(`chat-${currentChat.id}`).publish('delete', { messageId: id, senderId: currentUser.id });
+                if (currentUser.isAdmin) ably.channels.get('admin-actions').publish('delete-message', { chatId: currentChat.id, messageId: id });
             }
             renderMessages(true);
         }
 
-        function editMessage(messageId, event) {
-            event?.stopPropagation();
+        function editMessage(id, e) {
+            e?.stopPropagation();
             if (!currentChat) return;
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
-            if (msg.sender !== currentUser.id) { alert('Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃРІРѕРё'); return; }
+            const msg = messages[currentChat.id].find(m => m.id === id);
+            if (msg.sender !== currentUser.id) return alert('Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃРІРѕРё');
             messageToEdit = msg;
             document.getElementById('editMessageText').value = msg.text || '';
             document.getElementById('editMessageModal').classList.add('active');
@@ -1563,159 +1485,112 @@
                 messages[currentChat.id][idx].text = newText;
                 messages[currentChat.id][idx].edited = true;
                 localStorage.setItem('messages', JSON.stringify(messages));
-                if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    chatChannel.publish('edit', { messageId: messageToEdit.id, newText, timestamp: Date.now() });
-                }
+                if (ably) ably.channels.get(`chat-${currentChat.id}`).publish('edit', { messageId: messageToEdit.id, newText });
                 renderMessages(true);
                 closeEditMessageModal();
             }
         }
 
-        // ---------------------- Р РµРЅРґРµСЂ СЃРѕРѕР±С‰РµРЅРёР№ ----------------------
+        // ==================== Р Р•РќР”Р•Р  РЎРћРћР‘Р©Р•РќРР™ ====================
         function renderMessages(animate = true) {
             const container = document.getElementById('messagesContainer');
             if (!container) return;
             container.innerHTML = '';
-            if (!currentChat) { container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">рџ‘€ Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚</div>'; return; }
-            if (!messages[currentChat.id] || messages[currentChat.id].length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">РќРµС‚ СЃРѕРѕР±С‰РµРЅРёР№</div>';
-                return;
-            }
-            messages[currentChat.id].sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
+            if (!currentChat) { container.innerHTML = '<div class="empty-chat">рџ‘€ Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚</div>'; return; }
+            if (!messages[currentChat.id]?.length) { container.innerHTML = '<div class="empty-chat">РќРµС‚ СЃРѕРѕР±С‰РµРЅРёР№</div>'; return; }
             messages[currentChat.id].forEach(msg => {
                 const div = document.createElement('div');
                 div.className = `message ${msg.type}`;
                 if (!animate) div.style.animation = 'none';
-                div.setAttribute('data-id', msg.id);
-
                 let content = '';
-                if (msg.text) {
-                    content = `<div class="message-bubble">${msg.text}${msg.edited ? ' <span style="font-size:10px;opacity:0.7;">(СЂРµРґ.)</span>' : ''}</div>`;
-                } else if (msg.media) {
-                    content = `<img src="${msg.media.url}" class="message-media" onclick="openMedia('${msg.media.url}')">`;
-                } else if (msg.audio) {
-                    content = `<audio controls src="${msg.audio.data}" style="max-width:250px;"></audio>`;
-                }
-
+                if (msg.text) content = `<div class="message-bubble">${escapeHTML(msg.text)}${msg.edited ? ' <span class="edited">(СЂРµРґ.)</span>' : ''}</div>`;
+                else if (msg.media) content = `<img src="${msg.media.url}" class="message-media" onclick="openMedia('${msg.media.url}')">`;
+                else if (msg.audio) content = `<audio controls src="${msg.audio.data}" style="max-width:250px;"></audio>`;
                 let actions = '';
                 if (msg.sender === currentUser.id || currentUser.isAdmin) {
-                    actions = `<div class="message-actions">
-                        ${msg.sender === currentUser.id ? '<button class="message-action-btn" onclick="editMessage(\''+msg.id+'\', event)">вњЏпёЏ</button>' : ''}
-                        <button class="message-action-btn" onclick="deleteMessage(\''+msg.id+'\', event)">рџ—‘пёЏ</button>
-                    </div>`;
+                    actions = `<div class="message-actions">${msg.sender === currentUser.id ? '<button class="message-action-btn" onclick="editMessage(\''+msg.id+'\', event)">вњЏпёЏ</button>' : ''}<button class="message-action-btn" onclick="deleteMessage(\''+msg.id+'\', event)">рџ—‘пёЏ</button></div>`;
                 }
-
-                const showAdminBadge = msg.isAdmin && msg.senderName === ADMIN_USERNAME;
-                div.innerHTML = `
-                    ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
-                    ${content}
-                    <div class="message-time">${msg.time}</div>
-                `;
+                const badge = msg.isAdmin && msg.senderName === ADMIN_USERNAME ? ' <span class="admin-badge">ADMIN</span>' : '';
+                div.innerHTML = actions + (msg.type === 'in' ? `<div class="message-sender">${escapeHTML(msg.senderName)}${badge}</div>` : '') + content + `<div class="message-time">${msg.time}</div>`;
                 container.appendChild(div);
             });
             container.scrollTo({ top: container.scrollHeight, behavior: animate ? 'smooth' : 'auto' });
         }
+        function escapeHTML(str) { return String(str).replace(/[&<>"]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
 
-        // ---------------------- РЎРїРёСЃРѕРє С‡Р°С‚РѕРІ ----------------------
+        // ==================== РЎРџРРЎРћРљ Р§РђРўРћР’ ====================
+        let searchDebounce;
+        function handleSearch() {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(updateChatsList, 300);
+        }
+        document.getElementById('searchInput').addEventListener('input', handleSearch);
+
         function updateChatsList() {
             const list = document.getElementById('chatsList');
             if (!list) return;
             list.innerHTML = '';
-            let items = [];
-            if (currentTab === 'chats') items = myChats;
-            else if (currentTab === 'public') items = publicChats;
-            else if (currentTab === 'users') items = Object.values(onlineUsers);
-
+            let items = currentTab === 'chats' ? myChats : currentTab === 'public' ? publicChats : Object.values(onlineUsers);
             const search = document.getElementById('searchInput').value.toLowerCase();
-            if (search) items = items.filter(i => (i.name||'').toLowerCase().includes(search));
-
-            if (items.length === 0) {
-                list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary);">РќРёС‡РµРіРѕ РЅРµС‚</div>';
-                return;
-            }
-
+            if (search) items = items.filter(i => (i.name || '').toLowerCase().includes(search));
+            if (!items.length) { list.innerHTML = '<div class="empty-list">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</div>'; return; }
             items.forEach(item => {
                 const el = document.createElement('div');
                 el.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
                 if (currentTab === 'users') {
                     el.onclick = () => createPrivateChat(item);
-                    el.innerHTML = `
-                        <div class="chat-avatar">${item.avatar?.startsWith('data:') ? `<img src="${item.avatar}">` : (item.avatar || 'рџ‘¤')}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">${item.name} ${item.online ? '<span class="online-indicator"></span>' : ''}${item.isAdmin && item.name===ADMIN_USERNAME ? '<span class="admin-badge">ADMIN</span>' : ''}</div>
-                            <div class="chat-last-message">${item.bio || ''}</div>
-                        </div>
-                    `;
+                    el.innerHTML = `<div class="chat-avatar">${item.avatar?.startsWith('data:') ? `<img src="${item.avatar}">` : (item.avatar || 'рџ‘¤')}</div><div class="chat-details"><div class="chat-name">${escapeHTML(item.name)} ${item.online ? '<span class="online-indicator"></span>' : ''}${item.isAdmin && item.name===ADMIN_USERNAME ? '<span class="admin-badge">ADMIN</span>' : ''}</div><div class="chat-last-message">${escapeHTML(item.bio || '')}</div></div>`;
                 } else {
                     const lastMsg = messages[item.id]?.length ? messages[item.id][messages[item.id].length-1] : null;
                     const unread = unreadCounts[item.id] || 0;
                     el.onclick = () => joinChat(item);
-                    let chatNameHTML = `${item.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ'} ${item.password ? 'рџ”’' : ''}`;
-                    if (currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab==='public') {
-                        chatNameHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">РЈРґР°Р»РёС‚СЊ</button>`;
+                    let nameHtml = `${escapeHTML(item.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ')} ${item.password ? 'рџ”’' : ''}`;
+                    if (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab==='public') {
+                        nameHtml += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">РЈРґР°Р»РёС‚СЊ</button>`;
                     }
-                    el.innerHTML = `
-                        <div class="chat-avatar">${(item.name||'?').charAt(0)}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">${chatNameHTML}</div>
-                            <div class="chat-last-message">${lastMsg ? (lastMsg.text || (lastMsg.media?'рџ“·':(lastMsg.audio?'рџЋ¤':''))) : (item.description||'')}</div>
-                        </div>
-                        <div class="chat-meta">
-                            <div class="chat-time">${lastMsg ? lastMsg.time : ''}</div>
-                            ${unread>0 ? `<div class="chat-unread">${unread}</div>` : ''}
-                        </div>
-                    `;
+                    el.innerHTML = `<div class="chat-avatar">${(item.name||'?').charAt(0)}</div><div class="chat-details"><div class="chat-name">${nameHtml}</div><div class="chat-last-message">${lastMsg ? (lastMsg.text ? escapeHTML(lastMsg.text) : (lastMsg.media?'рџ“·':(lastMsg.audio?'рџЋ¤':''))) : (item.description||'')}</div></div><div class="chat-meta"><div class="chat-time">${lastMsg ? lastMsg.time : ''}</div>${unread ? '<div class="chat-unread">'+unread+'</div>' : ''}</div>`;
                 }
                 list.appendChild(el);
             });
         }
 
         function createPrivateChat(user) {
-            const chatId = [currentUser.id, user.id].sort().join('-');
-            let privateChat = myChats.find(c => c.id === chatId);
-            if (!privateChat) {
-                privateChat = { id: chatId, name: user.name, isPrivate: true, user: user, members: [currentUser.id, user.id] };
-            }
-            joinChat(privateChat);
+            const id = [currentUser.id, user.id].sort().join('-');
+            let chat = myChats.find(c => c.id === id);
+            if (!chat) chat = { id, name: user.name, isPrivate: true, user, members: [currentUser.id, user.id] };
+            joinChat(chat);
         }
 
-        // ---------------------- РџСЂРѕС„РёР»СЊ, СЃС‚Р°С‚СѓСЃ, Р°РІР°С‚Р°СЂ ----------------------
+        // ==================== РџР РћР¤РР›Р¬, РЎРўРђРўРЈРЎ, РђР’РђРўРђР  ====================
         function setStatus(status) {
             if (!currentUser) return;
             currentUser.status = status;
-            document.querySelectorAll('.status-option').forEach(opt => opt.classList.remove('active'));
-            document.querySelector(`.status-option[data-status="${status}"]`).classList.add('active');
+            document.querySelectorAll('.status-option').forEach(opt => opt.classList.toggle('active', opt.dataset.status === status));
             document.getElementById('profileStatusText').innerText = status==='online'?'РѕРЅР»Р°Р№РЅ':(status==='offline'?'РЅРµ РІ СЃРµС‚Рё':'РЅРµ Р±РµСЃРїРѕРєРѕРёС‚СЊ');
-            // РѕР±РЅРѕРІРёС‚СЊ presence
             if (ably) {
-                const presenceChannel = ably.channels.get('presence');
-                if (status === 'offline') {
-                    presenceChannel.presence.leave();
-                } else {
-                    presenceChannel.presence.update({ name: currentUser.name, avatar: currentUser.avatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: status });
-                }
+                const presence = ably.channels.get('presence');
+                if (status === 'offline') presence.presence.leave();
+                else presence.presence.update({ name: currentUser.name, avatar: currentUser.avatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status });
             }
         }
 
         function openAvatarModal() {
             const grid = document.getElementById('avatarGrid');
             grid.innerHTML = '';
-            weirdEmojis.forEach(emoji => {
+            weirdEmojis.forEach(e => {
                 const div = document.createElement('div');
                 div.className = 'avatar-option';
-                div.textContent = emoji;
-                div.onclick = () => selectAvatar(emoji, div);
-                if (currentUser.avatar === emoji) div.classList.add('selected');
+                div.textContent = e;
+                div.onclick = () => selectAvatar(e, div);
+                if (currentUser.avatar === e) div.classList.add('selected');
                 grid.appendChild(div);
             });
             document.getElementById('avatarModal').classList.add('active');
         }
         let selectedAvatar = null;
-        function selectAvatar(emoji, element) {
+        function selectAvatar(emoji, el) {
             document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
-            element.classList.add('selected');
+            el.classList.add('selected');
             selectedAvatar = emoji;
         }
         function uploadCustomAvatar() {
@@ -1728,14 +1603,13 @@
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     selectedAvatar = ev.target.result;
-                    // РїРѕРєР°Р¶РµРј preview РІ СЃРµС‚РєРµ (РґРѕР±Р°РІРёРј РѕРїС†РёСЋ)
                     const grid = document.getElementById('avatarGrid');
                     Array.from(grid.children).forEach(opt => opt.classList.remove('selected'));
-                    const imgDiv = document.createElement('div');
-                    imgDiv.className = 'avatar-option selected';
-                    imgDiv.innerHTML = `<img src="${selectedAvatar}" style="width:100%;height:100%;object-fit:cover;">`;
-                    imgDiv.onclick = () => selectAvatar(selectedAvatar, imgDiv);
-                    grid.prepend(imgDiv);
+                    const div = document.createElement('div');
+                    div.className = 'avatar-option selected';
+                    div.innerHTML = `<img src="${selectedAvatar}" style="width:100%;height:100%;object-fit:cover;">`;
+                    div.onclick = () => selectAvatar(selectedAvatar, div);
+                    grid.prepend(div);
                 };
                 reader.readAsDataURL(file);
             };
@@ -1744,33 +1618,27 @@
         function saveAvatar() {
             if (selectedAvatar) {
                 currentUser.avatar = selectedAvatar;
-                const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) users[userKey].avatar = selectedAvatar;
+                const key = currentUser.name.toLowerCase();
+                if (users[key]) users[key].avatar = selectedAvatar;
                 localStorage.setItem('telegram_users', JSON.stringify(users));
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 updateProfileUI();
-                if (ably) {
-                    const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ name: currentUser.name, avatar: selectedAvatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: currentUser.status });
-                }
+                if (ably) ably.channels.get('presence').presence.update({ name: currentUser.name, avatar: selectedAvatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: currentUser.status });
             }
             closeAvatarModal();
         }
-        function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); selectedAvatar=null; }
 
         function openProfileModal() {
             document.getElementById('profileNameInput').value = currentUser.name;
             document.getElementById('profileEmailInput').value = currentUser.email || '';
-            updateProfileUI(); // РѕР±РЅРѕРІРёС‚ СЃС‚Р°С‚СѓСЃ
+            updateProfileUI();
             document.getElementById('profileModal').classList.add('active');
         }
-        function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
         function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             if (newName && newName !== currentUser.name) {
-                const oldKey = currentUser.name.toLowerCase();
-                const newKey = newName.toLowerCase();
-                if (users[newKey] && newKey !== oldKey) { alert('РРјСЏ Р·Р°РЅСЏС‚Рѕ'); return; }
+                const oldKey = currentUser.name.toLowerCase(), newKey = newName.toLowerCase();
+                if (users[newKey] && newKey !== oldKey) return alert('РРјСЏ Р·Р°РЅСЏС‚Рѕ');
                 if (users[oldKey]) {
                     users[oldKey].name = newName;
                     if (newKey !== oldKey) { users[newKey] = users[oldKey]; delete users[oldKey]; }
@@ -1779,87 +1647,56 @@
                 localStorage.setItem('telegram_users', JSON.stringify(users));
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 updateProfileUI();
-                if (ably) {
-                    const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ name: newName, avatar: currentUser.avatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: currentUser.status });
-                }
+                if (ably) ably.channels.get('presence').presence.update({ name: newName, avatar: currentUser.avatar, bio: currentUser.bio, isAdmin: currentUser.isAdmin, status: currentUser.status });
             }
             closeProfileModal();
         }
 
-        // ---------------------- РЈС‚РёР»РёС‚С‹ ----------------------
+        function updateProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('profileName').innerHTML = currentUser.name + (currentUser.isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '');
+            document.getElementById('profileAvatar').innerHTML = currentUser.avatar?.startsWith('data:') ? `<img src="${currentUser.avatar}">` : (currentUser.avatar || 'рџ‘¤');
+            document.getElementById('profileAvatarLarge').innerHTML = currentUser.avatar?.startsWith('data:') ? `<img src="${currentUser.avatar}">` : (currentUser.avatar || 'рџ‘¤');
+            document.getElementById('profileEmailInput').value = currentUser.email || '';
+            const status = currentUser.status || 'online';
+            document.querySelectorAll('.status-option').forEach(opt => opt.classList.toggle('active', opt.dataset.status === status));
+            document.getElementById('profileStatusText').innerText = status==='online'?'РѕРЅР»Р°Р№РЅ':(status==='offline'?'РЅРµ РІ СЃРµС‚Рё':'РЅРµ Р±РµСЃРїРѕРєРѕРёС‚СЊ');
+        }
+
+        // ==================== РЈРўРР›РРўР« ====================
         function switchTab(tab) {
             currentTab = tab;
-            document.getElementById('tabChats').className = tab==='chats'?'tab active':'tab';
-            document.getElementById('tabPublic').className = tab==='public'?'tab active':'tab';
-            document.getElementById('tabUsers').className = tab==='users'?'tab active':'tab';
+            document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='chats')||(i===1 && tab==='public')||(i===2 && tab==='users')));
             document.getElementById('searchInput').value = '';
             updateChatsList();
         }
-        function handleSearch() { updateChatsList(); }
-        function togglePassword(id) {
-            const inp = document.getElementById(id);
-            inp.type = inp.type === 'password' ? 'text' : 'password';
-        }
+        function togglePassword(id) { let inp = document.getElementById(id); inp.type = inp.type==='password'?'text':'password'; }
         function toggleEmojiPicker() {
             const picker = document.getElementById('emojiPicker');
             if (picker.style.display === 'none') {
                 picker.style.display = 'flex';
-                if (picker.children.length === 0) {
-                    emojiList.slice(0,100).forEach(emoji => {
-                        const btn = document.createElement('button');
-                        btn.className = 'emoji-btn';
-                        btn.textContent = emoji;
-                        btn.onclick = () => addEmoji(emoji);
-                        picker.appendChild(btn);
-                    });
-                }
+                if (!picker.children.length) emojiList.slice(0,80).forEach(e => { let b = document.createElement('button'); b.className='emoji-btn'; b.textContent=e; b.onclick=()=>addEmoji(e); picker.appendChild(b); });
             } else picker.style.display = 'none';
         }
-        function addEmoji(emoji) {
-            const input = document.getElementById('messageInput');
-            const start = input.selectionStart;
-            input.value = input.value.substring(0,start) + emoji + input.value.substring(input.selectionEnd);
-            input.focus();
-            input.selectionStart = input.selectionEnd = start + emoji.length;
-            input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px';
-        }
-        function handleKeyPress(e) {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        }
+        function addEmoji(e) { let inp = document.getElementById('messageInput'); let start = inp.selectionStart; inp.value = inp.value.slice(0,start) + e + inp.value.slice(inp.selectionEnd); inp.focus(); inp.selectionStart = inp.selectionEnd = start + e.length; inp.style.height = 'auto'; inp.style.height = inp.scrollHeight + 'px'; }
+        function handleKeyPress(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
         function openCreateChatModal() { document.getElementById('createChatModal').classList.add('active'); }
         function closeCreateChatModal() { document.getElementById('createChatModal').classList.remove('active'); document.getElementById('chatNameInput').value=''; document.getElementById('chatPasswordInput').value=''; document.getElementById('chatDescriptionInput').value=''; }
         function closeJoinChatModal() { document.getElementById('joinChatModal').classList.remove('active'); document.getElementById('joinPasswordInput').value=''; pendingChatToJoin=null; }
         function closeEditMessageModal() { document.getElementById('editMessageModal').classList.remove('active'); document.getElementById('editMessageText').value=''; messageToEdit=null; }
-        function openMedia(url) {
-            const viewer = document.getElementById('mediaViewer');
-            const content = document.getElementById('mediaViewerContent');
-            content.innerHTML = url.match(/\.(mp4|webm|ogg)$/i) ? `<video src="${url}" controls autoplay></video>` : `<img src="${url}">`;
-            viewer.classList.add('active');
-        }
+        function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); selectedAvatar=null; }
+        function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
+        function openMedia(url) { document.getElementById('mediaViewerContent').innerHTML = url.match(/\.(mp4|webm|ogg)$/i) ? `<video src="${url}" controls autoplay></video>` : `<img src="${url}">`; document.getElementById('mediaViewer').classList.add('active'); }
         function closeMediaViewer() { document.getElementById('mediaViewer').classList.remove('active'); document.getElementById('mediaViewerContent').innerHTML=''; }
-        function updateUrlWithChat(chat) {
-            const url = chat ? `${window.location.pathname}#${chat.id}` : window.location.pathname;
-            window.history.pushState({}, '', url);
-        }
+        function updateUrlWithChat(chat) { window.history.pushState({}, '', chat ? `${window.location.pathname}#${chat.id}` : window.location.pathname); }
         function checkUrlForChat() {
             const hash = window.location.hash.substring(1);
-            if (hash) {
-                const chat = myChats.find(c => c.id===hash) || publicChats.find(c => c.id===hash);
-                if (chat) setTimeout(() => joinChat(chat),500);
-            }
+            if (hash) { let chat = myChats.find(c => c.id===hash) || publicChats.find(c => c.id===hash); if (chat) setTimeout(()=>joinChat(chat),300); }
         }
 
-        // РЎС‚Р°СЂС‚
-        checkSavedSession();
-
-        // РђРІС‚Рѕ-СЃРєСЂС‹С‚РёРµ СѓРІРµРґРѕРјР»РµРЅРёР№
-        window.addEventListener('load', () => {
-            document.getElementById('messageInput').addEventListener('input', function() {
-                this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';
-            });
-        });
+        // РћР±СЂР°Р±РѕС‚РєР° РёР·РјРµРЅРµРЅРёСЏ С‚РµРєСЃС‚Р°
+        document.getElementById('messageInput').addEventListener('input', function() { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; });
     </script>
 </body>
 </html>
