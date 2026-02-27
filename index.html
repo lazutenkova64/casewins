@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web</title>
+    <title>Telegram Web — Firebase Edition</title>
+    <!-- Ably для реального времени -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        /* CSS-переменные для динамической темы */
+        /* ==================== CSS-ПЕРЕМЕННЫЕ ==================== */
         :root {
             --hue: 210;
             --saturation: 80%;
@@ -19,9 +23,7 @@
             --text-secondary: #b0b0b0;
             --accent-blue: hsl(var(--hue), var(--saturation), var(--lightness));
             --accent-green: hsl(140, 70%, 50%);
-            --accent-purple: hsl(270, 70%, 70%);
             --accent-red: hsl(0, 70%, 60%);
-            --accent-orange: hsl(30, 90%, 60%);
             --border-color: hsl(var(--hue), 20%, 25%);
             --message-out: hsl(var(--hue), 60%, 40%);
             --message-in: hsl(var(--hue), 20%, 25%);
@@ -30,13 +32,29 @@
             --unread-badge: var(--accent-blue);
             --gradient-1: linear-gradient(135deg, hsl(var(--hue), 80%, 65%) 0%, hsl(calc(var(--hue) + 30), 80%, 65%) 100%);
             --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
             --tester-bg: #000000;
             --tester-text: #ffffff;
             --toggle-bg: hsl(var(--hue), 20%, 25%);
             --toggle-active: var(--accent-blue);
+            --font-size: 14px;
+            --message-spacing: 12px;
+            --wallpaper: none;
         }
+
+        /* Размер шрифта */
+        .font-small { --font-size: 12px; }
+        .font-medium { --font-size: 14px; }
+        .font-large { --font-size: 16px; }
+
+        /* Компактный режим */
+        .compact-mode { --message-spacing: 6px; }
+
+        /* Обои */
+        .wallpaper-default { --wallpaper: none; }
+        .wallpaper-gradient1 { --wallpaper: radial-gradient(circle at 30% 40%, #ff8a5c, #ff4d4d); }
+        .wallpaper-gradient2 { --wallpaper: linear-gradient(135deg, #667eea, #764ba2); }
+        .wallpaper-gradient3 { --wallpaper: repeating-linear-gradient(45deg, #3f87a6, #ebf8e1 20px); }
 
         * {
             margin: 0;
@@ -53,6 +71,7 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
+        /* Полосы прокрутки */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -75,7 +94,7 @@
             background: radial-gradient(circle at 20% 30%, var(--bg-secondary), var(--bg-primary));
         }
 
-        /* Боковая панель */
+        /* ==================== Боковая панель ==================== */
         .sidebar {
             width: 350px;
             background: var(--bg-glass);
@@ -316,12 +335,13 @@
             margin-left: 4px;
         }
 
-        /* Область чата */
+        /* ==================== Область чата ==================== */
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: transparent;
+            background: var(--wallpaper), var(--bg-primary);
+            background-blend-mode: overlay;
             min-width: 0;
         }
         .chat-header {
@@ -382,7 +402,7 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--message-spacing);
             scroll-behavior: smooth;
         }
 
@@ -394,6 +414,7 @@
             opacity: 0;
             transform: translateY(20px);
             animation: messageAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            font-size: var(--font-size);
         }
         @keyframes messageAppear {
             to { opacity: 1; transform: translateY(0); }
@@ -404,7 +425,6 @@
         .message-bubble {
             padding: 12px 16px;
             border-radius: 22px;
-            font-size: 14px;
             line-height: 1.5;
             word-wrap: break-word;
             box-shadow: var(--shadow-sm);
@@ -578,7 +598,7 @@
             background: var(--bg-tertiary);
         }
 
-        /* Модальные окна */
+        /* ==================== Модальные окна ==================== */
         .modal {
             display: none;
             position: fixed;
@@ -799,19 +819,23 @@
             box-shadow: 0 0 15px var(--accent-green);
         }
 
+        /* ==================== Настройки ==================== */
+        .settings-group {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+        .settings-group h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
         .settings-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 0;
-            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0;
             cursor: pointer;
-        }
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-        .settings-item span {
-            font-size: 16px;
         }
         .settings-item .value {
             color: var(--text-secondary);
@@ -843,6 +867,29 @@
         }
         .toggle-switch.active::after {
             transform: translateX(20px);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .wallpaper-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: border 0.2s;
+            cursor: pointer;
+        }
+        .wallpaper-preview.selected {
+            border-color: var(--accent-blue);
         }
 
         .language-selector {
@@ -959,9 +1006,6 @@
             top: 2px;
             left: 2px;
         }
-        .status-option .status-label {
-            font-size: 16px;
-        }
 
         /* Ползунки темы */
         .theme-sliders {
@@ -996,6 +1040,19 @@
             cursor: pointer;
         }
 
+        /* Индикатор печатает */
+        .typing-indicator {
+            font-size: 12px;
+            color: var(--accent-blue);
+            margin-left: 8px;
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -1020,7 +1077,7 @@
     </style>
 </head>
 <body>
-    <!-- Модалка входа/регистрации -->
+    <!-- ==================== МОДАЛКА ВХОДА/РЕГИСТРАЦИИ ==================== -->
     <div class="modal active" id="loginModal">
         <div class="modal-content">
             <h2 data-i18n="welcome">Добро пожаловать!</h2>
@@ -1060,7 +1117,7 @@
         </div>
     </div>
 
-    <!-- Основное приложение -->
+    <!-- ==================== ОСНОВНОЕ ПРИЛОЖЕНИЕ ==================== -->
     <div class="app-container" id="appContainer" style="display: none;">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -1089,6 +1146,7 @@
                         <span id="currentChatName" onclick="openChatInfoModal()">Выберите чат</span>
                     </div>
                     <div class="chat-subtitle" id="chatStatus"></div>
+                    <div id="typingIndicator" class="typing-indicator" style="display: none;"></div>
                 </div>
             </div>
             <div class="messages-container" id="messagesContainer"></div>
@@ -1097,14 +1155,15 @@
                 <button class="mic-btn" id="micBtn" onclick="toggleSpeechRecognition()">🎤</button>
                 <div class="input-wrapper">
                     <div class="emoji-picker" id="emojiPicker" style="display: none;"></div>
-                    <textarea class="message-input" id="messageInput" placeholder="Напишите сообщение..." rows="1" onkeydown="handleKeyPress(event)" data-i18n-placeholder="messagePlaceholder"></textarea>
+                    <textarea class="message-input" id="messageInput" placeholder="Напишите сообщение..." rows="1" onkeydown="handleKeyPress(event)" data-i18n-placeholder="messagePlaceholder" oninput="sendTyping()"></textarea>
                 </div>
                 <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
             </div>
         </div>
     </div>
 
-    <!-- Модалка создания чата -->
+    <!-- ==================== ОСТАЛЬНЫЕ МОДАЛКИ ==================== -->
+    <!-- Создание чата -->
     <div class="modal" id="createChatModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeCreateChatModal()">×</button>
@@ -1119,7 +1178,7 @@
         </div>
     </div>
 
-    <!-- Модалка входа в защищённый чат -->
+    <!-- Вход в защищённый чат -->
     <div class="modal" id="joinChatModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeJoinChatModal()">×</button>
@@ -1132,7 +1191,7 @@
         </div>
     </div>
 
-    <!-- Модалка редактирования сообщения -->
+    <!-- Редактирование сообщения -->
     <div class="modal" id="editMessageModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeEditMessageModal()">×</button>
@@ -1142,7 +1201,7 @@
         </div>
     </div>
 
-    <!-- Модалка профиля (редактирование) -->
+    <!-- Редактирование профиля -->
     <div class="modal" id="profileModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeProfileModal()">×</button>
@@ -1179,7 +1238,7 @@
         </div>
     </div>
 
-    <!-- Модалка информации о чате -->
+    <!-- Информация о чате -->
     <div class="modal" id="chatInfoModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeChatInfoModal()">×</button>
@@ -1189,7 +1248,7 @@
         </div>
     </div>
 
-    <!-- Модалка выбора аватара -->
+    <!-- Выбор аватара -->
     <div class="modal" id="avatarModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeAvatarModal()">×</button>
@@ -1199,27 +1258,70 @@
         </div>
     </div>
 
-    <!-- Модалка настроек -->
+    <!-- Настройки -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeSettingsModal()">×</button>
             <h2 data-i18n="settings">Настройки</h2>
-            <div class="settings-item" onclick="toggleHideLastSeen()">
-                <span data-i18n="hideLastSeen">Скрыть время захода</span>
-                <div class="toggle-switch" id="hideLastSeenToggle"></div>
+
+            <div class="settings-group">
+                <h3 data-i18n="appearance">Внешний вид</h3>
+                <div class="settings-item" onclick="toggleHideLastSeen()">
+                    <span data-i18n="hideLastSeen">Скрыть время захода</span>
+                    <div class="toggle-switch" id="hideLastSeenToggle"></div>
+                </div>
+                <div class="settings-item" onclick="openThemeModal()">
+                    <span data-i18n="theme">Тема (цвета)</span>
+                    <span class="value" id="currentTheme">Пользовательская</span>
+                </div>
+                <div class="settings-item">
+                    <span data-i18n="fontSize">Размер шрифта</span>
+                    <div class="radio-group">
+                        <label><input type="radio" name="fontSize" value="small" onchange="setFontSize('small')"> Маленький</label>
+                        <label><input type="radio" name="fontSize" value="medium" onchange="setFontSize('medium')" checked> Средний</label>
+                        <label><input type="radio" name="fontSize" value="large" onchange="setFontSize('large')"> Большой</label>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <span data-i18n="compactMode">Компактный режим</span>
+                    <div class="toggle-switch" id="compactModeToggle" onclick="toggleCompactMode()"></div>
+                </div>
+                <div class="settings-item">
+                    <span data-i18n="wallpaper">Обои чата</span>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <div class="wallpaper-preview" style="background: var(--bg-primary);" onclick="setWallpaper('default', event)"></div>
+                        <div class="wallpaper-preview" style="background: radial-gradient(circle at 30% 40%, #ff8a5c, #ff4d4d);" onclick="setWallpaper('gradient1', event)"></div>
+                        <div class="wallpaper-preview" style="background: linear-gradient(135deg, #667eea, #764ba2);" onclick="setWallpaper('gradient2', event)"></div>
+                        <div class="wallpaper-preview" style="background: repeating-linear-gradient(45deg, #3f87a6, #ebf8e1 20px);" onclick="setWallpaper('gradient3', event)"></div>
+                    </div>
+                </div>
             </div>
-            <div class="settings-item" onclick="openLanguageModal()">
-                <span data-i18n="language">Язык</span>
-                <span class="value" id="currentLanguage">Русский</span>
+
+            <div class="settings-group">
+                <h3 data-i18n="notifications">Уведомления</h3>
+                <div class="settings-item" onclick="toggleSoundNotifications()">
+                    <span data-i18n="soundNotifications">Звуковые уведомления</span>
+                    <div class="toggle-switch" id="soundToggle"></div>
+                </div>
+                <div class="settings-item" onclick="requestNotificationPermission()">
+                    <span data-i18n="browserNotifications">Браузерные уведомления</span>
+                    <span class="value" id="notificationStatus">Разрешить</span>
+                </div>
             </div>
-            <div class="settings-item" onclick="openThemeModal()">
-                <span data-i18n="theme">Тема</span>
-                <span class="value" id="currentTheme">Пользовательская</span>
+
+            <div class="settings-group">
+                <h3 data-i18n="languageRegion">Язык</h3>
+                <div class="settings-item" onclick="openLanguageModal()">
+                    <span data-i18n="language">Язык интерфейса</span>
+                    <span class="value" id="currentLanguage">Русский</span>
+                </div>
             </div>
+
+            <button class="modal-btn secondary" onclick="closeSettingsModal()" data-i18n="close">Закрыть</button>
         </div>
     </div>
 
-    <!-- Модалка выбора языка -->
+    <!-- Выбор языка -->
     <div class="modal" id="languageModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeLanguageModal()">×</button>
@@ -1231,7 +1333,7 @@
         </div>
     </div>
 
-    <!-- Модалка настройки темы -->
+    <!-- Настройка темы -->
     <div class="modal" id="themeModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeThemeModal()">×</button>
@@ -1254,7 +1356,7 @@
         </div>
     </div>
 
-    <!-- Модалка просмотра профиля собеседника -->
+    <!-- Просмотр профиля собеседника -->
     <div class="modal" id="userProfileModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeUserProfileModal()">×</button>
@@ -1262,13 +1364,54 @@
         </div>
     </div>
 
-    <!-- Уведомление о запросе разрешения на push -->
+    <!-- Запрос на уведомления -->
     <div class="notification-permission" id="notificationPermission" style="display: none;">
         <span data-i18n="allowNotifications">Разрешить уведомления?</span>
         <button onclick="requestNotificationPermission()" data-i18n="allow">Разрешить</button>
     </div>
 
     <script>
+        // ==================== ИНИЦИАЛИЗАЦИЯ FIREBASE ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYB0vhlox54qosc5k-ECSXeGwylXjRvr8",
+            authDomain: "basepeople-7401a.firebaseapp.com",
+            projectId: "basepeople-7401a",
+            storageBucket: "basepeople-7401a.firebasestorage.app",
+            messagingSenderId: "675814360268",
+            appId: "1:675814360268:web:bd1cba470568faee0d2e69"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+        let ably;
+        let currentUser = null;
+        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
+        let myChats = [];
+        let onlineUsers = {};
+        let currentChat = null;
+        let messages = JSON.parse(localStorage.getItem('messages')) || {};
+        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
+        let currentTab = 'chats';
+        let pendingChatToJoin = null;
+        let messageToEdit = null;
+        const ADMIN_USERNAME = "K1lame";
+        const TESTER_USERNAME = "martin_dev";
+        let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
+
+        let lastMessageTime = 0;
+        const MESSAGE_COOLDOWN = 1000;
+        let sendBtnDisabled = false;
+        let loginAttempts = 0;
+        let lastLoginAttemptTime = 0;
+        const MAX_LOGIN_ATTEMPTS = 15;
+        const LOGIN_TIMEFRAME = 60000;
+
+        let recognition = null;
+        let isRecording = false;
+        let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+        let typingTimeout = null;
+
         // ==================== ЛОКАЛИЗАЦИЯ ====================
         const i18n = {
             currentLang: 'ru',
@@ -1350,6 +1493,16 @@
                     createdBy: 'Создатель',
                     description: 'Описание',
                     members: 'Участников',
+                    appearance: 'Внешний вид',
+                    fontSize: 'Размер шрифта',
+                    compactMode: 'Компактный режим',
+                    wallpaper: 'Обои',
+                    notifications: 'Уведомления',
+                    soundNotifications: 'Звуковые уведомления',
+                    browserNotifications: 'Браузерные уведомления',
+                    languageRegion: 'Язык и регион',
+                    close: 'Закрыть',
+                    typing: 'печатает...',
                 },
                 en: {
                     welcome: 'Welcome!',
@@ -1428,11 +1581,19 @@
                     createdBy: 'Created by',
                     description: 'Description',
                     members: 'Members',
+                    appearance: 'Appearance',
+                    fontSize: 'Font size',
+                    compactMode: 'Compact mode',
+                    wallpaper: 'Wallpaper',
+                    notifications: 'Notifications',
+                    soundNotifications: 'Sound notifications',
+                    browserNotifications: 'Browser notifications',
+                    languageRegion: 'Language & region',
+                    close: 'Close',
+                    typing: 'typing...',
                 }
             },
-            t(key) {
-                return this.translations[this.currentLang][key] || key;
-            },
+            t(key) { return this.translations[this.currentLang][key] || key; },
             setLang(lang) {
                 if (this.translations[lang]) {
                     this.currentLang = lang;
@@ -1456,49 +1617,45 @@
             }
         };
 
-        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
-        const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
-        let ably;
-        let currentUser = null;
-        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
-        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
-        let myChats = [];
-        let onlineUsers = {}; // clientId -> данные + lastSeen
-        let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
-        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
-        let currentTab = 'chats';
-        let pendingChatToJoin = null;
-        let messageToEdit = null;
-        const ADMIN_USERNAME = "K1lame";
-        const TESTER_USERNAME = "martin_dev";
-        let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-        let lastMessageTime = 0;
-        const MESSAGE_COOLDOWN = 1000;
-        let sendBtnDisabled = false;
-        let loginAttempts = 0;
-        let lastLoginAttemptTime = 0;
-        const MAX_LOGIN_ATTEMPTS = 15; // увеличено до 15
-        const LOGIN_TIMEFRAME = 60000;
+        // ==================== ИНИЦИАЛИЗАЦИЯ: СОЗДАНИЕ АДМИНА И ТЕСТЕРА ====================
+        async function initDefaultUsers() {
+            const adminRef = db.collection('users').where('name', '==', ADMIN_USERNAME);
+            const adminSnap = await adminRef.get();
+            if (adminSnap.empty) {
+                await db.collection('users').add({
+                    name: ADMIN_USERNAME,
+                    email: 'admin@example.com',
+                    password: 'admin123',
+                    avatar: '👑',
+                    bio: 'Создатель',
+                    status: 'online',
+                    hideLastSeen: false,
+                    language: 'ru',
+                    theme: 'dark',
+                    hue: 210,
+                    saturation: 80,
+                    lightness: 60,
+                    fontSize: 'medium',
+                    compactMode: false,
+                    wallpaper: 'default',
+                    isAdmin: true,
+                    isTester: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
 
-        // Распознавание речи (непрерывное)
-        let recognition = null;
-        let isRecording = false;
-
-        // Эмодзи (полный набор)
-        const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊', '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄', '💋', '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '🔄', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💭', '🗯️', '💬', '👁️‍🗨️', '🗨️', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'];
-
-        // Забавные аватарки
-        const weirdEmojis = ['👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥', '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥', '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂', '🍑', '🍆', '🥑', '🌮', '🍕', '🍔', '🍟', '🌭', '🍿', '🥨', '🧀', '🥩', '🥓', '🍗', '🍖', '🦴', '🥡', '🥢', '🍽️', '🔪', '🪓', '⚰️', '⚱️', '🧿', '🔮', '📿', '💎', '🔫', '💣', '🧨', '🛡️', '🏹', '🗡️', '⚔️', '🔧', '🔨', '⛏️', '⚒️', '🛠️', '🔩', '🐉', '🐲', '🌊', '🧙', '🧝', '🧞', '🧟', '🧌', '🦄', '🐲', '🦥', '🦦', '🦨', '🦩', '🦚', '🦜', '🐧', '🐣', '🐤', '🐥', '🐦', '🐧', '🐦‍⬛', '🕊️', '🦅', '🦆', '🦉', '🐺', '🐗', '🐴', '🦄', '🐝', '🐞', '🦋', '🐌', '🐛', '🦟', '🦗', '🐜', '🐝', '🐞', '🦂', '🕷️', '🕸️', '🦠', '🌿', '🍀', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '🍃', '🍂', '🍁', '🌺', '🌻', '🌼', '🌷', '🌸', '💐', '🥀', '🌹', '🪻', '🪷', '🌽', '🥕', '🥔', '🧄', '🧅', '🥦', '🥬', '🥒', '🌶️', '🫑', '🥕', '🍠', '🥜', '🫘', '🌰', '🍄', '🪴', '🎍', '🪵', '🪨', '🏔️', '⛰️', '🌋', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🏘️', '🏚️', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛲', '⛺', '🌁', '🌃', '🌆', '🌇', '🌉', '🎠', '🎡', '🎢', '🚂', '🚃', '🚄', '🚅', '🚆', '🚇', '🚈', '🚉', '🚊', '🚝', '🚞', '🚋', '🚌', '🚍', '🚎', '🚐', '🚑', '🚒', '🚓', '🚔', '🚕', '🚖', '🚗', '🚘', '🚙', '🚚', '🚛', '🚜', '🛵', '🏍️', '🛺', '🚲', '🛴', '🚏', '🛑', '🛞', '🛟', '⛵', '🛶', '🚤', '🛳️', '⛴️', '🛥️', '🚢', '✈️', '🛩️', '🛫', '🛬', '🪂', '🚁', '🚟', '🚠', '🚡', '🛰️', '🚀', '🛸', '🌌', '⏱️', '⏲️', '🕰️', '⌛', '⏳', '⌚', '⏰', '🌡️', '☀️', '☁️', '⛅', '⛈️', '🌤️', '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '🌀', '🌈', '🌂', '☔', '⛱️', '⚡', '❄️', '☃️', '⛄', '🔥', '💧', '🌊'];
-
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-        function initDefaultUsers() {
-            // Создаём тестового пользователя martin_dev, если его нет
-            const testerKey = TESTER_USERNAME.toLowerCase();
-            if (!users[testerKey]) {
-                users[testerKey] = {
-                    id: 'user_' + Date.now() + '_tester',
+            const testerRef = db.collection('users').where('name', '==', TESTER_USERNAME);
+            const testerSnap = await testerRef.get();
+            if (testerSnap.empty) {
+                await db.collection('users').add({
                     name: TESTER_USERNAME,
                     email: 'martin@example.com',
                     password: 'Andrey10987654321!',
@@ -1508,75 +1665,44 @@
                     hideLastSeen: false,
                     language: 'ru',
                     theme: 'dark',
+                    hue: 210,
+                    saturation: 80,
+                    lightness: 60,
+                    fontSize: 'medium',
+                    compactMode: false,
+                    wallpaper: 'default',
+                    isAdmin: false,
                     isTester: true,
-                    createdAt: new Date().toISOString()
-                };
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
             }
-            // Создаём админа K1lame, если его нет
-            const adminKey = ADMIN_USERNAME.toLowerCase();
-            if (!users[adminKey]) {
-                users[adminKey] = {
-                    id: 'user_' + Date.now() + '_admin',
-                    name: ADMIN_USERNAME,
-                    email: 'admin@example.com',
-                    password: 'admin123', // пароль admin123
-                    avatar: '👑',
-                    bio: 'Создатель',
-                    status: 'online',
-                    hideLastSeen: false,
-                    language: 'ru',
-                    theme: 'dark',
-                    isAdmin: true,
-                    createdAt: new Date().toISOString()
-                };
-            } else {
-                users[adminKey].isAdmin = true;
-                users[adminKey].bio = 'Создатель';
-            }
-            localStorage.setItem('telegram_users', JSON.stringify(users));
         }
 
-        // Миграция старых пользователей
-        function migrateUsers() {
-            for (let key in users) {
-                const u = users[key];
-                if (!u.email) u.email = u.name + '@localhost';
-                if (!u.status) u.status = 'online';
-                if (u.hideLastSeen === undefined) u.hideLastSeen = false;
-                if (!u.language) u.language = 'ru';
-                if (!u.theme) u.theme = 'dark';
-                if (!u.avatar) u.avatar = '👤';
-                if (!u.bio) u.bio = '';
-                if (u.name === ADMIN_USERNAME) u.isAdmin = true;
-                if (u.name === TESTER_USERNAME) u.isTester = true;
-            }
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-        }
+        // ==================== ПРОВЕРКА СОХРАНЁННОЙ СЕССИИ ====================
+        async function checkSavedSession() {
+            await initDefaultUsers();
 
-        function checkSavedSession() {
-            initDefaultUsers();
-            migrateUsers();
-
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
+            const savedUserId = localStorage.getItem('currentUserId');
+            if (savedUserId) {
                 try {
-                    currentUser = JSON.parse(savedUser);
-                    const userKey = currentUser.name.toLowerCase();
-                    if (users[userKey]) {
-                        currentUser = { ...users[userKey], password: undefined };
-                        currentUser.isAdmin = users[userKey].isAdmin || false;
-                        currentUser.isTester = users[userKey].isTester || false;
+                    const userDoc = await db.collection('users').doc(savedUserId).get();
+                    if (userDoc.exists) {
+                        currentUser = { id: userDoc.id, ...userDoc.data() };
+                        delete currentUser.password;
+                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                        document.getElementById('loginModal').classList.remove('active');
+                        document.getElementById('appContainer').style.display = 'flex';
+                        updateProfileUI();
+                        setTimeout(() => {
+                            initAbly();
+                            checkUrlForChat();
+                        }, 100);
+                    } else {
+                        localStorage.removeItem('currentUserId');
                     }
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    updateProfileUI();
-                    setTimeout(() => {
-                        initAbly();
-                        checkUrlForChat();
-                    }, 100);
                 } catch (e) {
                     console.error('Failed to load session', e);
+                    localStorage.removeItem('currentUserId');
                 }
             }
             if (currentUser && currentUser.language) {
@@ -1589,11 +1715,19 @@
                 document.documentElement.style.setProperty('--saturation', (currentUser.saturation || '80') + '%');
                 document.documentElement.style.setProperty('--lightness', (currentUser.lightness || '60') + '%');
             }
+            if (currentUser) {
+                setFontSize(currentUser.fontSize || 'medium');
+                if (currentUser.compactMode) document.body.classList.add('compact-mode');
+                if (currentUser.wallpaper) setWallpaper(currentUser.wallpaper);
+                document.getElementById('soundToggle').className = soundEnabled ? 'toggle-switch active' : 'toggle-switch';
+                document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
+            }
             if (Notification.permission === 'default') {
                 document.getElementById('notificationPermission').style.display = 'flex';
             }
         }
 
+        // ==================== ОБНОВЛЕНИЕ UI ПРОФИЛЯ ====================
         function updateProfileUI() {
             if (!currentUser) return;
             const nameSpan = document.getElementById('profileName');
@@ -1625,18 +1759,12 @@
             }
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         // ==================== УВЕДОМЛЕНИЯ ====================
         function requestNotificationPermission() {
             Notification.requestPermission().then(perm => {
                 if (perm === 'granted') {
                     document.getElementById('notificationPermission').style.display = 'none';
+                    document.getElementById('notificationStatus').textContent = 'Разрешено';
                 }
             });
         }
@@ -1647,12 +1775,18 @@
             }
         }
 
+        function playNotificationSound() {
+            if (!soundEnabled) return;
+            const audio = new Audio('data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVoAAACAgICAf39/f39/f3+AgICAgIB/f39/f39/f4CAgICAf39/f39/f38=');
+            audio.play().catch(e => console.log('Audio play failed', e));
+        }
+
         // ==================== ABLY И ПРИСУТСТВИЕ ====================
         function initAbly() {
             if (!currentUser) return;
 
             ably = new Ably.Realtime({
-                key: ABLY_API_KEY,
+                key: "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg",
                 clientId: currentUser.id,
                 transports: ['web_socket'],
                 disconnectedRetryTimeout: 1000,
@@ -1792,6 +1926,13 @@
                     }
                 });
 
+                const typingChannel = ably.channels.get('typing');
+                typingChannel.subscribe((msg) => {
+                    if (msg.name === 'typing' && msg.data.chatId === currentChat?.id && msg.data.sender !== currentUser.id) {
+                        showTypingIndicator(msg.data.senderName);
+                    }
+                });
+
                 myChats.forEach(chat => subscribeToChat(chat));
             });
 
@@ -1821,6 +1962,7 @@
                             localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         }
                         sendNotification(`Новое сообщение в ${chat.name}`, msg.text || 'Голосовое сообщение');
+                        if (soundEnabled) playNotificationSound();
                     }
                     localStorage.setItem('messages', JSON.stringify(messages));
                     if (currentChat && currentChat.id === chat.id) {
@@ -1894,8 +2036,29 @@
             }
         }
 
+        function sendTyping() {
+            if (!currentChat || !ably) return;
+            const typingChannel = ably.channels.get('typing');
+            typingChannel.publish('typing', {
+                chatId: currentChat.id,
+                sender: currentUser.id,
+                senderName: currentUser.name
+            });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {}, 2000);
+        }
+
+        function showTypingIndicator(senderName) {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.textContent = `${senderName} ${i18n.t('typing')}`;
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 3000);
+        }
+
         // ==================== АУТЕНТИФИКАЦИЯ ====================
-        function login() {
+        async function login() {
             const now = Date.now();
             if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
             if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
@@ -1914,26 +2077,23 @@
                 return;
             }
 
-            const userKey = username.toLowerCase();
-            if (users[userKey] && users[userKey].password === password) {
-                currentUser = {
-                    id: users[userKey].id,
-                    name: users[userKey].name,
-                    avatar: users[userKey].avatar || '👤',
-                    bio: users[userKey].bio || '',
-                    email: users[userKey].email || '',
-                    isAdmin: users[userKey].isAdmin || false,
-                    isTester: users[userKey].isTester || false,
-                    status: users[userKey].status || 'online',
-                    hideLastSeen: users[userKey].hideLastSeen || false,
-                    language: users[userKey].language || 'ru',
-                    theme: users[userKey].theme || 'dark',
-                    hue: users[userKey].hue || 210,
-                    saturation: users[userKey].saturation || 80,
-                    lightness: users[userKey].lightness || 60
-                };
+            try {
+                const userQuery = await db.collection('users').where('name', '==', username).get();
+                if (userQuery.empty) {
+                    alert(i18n.t('wrongPassword'));
+                    return;
+                }
+                const userDoc = userQuery.docs[0];
+                const userData = userDoc.data();
+                if (userData.password !== password) {
+                    alert(i18n.t('wrongPassword'));
+                    return;
+                }
 
-                if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                currentUser = { id: userDoc.id, ...userData };
+                delete currentUser.password;
+
+                if (remember) localStorage.setItem('currentUserId', currentUser.id);
 
                 myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
 
@@ -1945,16 +2105,20 @@
                 document.documentElement.style.setProperty('--saturation', currentUser.saturation + '%');
                 document.documentElement.style.setProperty('--lightness', currentUser.lightness + '%');
                 document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
+                setFontSize(currentUser.fontSize);
+                if (currentUser.compactMode) document.body.classList.add('compact-mode');
+                if (currentUser.wallpaper) setWallpaper(currentUser.wallpaper);
 
                 updateProfileUI();
                 initAbly();
                 checkUrlForChat();
-            } else {
-                alert(i18n.t('wrongPassword'));
+            } catch (error) {
+                console.error('Login error', error);
+                alert('Ошибка входа. Попробуйте позже.');
             }
         }
 
-        function register() {
+        async function register() {
             const now = Date.now();
             if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
             if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
@@ -1987,77 +2151,66 @@
                 return;
             }
 
-            const userKey = username.toLowerCase();
-            if (users[userKey]) {
-                alert(i18n.t('userExists'));
-                return;
-            }
-            for (let key in users) {
-                if (users[key].email === email) {
+            try {
+                const nameQuery = await db.collection('users').where('name', '==', username).get();
+                if (!nameQuery.empty) {
+                    alert(i18n.t('userExists'));
+                    return;
+                }
+                const emailQuery = await db.collection('users').where('email', '==', email).get();
+                if (!emailQuery.empty) {
                     alert(i18n.t('emailExists'));
                     return;
                 }
+
+                const isAdmin = username === ADMIN_USERNAME;
+                const isTester = username === TESTER_USERNAME;
+                const newUser = {
+                    name: username,
+                    email: email,
+                    password: password,
+                    avatar: '👤',
+                    bio: '',
+                    status: 'online',
+                    hideLastSeen: false,
+                    language: 'ru',
+                    theme: 'dark',
+                    hue: 210,
+                    saturation: 80,
+                    lightness: 60,
+                    fontSize: 'medium',
+                    compactMode: false,
+                    wallpaper: 'default',
+                    isAdmin: isAdmin,
+                    isTester: isTester,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                const docRef = await db.collection('users').add(newUser);
+                currentUser = { id: docRef.id, ...newUser };
+                delete currentUser.password;
+
+                if (remember) localStorage.setItem('currentUserId', currentUser.id);
+
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('appContainer').style.display = 'flex';
+
+                updateProfileUI();
+                initAbly();
+            } catch (error) {
+                console.error('Registration error', error);
+                alert('Ошибка регистрации. Попробуйте позже.');
             }
-
-            const isAdmin = username === ADMIN_USERNAME;
-            const isTester = username === TESTER_USERNAME;
-            const newUser = {
-                id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
-                name: username,
-                email: email,
-                password: password,
-                avatar: '👤',
-                bio: '',
-                status: 'online',
-                hideLastSeen: false,
-                language: 'ru',
-                theme: 'dark',
-                hue: 210,
-                saturation: 80,
-                lightness: 60,
-                isAdmin: isAdmin,
-                isTester: isTester,
-                createdAt: new Date().toISOString()
-            };
-
-            users[userKey] = newUser;
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-
-            currentUser = {
-                id: newUser.id,
-                name: newUser.name,
-                avatar: newUser.avatar,
-                bio: newUser.bio,
-                email: newUser.email,
-                isAdmin: isAdmin,
-                isTester: isTester,
-                status: 'online',
-                hideLastSeen: false,
-                language: 'ru',
-                theme: 'dark',
-                hue: 210,
-                saturation: 80,
-                lightness: 60
-            };
-
-            if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-            document.getElementById('loginModal').classList.remove('active');
-            document.getElementById('appContainer').style.display = 'flex';
-
-            updateProfileUI();
-            initAbly();
         }
 
         function logout() {
-            // Закрываем модалку профиля, если открыта
             closeProfileModal();
             if (ably) {
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.leave();
                 ably.close();
             }
-            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUserId');
             currentUser = null;
             currentChat = null;
             document.getElementById('appContainer').style.display = 'none';
@@ -2135,7 +2288,7 @@
             }, MESSAGE_COOLDOWN);
         }
 
-        // ==================== РАСПОЗНАВАНИЕ РЕЧИ (непрерывное) ====================
+        // ==================== РАСПОЗНАВАНИЕ РЕЧИ ====================
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert(i18n.t('speechNotSupported'));
@@ -2146,7 +2299,7 @@
             rec.lang = i18n.currentLang === 'ru' ? 'ru-RU' : 'en-US';
             rec.interimResults = true;
             rec.maxAlternatives = 1;
-            rec.continuous = true; // непрерывное распознавание
+            rec.continuous = true;
             return rec;
         }
 
@@ -2186,7 +2339,6 @@
                 stopSpeechRecognition();
             };
             recognition.onend = () => {
-                // Если запись ещё активна, перезапускаем (для непрерывности)
                 if (isRecording) {
                     recognition.start();
                 } else {
@@ -2256,13 +2408,12 @@
                     badges = '<span class="tester-badge">Тестировщик</span>';
                 }
 
-                // Для входящих сообщений показываем аватар отправителя
                 let senderHtml = '';
                 if (msg.type === 'in') {
-                    const senderUser = users[msg.sender] || { avatar: '👤' };
+                    const senderData = onlineUsers[msg.sender] || { avatar: '👤' };
                     senderHtml = `
                         <div class="message-sender" onclick="openUserProfile('${msg.sender}')">
-                            <span class="chat-avatar" style="width: 20px; height: 20px; font-size: 14px; display: inline-block; margin-right: 4px;">${senderUser.avatar || '👤'}</span>
+                            <span class="chat-avatar" style="width: 20px; height: 20px; font-size: 14px; display: inline-block; margin-right: 4px;">${senderData.avatar || '👤'}</span>
                             ${escapeHtml(msg.senderName)} ${badges}
                         </div>
                     `;
@@ -2287,7 +2438,7 @@
         }
 
         // ==================== УПРАВЛЕНИЕ ЧАТАМИ И СПИСКАМИ ====================
-        function updateChatsList() {
+        async function updateChatsList() {
             const list = document.getElementById('chatsList');
             if (!list) return;
 
@@ -2295,31 +2446,27 @@
 
             let items = [];
 
-            // Чаты из текущей вкладки
             if (currentTab === 'chats') {
                 items = [...myChats];
             } else if (currentTab === 'public') {
                 items = [...publicChats];
             }
 
-            // Все пользователи (для поиска)
-            const allUsers = Object.values(users).map(u => ({
-                id: u.id,
-                name: u.name,
-                avatar: u.avatar,
-                bio: u.bio,
-                isAdmin: u.isAdmin,
-                isTester: u.isTester,
-                status: u.status,
-                hideLastSeen: u.hideLastSeen,
-                lastSeen: u.lastSeen,
-                online: onlineUsers[u.id] ? onlineUsers[u.id].online : false,
-                isUser: true
-            }));
+            let allUsers = [];
+            try {
+                const usersSnap = await db.collection('users').get();
+                allUsers = usersSnap.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    isUser: true,
+                    online: onlineUsers[doc.id] ? onlineUsers[doc.id].online : false
+                }));
+            } catch (e) {
+                console.error('Failed to load users', e);
+            }
 
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             if (searchTerm) {
-                // Фильтруем и чаты, и пользователей
                 const filteredChats = items.filter(item => 
                     (item.name || '').toLowerCase().includes(searchTerm) ||
                     (item.description || '').toLowerCase().includes(searchTerm)
@@ -2329,12 +2476,8 @@
                     (u.bio || '').toLowerCase().includes(searchTerm)
                 );
                 items = [...filteredChats, ...filteredUsers];
-            } else {
-                // Без поиска показываем только чаты (пользователей не показываем)
-                // items остаётся как есть (чаты)
             }
 
-            // Сортируем: сначала чаты (по последнему сообщению), потом пользователи (по имени)
             items.sort((a, b) => {
                 if (a.isUser && !b.isUser) return 1;
                 if (!a.isUser && b.isUser) return -1;
@@ -2352,7 +2495,6 @@
                 element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
 
                 if (item.isUser) {
-                    // Элемент пользователя
                     element.onclick = () => createPrivateChat(item);
                     const lastSeenText = formatLastSeen(item.lastSeen, item.online, item.hideLastSeen);
                     let badges = '';
@@ -2370,7 +2512,6 @@
                         </div>
                     `;
                 } else {
-                    // Элемент чата
                     const lastMsg = messages[item.id] && messages[item.id].length > 0 ? messages[item.id][messages[item.id].length - 1] : null;
                     const unread = unreadCounts[item.id] || 0;
 
@@ -2461,7 +2602,6 @@
                     user: user,
                     members: [currentUser.id, user.id]
                 };
-                // Добавляем в myChats сразу, чтобы он появился в списке
                 myChats.push(privateChat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                 if (ably) subscribeToChat(privateChat);
@@ -2551,10 +2691,7 @@
 
         // ==================== РЕДАКТИРОВАНИЕ/УДАЛЕНИЕ СООБЩЕНИЙ ====================
         function deleteMessage(messageId, event) {
-            if (event) {
-                event.stopPropagation();
-                event.preventDefault();
-            }
+            if (event) { event.stopPropagation(); event.preventDefault(); }
             if (!currentChat) return;
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             if (!currentUser.isAdmin && msg.sender !== currentUser.id) {
@@ -2586,10 +2723,7 @@
         }
 
         function editMessage(messageId, event) {
-            if (event) {
-                event.stopPropagation();
-                event.preventDefault();
-            }
+            if (event) { event.stopPropagation(); event.preventDefault(); }
             if (!currentChat) return;
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             if (msg && msg.sender === currentUser.id) {
@@ -2642,38 +2776,42 @@
             currentUser.status = value;
         }
 
-        function saveProfile() {
+        async function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             const newBio = document.getElementById('profileBioInput').value.trim();
 
             if (newName && newName !== currentUser.name) {
-                const oldKey = currentUser.name.toLowerCase();
-                const newKey = newName.toLowerCase();
-
-                if (users[newKey] && newKey !== oldKey) {
+                const nameQuery = await db.collection('users').where('name', '==', newName).get();
+                if (!nameQuery.empty && nameQuery.docs[0].id !== currentUser.id) {
                     alert(i18n.t('userExists'));
                     return;
-                }
-
-                if (users[oldKey]) {
-                    users[oldKey].name = newName;
-                    if (newKey !== oldKey) {
-                        users[newKey] = users[oldKey];
-                        delete users[oldKey];
-                    }
                 }
                 currentUser.name = newName;
             }
 
             if (newBio !== currentUser.bio) {
                 currentUser.bio = newBio;
-                const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) users[userKey].bio = newBio;
             }
 
-            if (currentUser.status) {
-                const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) users[userKey].status = currentUser.status;
+            try {
+                await db.collection('users').doc(currentUser.id).update({
+                    name: currentUser.name,
+                    bio: currentUser.bio,
+                    status: currentUser.status,
+                    avatar: currentUser.avatar,
+                    hideLastSeen: currentUser.hideLastSeen,
+                    language: currentUser.language,
+                    theme: currentUser.theme,
+                    hue: currentUser.hue,
+                    saturation: currentUser.saturation,
+                    lightness: currentUser.lightness,
+                    fontSize: currentUser.fontSize,
+                    compactMode: currentUser.compactMode,
+                    wallpaper: currentUser.wallpaper
+                });
+
+                localStorage.setItem('currentUserId', currentUser.id);
+
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     presenceChannel.presence.update({
@@ -2687,13 +2825,13 @@
                         email: currentUser.email
                     });
                 }
+
+                updateProfileUI();
+                closeProfileModal();
+            } catch (error) {
+                console.error('Error saving profile', error);
+                alert('Ошибка сохранения профиля');
             }
-
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-            updateProfileUI();
-            closeProfileModal();
         }
 
         function openAvatarModal() {
@@ -2717,26 +2855,27 @@
             selectedAvatar = emoji;
         }
 
-        function saveAvatar() {
+        async function saveAvatar() {
             if (selectedAvatar) {
                 currentUser.avatar = selectedAvatar;
-                const userKey = currentUser.name.toLowerCase();
-                if (users[userKey]) users[userKey].avatar = selectedAvatar;
-                localStorage.setItem('telegram_users', JSON.stringify(users));
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                updateProfileUI();
-                if (ably) {
-                    const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({
-                        name: currentUser.name,
-                        avatar: selectedAvatar,
-                        bio: currentUser.bio,
-                        isAdmin: currentUser.isAdmin,
-                        isTester: currentUser.isTester,
-                        status: currentUser.status,
-                        hideLastSeen: currentUser.hideLastSeen,
-                        email: currentUser.email
-                    });
+                try {
+                    await db.collection('users').doc(currentUser.id).update({ avatar: selectedAvatar });
+                    updateProfileUI();
+                    if (ably) {
+                        const presenceChannel = ably.channels.get('presence');
+                        presenceChannel.presence.update({
+                            name: currentUser.name,
+                            avatar: selectedAvatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            isTester: currentUser.isTester,
+                            status: currentUser.status,
+                            hideLastSeen: currentUser.hideLastSeen,
+                            email: currentUser.email
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error saving avatar', error);
                 }
             }
             closeAvatarModal();
@@ -2748,22 +2887,27 @@
         }
 
         // ==================== ПРОСМОТР ПРОФИЛЯ СОБЕСЕДНИКА ====================
-        function openUserProfile(userId) {
-            const user = onlineUsers[userId] || users[userId] || null;
-            if (!user) return;
-            const view = document.getElementById('userProfileView');
-            const lastSeenText = formatLastSeen(user.lastSeen, user.online, user.hideLastSeen);
-            const statusText = user.status === 'dnd' ? i18n.t('dndStatus') : (user.online ? i18n.t('onlineNow') : lastSeenText);
-            let badges = '';
-            if (user.isAdmin) badges = '<span class="admin-badge">Создатель</span>';
-            else if (user.isTester) badges = '<span class="tester-badge">Тестировщик</span>';
-            view.innerHTML = `
-                <div class="avatar-large">${user.avatar || '👤'}</div>
-                <div class="name">${escapeHtml(user.name)} ${badges}</div>
-                <div class="bio">${escapeHtml(user.bio || i18n.t('noBio'))}</div>
-                <div class="status">${statusText}</div>
-            `;
-            document.getElementById('userProfileModal').classList.add('active');
+        async function openUserProfile(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (!userDoc.exists) return;
+                const user = { id: userDoc.id, ...userDoc.data() };
+                const view = document.getElementById('userProfileView');
+                const lastSeenText = formatLastSeen(user.lastSeen, onlineUsers[userId]?.online || false, user.hideLastSeen);
+                const statusText = user.status === 'dnd' ? i18n.t('dndStatus') : (onlineUsers[userId]?.online ? i18n.t('onlineNow') : lastSeenText);
+                let badges = '';
+                if (user.isAdmin) badges = '<span class="admin-badge">Создатель</span>';
+                else if (user.isTester) badges = '<span class="tester-badge">Тестировщик</span>';
+                view.innerHTML = `
+                    <div class="avatar-large">${user.avatar || '👤'}</div>
+                    <div class="name">${escapeHtml(user.name)} ${badges}</div>
+                    <div class="bio">${escapeHtml(user.bio || i18n.t('noBio'))}</div>
+                    <div class="status">${statusText}</div>
+                `;
+                document.getElementById('userProfileModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading user profile', error);
+            }
         }
 
         function closeUserProfileModal() {
@@ -2776,10 +2920,10 @@
             const modal = document.getElementById('chatInfoModal');
             document.getElementById('chatInfoName').innerHTML = escapeHtml(currentChat.name) + (currentChat.password ? ' 🔒' : '');
             const details = document.getElementById('chatInfoDetails');
-            const creator = users[currentChat.createdBy] || { name: currentChat.createdByName || 'Неизвестно' };
+            const creatorName = currentChat.createdByName || 'Неизвестно';
             const membersCount = currentChat.members ? currentChat.members.length : 1;
             details.innerHTML = `
-                <div><strong>${i18n.t('createdBy')}:</strong> ${escapeHtml(creator.name)}</div>
+                <div><strong>${i18n.t('createdBy')}:</strong> ${escapeHtml(creatorName)}</div>
                 <div><strong>${i18n.t('description')}:</strong> ${escapeHtml(currentChat.info || currentChat.description || '')}</div>
                 <div><strong>${i18n.t('members')}:</strong> ${membersCount}</div>
             `;
@@ -2800,6 +2944,12 @@
         function openSettingsModal() {
             document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
             document.getElementById('currentLanguage').textContent = currentUser.language === 'ru' ? 'Русский' : 'English';
+            document.getElementById('compactModeToggle').className = currentUser.compactMode ? 'toggle-switch active' : 'toggle-switch';
+            document.getElementById('soundToggle').className = soundEnabled ? 'toggle-switch active' : 'toggle-switch';
+            const fontSizeRadios = document.querySelectorAll('input[name="fontSize"]');
+            for (let r of fontSizeRadios) {
+                if (r.value === currentUser.fontSize) r.checked = true;
+            }
             document.getElementById('settingsModal').classList.add('active');
         }
 
@@ -2807,25 +2957,63 @@
             document.getElementById('settingsModal').classList.remove('active');
         }
 
-        function toggleHideLastSeen() {
+        async function toggleHideLastSeen() {
             currentUser.hideLastSeen = !currentUser.hideLastSeen;
             document.getElementById('hideLastSeenToggle').className = currentUser.hideLastSeen ? 'toggle-switch active' : 'toggle-switch';
-            const userKey = currentUser.name.toLowerCase();
-            if (users[userKey]) users[userKey].hideLastSeen = currentUser.hideLastSeen;
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            if (ably) {
-                const presenceChannel = ably.channels.get('presence');
-                presenceChannel.presence.update({
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    bio: currentUser.bio,
-                    isAdmin: currentUser.isAdmin,
-                    isTester: currentUser.isTester,
-                    status: currentUser.status,
-                    hideLastSeen: currentUser.hideLastSeen,
-                    email: currentUser.email
-                });
+            try {
+                await db.collection('users').doc(currentUser.id).update({ hideLastSeen: currentUser.hideLastSeen });
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.update({
+                        name: currentUser.name,
+                        avatar: currentUser.avatar,
+                        bio: currentUser.bio,
+                        isAdmin: currentUser.isAdmin,
+                        isTester: currentUser.isTester,
+                        status: currentUser.status,
+                        hideLastSeen: currentUser.hideLastSeen,
+                        email: currentUser.email
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating hideLastSeen', error);
+            }
+        }
+
+        async function setFontSize(size) {
+            document.body.classList.remove('font-small', 'font-medium', 'font-large');
+            document.body.classList.add(`font-${size}`);
+            currentUser.fontSize = size;
+            try {
+                await db.collection('users').doc(currentUser.id).update({ fontSize: size });
+            } catch (error) {
+                console.error('Error saving fontSize', error);
+            }
+        }
+
+        async function toggleCompactMode() {
+            currentUser.compactMode = !currentUser.compactMode;
+            document.body.classList.toggle('compact-mode', currentUser.compactMode);
+            document.getElementById('compactModeToggle').className = currentUser.compactMode ? 'toggle-switch active' : 'toggle-switch';
+            try {
+                await db.collection('users').doc(currentUser.id).update({ compactMode: currentUser.compactMode });
+            } catch (error) {
+                console.error('Error saving compactMode', error);
+            }
+        }
+
+        async function setWallpaper(type, ev) {
+            document.body.classList.remove('wallpaper-default', 'wallpaper-gradient1', 'wallpaper-gradient2', 'wallpaper-gradient3');
+            document.body.classList.add(`wallpaper-${type}`);
+            currentUser.wallpaper = type;
+            try {
+                await db.collection('users').doc(currentUser.id).update({ wallpaper: type });
+            } catch (error) {
+                console.error('Error saving wallpaper', error);
+            }
+            if (ev) {
+                document.querySelectorAll('.wallpaper-preview').forEach(el => el.classList.remove('selected'));
+                ev.target.classList.add('selected');
             }
         }
 
@@ -2839,13 +3027,14 @@
             document.getElementById('languageModal').classList.remove('active');
         }
 
-        function setLanguage(lang) {
+        async function setLanguage(lang) {
             currentUser.language = lang;
-            const userKey = currentUser.name.toLowerCase();
-            if (users[userKey]) users[userKey].language = lang;
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            i18n.setLang(lang);
+            try {
+                await db.collection('users').doc(currentUser.id).update({ language: lang });
+                i18n.setLang(lang);
+            } catch (error) {
+                console.error('Error saving language', error);
+            }
             closeLanguageModal();
             updateChatsList();
             renderMessages();
@@ -2871,19 +3060,26 @@
             document.documentElement.style.setProperty('--lightness', light + '%');
         }
 
-        function saveTheme() {
+        async function saveTheme() {
             currentUser.hue = parseInt(document.getElementById('hueSlider').value);
             currentUser.saturation = parseInt(document.getElementById('saturationSlider').value);
             currentUser.lightness = parseInt(document.getElementById('lightnessSlider').value);
-            const userKey = currentUser.name.toLowerCase();
-            if (users[userKey]) {
-                users[userKey].hue = currentUser.hue;
-                users[userKey].saturation = currentUser.saturation;
-                users[userKey].lightness = currentUser.lightness;
+            try {
+                await db.collection('users').doc(currentUser.id).update({
+                    hue: currentUser.hue,
+                    saturation: currentUser.saturation,
+                    lightness: currentUser.lightness
+                });
+            } catch (error) {
+                console.error('Error saving theme', error);
             }
-            localStorage.setItem('telegram_users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             closeThemeModal();
+        }
+
+        function toggleSoundNotifications() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('soundEnabled', soundEnabled);
+            document.getElementById('soundToggle').className = soundEnabled ? 'toggle-switch active' : 'toggle-switch';
         }
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -3003,6 +3199,11 @@
                 picker.appendChild(btn);
             });
         }
+
+        // Эмодзи
+        const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊', '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄', '💋', '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '🔄', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💭', '🗯️', '💬', '👁️‍🗨️', '🗨️', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'];
+
+        const weirdEmojis = ['👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥', '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥', '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂', '🍑', '🍆', '🥑', '🌮', '🍕', '🍔', '🍟', '🌭', '🍿', '🥨', '🧀', '🥩', '🥓', '🍗', '🍖', '🦴', '🥡', '🥢', '🍽️', '🔪', '🪓', '⚰️', '⚱️', '🧿', '🔮', '📿', '💎', '🔫', '💣', '🧨', '🛡️', '🏹', '🗡️', '⚔️', '🔧', '🔨', '⛏️', '⚒️', '🛠️', '🔩', '🐉', '🐲', '🌊', '🧙', '🧝', '🧞', '🧟', '🧌', '🦄', '🐲', '🦥', '🦦', '🦨', '🦩', '🦚', '🦜', '🐧', '🐣', '🐤', '🐥', '🐦', '🐧', '🐦‍⬛', '🕊️', '🦅', '🦆', '🦉', '🐺', '🐗', '🐴', '🦄', '🐝', '🐞', '🦋', '🐌', '🐛', '🦟', '🦗', '🐜', '🐝', '🐞', '🦂', '🕷️', '🕸️', '🦠', '🌿', '🍀', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '🍃', '🍂', '🍁', '🌺', '🌻', '🌼', '🌷', '🌸', '💐', '🥀', '🌹', '🪻', '🪷', '🌽', '🥕', '🥔', '🧄', '🧅', '🥦', '🥬', '🥒', '🌶️', '🫑', '🥕', '🍠', '🥜', '🫘', '🌰', '🍄', '🪴', '🎍', '🪵', '🪨', '🏔️', '⛰️', '🌋', '🏜️', '🏝️', '🏞️', '🏟️', '🏛️', '🏗️', '🏘️', '🏚️', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛲', '⛺', '🌁', '🌃', '🌆', '🌇', '🌉', '🎠', '🎡', '🎢', '🚂', '🚃', '🚄', '🚅', '🚆', '🚇', '🚈', '🚉', '🚊', '🚝', '🚞', '🚋', '🚌', '🚍', '🚎', '🚐', '🚑', '🚒', '🚓', '🚔', '🚕', '🚖', '🚗', '🚘', '🚙', '🚚', '🚛', '🚜', '🛵', '🏍️', '🛺', '🚲', '🛴', '🚏', '🛑', '🛞', '🛟', '⛵', '🛶', '🚤', '🛳️', '⛴️', '🛥️', '🚢', '✈️', '🛩️', '🛫', '🛬', '🪂', '🚁', '🚟', '🚠', '🚡', '🛰️', '🚀', '🛸', '🌌', '⏱️', '⏲️', '🕰️', '⌛', '⏳', '⌚', '⏰', '🌡️', '☀️', '☁️', '⛅', '⛈️', '🌤️', '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '🌀', '🌈', '🌂', '☔', '⛱️', '⚡', '❄️', '☃️', '⛄', '🔥', '💧', '🌊'];
 
         // Инициализация
         window.addEventListener('load', () => {
