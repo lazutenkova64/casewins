@@ -43,7 +43,6 @@
             overflow: hidden;
         }
 
-        /* Современный скроллбар */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -1222,6 +1221,9 @@
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
                     document.getElementById('profileName').textContent = currentUser.name;
+                    if (currentUser.isAdmin) {
+                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                    }
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1361,6 +1363,8 @@
                         currentChat = null;
                         renderMessages();
                         updateUrlWithChat(null);
+                        document.getElementById('currentChatName').innerHTML = 'Выберите чат';
+                        document.getElementById('chatStatus').innerHTML = '';
                     }
                     
                     updateChatsList();
@@ -1728,6 +1732,8 @@
                 currentChat = null;
                 renderMessages();
                 updateUrlWithChat(null);
+                document.getElementById('currentChatName').innerHTML = 'Выберите чат';
+                document.getElementById('chatStatus').innerHTML = '';
             }
             
             updateChatsList();
@@ -1766,10 +1772,12 @@
             currentChat = chat;
             updateUrlWithChat(chat);
             
-            document.getElementById('currentChatName').innerHTML = `
-                ${chat.name} ${chat.password ? '🔒' : ''}
-                ${currentUser && currentUser.isAdmin ? `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>` : ''}
-            `;
+            // Update header with delete button for admin
+            let chatTitleHTML = `${chat.name} ${chat.password ? '🔒' : ''}`;
+            if (currentUser && currentUser.isAdmin) {
+                chatTitleHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>`;
+            }
+            document.getElementById('currentChatName').innerHTML = chatTitleHTML;
             document.getElementById('chatStatus').textContent = chat.description || 'Чат';
             
             if (!messages[chat.id]) messages[chat.id] = [];
@@ -2104,13 +2112,19 @@
                     const unread = unreadCounts[item.id] || 0;
                     
                     element.onclick = () => joinChat(item);
+                    
+                    let chatNameHTML = `${item.name || 'Без названия'} ${item.password ? '<span class="lock-icon">🔒</span>' : ''}`;
+                    
+                    // Add delete button for admin in public chats
+                    if (currentUser && currentUser.isAdmin && currentTab === 'public') {
+                        chatNameHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>`;
+                    }
+                    
                     element.innerHTML = `
                         <div class="chat-avatar">${(item.name || '?').charAt(0)}</div>
                         <div class="chat-details">
                             <div class="chat-name">
-                                ${item.name || 'Без названия'}
-                                ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
-                                ${currentUser && currentUser.isAdmin && currentTab === 'public' ? `<button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>` : ''}
+                                ${chatNameHTML}
                             </div>
                             <div class="chat-last-message">
                                 ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
