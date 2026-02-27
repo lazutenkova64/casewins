@@ -466,7 +466,6 @@
             box-shadow: var(--shadow-sm);
             position: relative;
             transition: all 0.2s;
-            cursor: pointer;
         }
 
         .message.out .message-bubble {
@@ -502,6 +501,9 @@
             color: var(--accent-blue);
             margin-bottom: 4px;
             margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .message-time {
@@ -941,13 +943,14 @@
         .admin-badge {
             background: var(--admin-gold);
             color: #000;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 12px;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 16px;
             margin-left: 6px;
             font-weight: bold;
             text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
             box-shadow: 0 2px 4px rgba(255, 215, 0, 0.2);
+            display: inline-block;
         }
 
         .chat-deleted-message {
@@ -1249,10 +1252,14 @@
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
-                    document.getElementById('profileName').textContent = currentUser.name;
+                    
+                    // Show admin badge for admin
                     if (currentUser.isAdmin) {
-                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
+                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">ADMIN</span>`;
+                    } else {
+                        document.getElementById('profileName').textContent = currentUser.name;
                     }
+                    
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1563,10 +1570,14 @@
                 
                 document.getElementById('loginModal').classList.remove('active');
                 document.getElementById('appContainer').style.display = 'flex';
-                document.getElementById('profileName').textContent = currentUser.name;
+                
+                // Show admin badge for admin
                 if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
+                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">ADMIN</span>`;
+                } else {
+                    document.getElementById('profileName').textContent = currentUser.name;
                 }
+                
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -1633,10 +1644,14 @@
             
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('appContainer').style.display = 'flex';
-            document.getElementById('profileName').textContent = currentUser.name;
+            
+            // Show admin badge for admin
             if (currentUser.isAdmin) {
-                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
+                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">ADMIN</span>`;
+            } else {
+                document.getElementById('profileName').textContent = currentUser.name;
             }
+            
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
             
@@ -1911,7 +1926,8 @@
         // Delete message - ИСПРАВЛЕНО!
         function deleteMessage(messageId, event) {
             if (event) {
-                event.stopPropagation(); // Предотвращаем всплытие события
+                event.stopPropagation();
+                event.preventDefault();
             }
             
             if (!currentChat) return;
@@ -1930,20 +1946,23 @@
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
             localStorage.setItem('messages', JSON.stringify(messages));
             
-            // Broadcast deletion immediately
+            // Broadcast deletion immediately through multiple channels for reliability
             if (ably) {
+                // Send through chat channel
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('delete', {
                     messageId: messageId,
-                    senderId: currentUser.id
+                    senderId: currentUser.id,
+                    timestamp: Date.now()
                 });
                 
-                // If admin, broadcast to all users through admin channel for extra reliability
+                // If admin, also send through admin channel
                 if (currentUser.isAdmin) {
                     const adminChannel = ably.channels.get('admin-actions');
                     adminChannel.publish('delete-message', {
                         chatId: currentChat.id,
-                        messageId: messageId
+                        messageId: messageId,
+                        timestamp: Date.now()
                     });
                 }
             }
@@ -1955,7 +1974,8 @@
         // Edit message
         function editMessage(messageId, event) {
             if (event) {
-                event.stopPropagation(); // Предотвращаем всплытие события
+                event.stopPropagation();
+                event.preventDefault();
             }
             
             if (!currentChat) return;
@@ -1985,7 +2005,8 @@
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('edit', {
                         messageId: messageToEdit.id,
-                        newText: newText
+                        newText: newText,
+                        timestamp: Date.now()
                     });
                 }
                 
@@ -2052,7 +2073,7 @@
                 
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${showAdminBadge ? ' <span class="admin-badge">Админ</span>' : ''}</div>` : ''}
+                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -2146,7 +2167,7 @@
                             <div class="chat-name">
                                 ${item.name}
                                 ${item.online ? '<span class="online-indicator"></span>' : ''}
-                                ${item.isAdmin && item.name === ADMIN_USERNAME ? '<span class="admin-badge">Админ</span>' : ''}
+                                ${item.isAdmin && item.name === ADMIN_USERNAME ? '<span class="admin-badge">ADMIN</span>' : ''}
                             </div>
                             <div class="chat-last-message">${item.bio || 'Нет информации'}</div>
                         </div>
@@ -2262,9 +2283,10 @@
             
             if (newName && newName !== currentUser.name) {
                 currentUser.name = newName;
-                document.getElementById('profileName').textContent = newName;
                 if (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME) {
-                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Админ</span>`;
+                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">ADMIN</span>`;
+                } else {
+                    document.getElementById('profileName').textContent = newName;
                 }
                 
                 const userKey = currentUser.name.toLowerCase();
