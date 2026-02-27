@@ -565,6 +565,12 @@
             display: flex;
             align-items: center;
             gap: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .status-pending {
+            color: var(--text-secondary);
+            animation: pulse 1s infinite;
         }
 
         .status-sent {
@@ -577,11 +583,6 @@
 
         .status-read {
             color: var(--status-read);
-        }
-
-        .status-pending {
-            color: var(--text-secondary);
-            animation: pulse 1s infinite;
         }
 
         @keyframes pulse {
@@ -1420,9 +1421,8 @@
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
 
-        // Message delivery tracking
+        // Message status tracking
         let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
-        let pendingDeliveries = {};
 
         // Deleted messages tracking
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
@@ -1446,8 +1446,8 @@
 
         // WebRTC for audio streaming
         let peerConnections = {};
-        let audioElements = {};
         let pendingAudioMessages = {};
+        let dataChannels = {};
 
         // Timers
         let saveMessagesTimeout;
@@ -1621,6 +1621,13 @@
             }, 500);
         }
 
+        function saveMessageStatusesDebounced() {
+            if (saveMessagesTimeout) clearTimeout(saveMessagesTimeout);
+            saveMessagesTimeout = setTimeout(() => {
+                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+            }, 500);
+        }
+
         function updateProfileUI() {
             if (!currentUser) return;
             const nameSpan = document.getElementById('profileName');
@@ -1674,34 +1681,34 @@
             messageStatuses[messageId].status = status;
             messageStatuses[messageId].timestamp = Date.now();
             
-            localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+            saveMessageStatusesDebounced();
             
             // Update UI if message is visible
-            const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
-            if (statusElement) {
-                updateStatusElement(statusElement, status);
-            }
+            updateMessageStatusUI(messageId, status);
         }
 
-        function updateStatusElement(element, status) {
-            element.className = 'message-status';
-            switch(status) {
-                case 'pending':
-                    element.innerHTML = '⏳';
-                    element.classList.add('status-pending');
-                    break;
-                case 'sent':
-                    element.innerHTML = '✓';
-                    element.classList.add('status-sent');
-                    break;
-                case 'delivered':
-                    element.innerHTML = '✓✓';
-                    element.classList.add('status-delivered');
-                    break;
-                case 'read':
-                    element.innerHTML = '✓✓';
-                    element.classList.add('status-read');
-                    break;
+        function updateMessageStatusUI(messageId, status) {
+            const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
+            if (statusElement) {
+                statusElement.className = 'message-status';
+                switch(status) {
+                    case 'pending':
+                        statusElement.innerHTML = '⏳';
+                        statusElement.classList.add('status-pending');
+                        break;
+                    case 'sent':
+                        statusElement.innerHTML = '✓';
+                        statusElement.classList.add('status-sent');
+                        break;
+                    case 'delivered':
+                        statusElement.innerHTML = '✓✓';
+                        statusElement.classList.add('status-delivered');
+                        break;
+                    case 'read':
+                        statusElement.innerHTML = '✓✓';
+                        statusElement.classList.add('status-read');
+                        break;
+                }
             }
         }
 
@@ -1715,23 +1722,91 @@
             }
         }
 
+        function markMessageAsDelivered(messageId, userId) {
+            if (messageStatuses[messageId] && messageStatuses[messageId].status === 'sent') {
+                updateMessageStatus(messageId, 'delivered');
+                
+                // Notify sender that message was delivered
+                if (ably && currentChat) {
+                    const statusChannel = ably.channels.get(`status-${currentChat.id}`);
+                    statusChannel.publish('delivered', {
+                        messageId: messageId,
+                        userId: currentUser.id,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        }
+
+        function markMessageAsRead(messageId) {
+            if (messageStatuses[messageId] && messageStatuses[messageId].status === 'delivered') {
+                updateMessageStatus(messageId, 'read');
+                
+                // Notify sender that message was read
+                if (ably && currentChat) {
+                    const statusChannel = ably.channels.get(`status-${currentChat.id}`);
+                    statusChannel.publish('read', {
+                        messageId: messageId,
+                        userId: currentUser.id,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        }
+
         // ========== WebRTC Audio Streaming ==========
-        async function setupWebRTCForAudio(messageId, audioData) {
+        async function setupWebRTCForAudio(messageId, audioBlob, duration) {
             try {
                 const configuration = {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 };
                 
                 const peerConnection = new RTCPeerConnection(configuration);
                 peerConnections[messageId] = peerConnection;
                 
-                // Create data channel for signaling
-                const dataChannel = peerConnection.createDataChannel('audioSignal');
+                // Create data channel for audio transmission
+                const dataChannel = peerConnection.createDataChannel('audioData', {
+                    ordered: true,
+                    maxRetransmits: 3
+                });
+                dataChannels[messageId] = dataChannel;
+                
                 dataChannel.onopen = () => {
                     console.log('Data channel opened for message:', messageId);
+                    
+                    // Convert blob to array buffer and send in chunks
+                    const reader = new FileReader();
+                    reader.readAsArrayBuffer(audioBlob);
+                    reader.onload = () => {
+                        const arrayBuffer = reader.result;
+                        const chunkSize = 16384; // 16KB chunks
+                        
+                        for (let i = 0; i < arrayBuffer.byteLength; i += chunkSize) {
+                            const chunk = arrayBuffer.slice(i, Math.min(i + chunkSize, arrayBuffer.byteLength));
+                            dataChannel.send(chunk);
+                        }
+                        
+                        // Send completion message
+                        dataChannel.send(JSON.stringify({
+                            type: 'complete',
+                            messageId: messageId,
+                            duration: duration,
+                            size: arrayBuffer.byteLength
+                        }));
+                        
+                        // Update status to sent after successful WebRTC transfer
+                        updateMessageStatus(messageId, 'sent');
+                    };
+                };
+                
+                dataChannel.onerror = (error) => {
+                    console.error('Data channel error:', error);
+                    // Fallback to Ably
+                    sendAudioViaAbly(messageId, audioBlob, duration);
                 };
                 
                 // Handle ICE candidates
@@ -1746,64 +1821,84 @@
                     }
                 };
                 
-                // Create and set local description
+                // Create and send offer
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 
-                // Send offer via Ably
                 if (ably) {
                     const signalChannel = ably.channels.get(`signaling-${currentChat.id}`);
                     signalChannel.publish('offer', {
                         messageId: messageId,
                         offer: offer,
-                        senderId: currentUser.id
+                        senderId: currentUser.id,
+                        duration: duration
                     });
                 }
                 
-                // Store audio data for later streaming
-                pendingAudioMessages[messageId] = audioData;
-                
-                // Update status to pending
-                updateMessageStatus(messageId, 'pending');
+                // Set timeout for WebRTC connection
+                setTimeout(() => {
+                    if (messageStatuses[messageId] && messageStatuses[messageId].status === 'pending') {
+                        console.log('WebRTC timeout, falling back to Ably');
+                        sendAudioViaAbly(messageId, audioBlob, duration);
+                    }
+                }, 5000);
                 
             } catch (error) {
                 console.error('WebRTC setup error:', error);
-                // Fallback to base64
-                sendAudioViaAbly(messageId, audioData);
+                sendAudioViaAbly(messageId, audioBlob, duration);
             }
         }
 
-        async function handleWebRTCOffer(messageId, offer, senderId) {
+        async function handleWebRTCOffer(messageId, offer, senderId, duration) {
             try {
                 const configuration = {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 };
                 
                 const peerConnection = new RTCPeerConnection(configuration);
                 peerConnections[messageId] = peerConnection;
                 
+                // Handle incoming data channel
                 peerConnection.ondatachannel = (event) => {
                     const receiveChannel = event.channel;
+                    const chunks = [];
+                    let expectedSize = 0;
+                    
                     receiveChannel.onmessage = (e) => {
-                        // Receive audio data chunks
-                        const audioData = e.data;
-                        // Create audio blob and play
-                        const audioBlob = new Blob([audioData], { type: 'audio/webm' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        
-                        // Update message with audio URL
-                        const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
-                        if (msgIndex !== -1) {
-                            messages[currentChat.id][msgIndex].audio = audioUrl;
-                            messages[currentChat.id][msgIndex].audioBlob = audioBlob;
-                            saveMessagesDebounced();
-                            
-                            if (currentChat && currentChat.id === currentChat.id) {
-                                renderMessages(true);
+                        if (typeof e.data === 'string') {
+                            try {
+                                const metadata = JSON.parse(e.data);
+                                if (metadata.type === 'complete') {
+                                    // All chunks received, create blob
+                                    const completeBlob = new Blob(chunks, { type: 'audio/webm' });
+                                    const audioUrl = URL.createObjectURL(completeBlob);
+                                    
+                                    // Update message with audio URL
+                                    const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageId);
+                                    if (msgIndex !== -1) {
+                                        messages[currentChat.id][msgIndex].audio = audioUrl;
+                                        messages[currentChat.id][msgIndex].duration = metadata.duration;
+                                        messages[currentChat.id][msgIndex].audioBlob = completeBlob;
+                                        saveMessagesDebounced();
+                                        
+                                        if (currentChat && currentChat.id === currentChat.id) {
+                                            renderMessages(true);
+                                        }
+                                        
+                                        // Mark as delivered
+                                        markMessageAsDelivered(messageId, senderId);
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error parsing metadata:', e);
                             }
+                        } else {
+                            // Audio chunk
+                            chunks.push(e.data);
                         }
                     };
                 };
@@ -1832,9 +1927,6 @@
                     });
                 }
                 
-                // Send delivery confirmation
-                sendDeliveryConfirmation(messageId);
-                
             } catch (error) {
                 console.error('WebRTC answer error:', error);
             }
@@ -1843,25 +1935,10 @@
         async function handleWebRTCAnswer(messageId, answer) {
             const peerConnection = peerConnections[messageId];
             if (peerConnection) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                
-                // Send audio data through data channel
-                if (pendingAudioMessages[messageId]) {
-                    const audioData = pendingAudioMessages[messageId];
-                    const dataChannel = peerConnection.createDataChannel('audioData');
-                    dataChannel.onopen = () => {
-                        // Send audio in chunks
-                        const chunkSize = 16384; // 16KB chunks
-                        for (let i = 0; i < audioData.length; i += chunkSize) {
-                            const chunk = audioData.slice(i, i + chunkSize);
-                            dataChannel.send(chunk);
-                        }
-                        dataChannel.close();
-                        
-                        // Update status to sent after sending
-                        updateMessageStatus(messageId, 'sent');
-                        delete pendingAudioMessages[messageId];
-                    };
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                } catch (error) {
+                    console.error('Error setting remote description:', error);
                 }
             }
         }
@@ -1877,31 +1954,25 @@
             }
         }
 
-        function sendDeliveryConfirmation(messageId) {
-            if (ably && currentChat) {
-                const statusChannel = ably.channels.get(`status-${currentChat.id}`);
-                statusChannel.publish('delivered', {
-                    messageId: messageId,
-                    userId: currentUser.id,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
         // Fallback method using Ably
-        function sendAudioViaAbly(messageId, audioData) {
+        function sendAudioViaAbly(messageId, audioBlob, duration) {
             if (ably && currentChat) {
-                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                chatChannel.publish('audio-data', {
-                    messageId: messageId,
-                    audioData: audioData,
-                    senderId: currentUser.id
-                });
-                
-                // Update status after sending
-                setTimeout(() => {
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = () => {
+                    const base64Audio = reader.result;
+                    
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('audio-data', {
+                        messageId: messageId,
+                        audioData: base64Audio,
+                        senderId: currentUser.id,
+                        duration: duration
+                    });
+                    
+                    // Update status to sent after Ably delivery
                     updateMessageStatus(messageId, 'sent');
-                }, 1000);
+                };
             }
         }
 
@@ -1927,6 +1998,9 @@
                 activeAudioMessage = messageId;
                 
                 startAudioProgressUpdate(audioElement, messageId);
+                
+                // Mark message as read when played
+                markMessageAsRead(messageId);
                 
                 audioElement.onended = () => {
                     playBtn.classList.remove('playing');
@@ -2143,7 +2217,7 @@
         function subscribeToChat(chat) {
             if (!ably) return;
             
-            // Main chat channel
+            // Main chat channel for text messages
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             chatChannel.unsubscribe();
             
@@ -2155,6 +2229,7 @@
             const statusChannel = ably.channels.get(`status-${chat.id}`);
             statusChannel.unsubscribe();
             
+            // Text messages via Ably
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
                 if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
@@ -2172,6 +2247,13 @@
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        
+                        // Mark as delivered when received but not in current chat
+                        markMessageAsDelivered(msg.id, msg.sender);
+                    } else if (currentChat?.id === chat.id && msg.sender !== currentUser.id) {
+                        // Mark as delivered and read when in current chat
+                        markMessageAsDelivered(msg.id, msg.sender);
+                        markMessageAsRead(msg.id);
                     }
                     
                     saveMessagesDebounced();
@@ -2186,8 +2268,9 @@
                 }
             });
             
+            // Audio data fallback via Ably
             chatChannel.subscribe('audio-data', (message) => {
-                const { messageId, audioData, senderId } = message.data;
+                const { messageId, audioData, senderId, duration } = message.data;
                 if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(messageId)) return;
                 
                 // Convert base64 to blob and create URL
@@ -2197,22 +2280,27 @@
                 const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
                 if (msgIndex !== -1) {
                     messages[chat.id][msgIndex].audio = audioUrl;
+                    messages[chat.id][msgIndex].duration = duration;
                     messages[chat.id][msgIndex].audioBlob = audioBlob;
                     saveMessagesDebounced();
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages(true);
                     }
+                    
+                    // Mark as delivered
+                    markMessageAsDelivered(messageId, senderId);
+                    
+                    if (currentChat?.id === chat.id) {
+                        markMessageAsRead(messageId);
+                    }
                 }
-                
-                // Send delivery confirmation
-                sendDeliveryConfirmation(messageId);
             });
             
             // WebRTC signaling handlers
             signalChannel.subscribe('offer', (message) => {
-                const { messageId, offer, senderId } = message.data;
-                handleWebRTCOffer(messageId, offer, senderId);
+                const { messageId, offer, senderId, duration } = message.data;
+                handleWebRTCOffer(messageId, offer, senderId, duration);
             });
             
             signalChannel.subscribe('answer', (message) => {
@@ -2230,12 +2318,6 @@
                 const { messageId, userId } = message.data;
                 if (messageId && messageStatuses[messageId]) {
                     updateMessageStatus(messageId, 'delivered');
-                    
-                    // Update UI if visible
-                    const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
-                    if (statusElement) {
-                        updateStatusElement(statusElement, 'delivered');
-                    }
                 }
             });
             
@@ -2243,11 +2325,6 @@
                 const { messageId, userId } = message.data;
                 if (messageId && messageStatuses[messageId]) {
                     updateMessageStatus(messageId, 'read');
-                    
-                    const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
-                    if (statusElement) {
-                        updateStatusElement(statusElement, 'read');
-                    }
                 }
             });
             
@@ -2263,10 +2340,16 @@
                                 ...msg,
                                 type: msg.sender === currentUser.id ? 'out' : 'in'
                             });
+                            
+                            // Initialize status for incoming messages
+                            if (msg.sender !== currentUser.id && !messageStatuses[msg.id]) {
+                                messageStatuses[msg.id] = { status: 'delivered', timestamp: Date.now() };
+                            }
                         }
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     saveMessagesDebounced();
+                    saveMessageStatusesDebounced();
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
@@ -2437,6 +2520,13 @@
                 stopAudioProgressUpdate();
             }
             
+            // Close all peer connections
+            Object.keys(peerConnections).forEach(key => {
+                peerConnections[key].close();
+            });
+            peerConnections = {};
+            dataChannels = {};
+            
             if (heartbeatInterval) {
                 clearInterval(heartbeatInterval);
                 heartbeatInterval = null;
@@ -2536,7 +2626,7 @@
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
-            // Set initial status
+            // Set initial status to sent (text messages always use Ably)
             updateMessageStatus(messageId, 'sent');
             
             if (ably) {
@@ -2567,57 +2657,34 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = () => {
-                const base64Audio = reader.result;
-
-                const message = {
-                    id: messageId,
-                    chatId: currentChat.id,
-                    sender: currentUser.id,
-                    senderName: currentUser.name,
-                    audio: base64Audio,
-                    duration: duration || Math.round(audioBlob.size / 16000),
-                    time: timeString,
-                    isAdmin: currentUser.isAdmin || false,
-                    timestamp: timestamp
-                };
-
-                if (!messages[currentChat.id]) messages[currentChat.id] = [];
-                messages[currentChat.id].push({ ...message, type: 'out' });
-                messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-                saveMessagesDebounced();
-
-                updateChatLastMessageTime(currentChat.id, timestamp);
-
-                // Set initial pending status
-                updateMessageStatus(messageId, 'pending');
-
-                if (ably) {
-                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                    
-                    // Try WebRTC first
-                    setupWebRTCForAudio(messageId, base64Audio).catch(() => {
-                        // Fallback to Ably if WebRTC fails
-                        chatChannel.publish('audio-data', {
-                            messageId: messageId,
-                            audioData: base64Audio,
-                            senderId: currentUser.id,
-                            duration: duration
-                        });
-                        
-                        // Update to sent after a delay
-                        setTimeout(() => {
-                            updateMessageStatus(messageId, 'sent');
-                        }, 1000);
-                    });
-                }
-
-                renderMessages(true);
-                updateChatsList();
+            // Create message object first (without audio data)
+            const message = {
+                id: messageId,
+                chatId: currentChat.id,
+                sender: currentUser.id,
+                senderName: currentUser.name,
+                audio: '', // Will be filled after WebRTC/Ably
+                duration: duration || Math.round(audioBlob.size / 16000),
+                time: timeString,
+                isAdmin: currentUser.isAdmin || false,
+                timestamp: timestamp
             };
+
+            if (!messages[currentChat.id]) messages[currentChat.id] = [];
+            messages[currentChat.id].push({ ...message, type: 'out' });
+            messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            saveMessagesDebounced();
+            updateChatLastMessageTime(currentChat.id, timestamp);
+
+            // Set initial pending status
+            updateMessageStatus(messageId, 'pending');
+
+            // Try WebRTC first for audio
+            setupWebRTCForAudio(messageId, audioBlob, duration);
+
+            renderMessages(true);
+            updateChatsList();
         }
 
         function disableSendButton() {
@@ -2759,8 +2826,6 @@
                 } else if (msg.audio) {
                     const audioId = `audio-${msg.id}`;
                     const duration = msg.duration || 30;
-                    const status = messageStatuses[msg.id]?.status || (msg.type === 'out' ? 'sent' : 'delivered');
-                    const statusIcon = getStatusIcon(status);
                     
                     content = `
                         <div class="message-bubble audio-message">
@@ -2772,14 +2837,6 @@
                             <div class="audio-progress" data-message-id="${msg.id}" style="width: 0%;"></div>
                             <audio id="${audioId}" src="${msg.audio}" preload="metadata"></audio>
                         </div>
-                        ${msg.type === 'out' ? `
-                            <div class="message-footer">
-                                <span class="message-status" data-message-id="${msg.id}">${statusIcon}</span>
-                                <span class="message-time">${msg.time}</span>
-                            </div>
-                        ` : `
-                            <div class="message-time">${msg.time}</div>
-                        `}
                     `;
                 } else if (msg.media) {
                     if (msg.media.type.startsWith('image/')) {
@@ -2787,7 +2844,6 @@
                     } else if (msg.media.type.startsWith('video/')) {
                         content = `<video src="${msg.media.url}" class="message-media" controls onclick="event.stopPropagation()"></video>`;
                     }
-                    content += `<div class="message-time">${msg.time}</div>`;
                 }
                 
                 let actions = '';
@@ -2802,20 +2858,31 @@
                 
                 const showAdminBadge = msg.isAdmin && msg.senderName === ADMIN_USERNAME;
                 
-                if (!msg.audio) {
-                    messageDiv.innerHTML = `
-                        ${actions}
-                        ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
-                        ${content}
-                    `;
-                } else {
-                    messageDiv.innerHTML = `
-                        ${actions}
-                        ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
-                        ${content}
-                    `;
+                // Get message status
+                const status = msg.type === 'out' ? (messageStatuses[msg.id]?.status || 'sent') : null;
+                const statusIcon = status ? getStatusIcon(status) : '';
+                
+                // Build message HTML
+                let messageHTML = actions;
+                
+                if (msg.type === 'in') {
+                    messageHTML += `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>`;
                 }
                 
+                messageHTML += content;
+                
+                if (msg.type === 'out') {
+                    messageHTML += `
+                        <div class="message-footer">
+                            <span class="message-status" data-message-id="${msg.id}">${statusIcon}</span>
+                            <span class="message-time">${msg.time}</span>
+                        </div>
+                    `;
+                } else {
+                    messageHTML += `<div class="message-time">${msg.time}</div>`;
+                }
+                
+                messageDiv.innerHTML = messageHTML;
                 fragment.appendChild(messageDiv);
             });
             
@@ -2824,10 +2891,7 @@
             // Update status elements with proper classes
             Object.keys(messageStatuses).forEach(messageId => {
                 const status = messageStatuses[messageId].status;
-                const statusElement = document.querySelector(`.message-status[data-message-id="${messageId}"]`);
-                if (statusElement) {
-                    updateStatusElement(statusElement, status);
-                }
+                updateMessageStatusUI(messageId, status);
             });
             
             if (isAtBottom) {
@@ -3039,6 +3103,15 @@
             
             if (!messages[chat.id]) messages[chat.id] = [];
             messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            // Mark all messages as read when opening chat
+            if (messages[chat.id]) {
+                messages[chat.id].forEach(msg => {
+                    if (msg.sender !== currentUser.id) {
+                        markMessageAsRead(msg.id);
+                    }
+                });
+            }
             
             unreadCounts[chat.id] = 0;
             localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
