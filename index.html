@@ -34,6 +34,7 @@
             --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --admin-gold: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
         }
 
         body {
@@ -933,12 +934,35 @@
         }
 
         .admin-badge {
-            background: var(--accent-red);
-            color: white;
+            background: var(--admin-gold);
+            color: #000;
             font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
             margin-left: 6px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(255, 215, 0, 0.2);
+        }
+
+        .chat-deleted-message {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.6;
+            }
         }
 
         @media (max-width: 768px) {
@@ -1222,7 +1246,7 @@
                     document.getElementById('appContainer').style.display = 'flex';
                     document.getElementById('profileName').textContent = currentUser.name;
                     if (currentUser.isAdmin) {
-                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                        document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
                     }
                     document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                     document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
@@ -1288,7 +1312,8 @@
                 presenceChannel.presence.enter({ 
                     name: currentUser.name, 
                     avatar: currentUser.avatar || '👤',
-                    bio: currentUser.bio || ''
+                    bio: currentUser.bio || '',
+                    isAdmin: currentUser.isAdmin
                 });
                 
                 presenceChannel.presence.subscribe('enter', (member) => {
@@ -1298,7 +1323,8 @@
                             name: member.data.name,
                             avatar: member.data.avatar || '👤',
                             bio: member.data.bio || '',
-                            online: true
+                            online: true,
+                            isAdmin: member.data.isAdmin || false
                         };
                         if (currentTab === 'users') updateChatsList();
                     }
@@ -1319,7 +1345,8 @@
                                 name: member.data.name,
                                 avatar: member.data.avatar || '👤',
                                 bio: member.data.bio || '',
-                                online: true
+                                online: true,
+                                isAdmin: member.data.isAdmin || false
                             };
                         }
                     });
@@ -1342,7 +1369,7 @@
                 // Admin actions channel
                 const adminChannel = ably.channels.get('admin-actions');
                 adminChannel.subscribe('delete-chat', (message) => {
-                    const { chatId } = message.data;
+                    const { chatId, deletedBy } = message.data;
                     
                     // Remove from public chats
                     publicChats = publicChats.filter(c => c.id !== chatId);
@@ -1358,13 +1385,14 @@
                         localStorage.setItem('messages', JSON.stringify(messages));
                     }
                     
-                    // If current chat is deleted, clear it
+                    // If current chat is deleted, show special message
                     if (currentChat && currentChat.id === chatId) {
                         currentChat = null;
-                        renderMessages();
-                        updateUrlWithChat(null);
-                        document.getElementById('currentChatName').innerHTML = 'Выберите чат';
+                        const container = document.getElementById('messagesContainer');
+                        container.innerHTML = `<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>`;
+                        document.getElementById('currentChatName').innerHTML = 'Чат удален';
                         document.getElementById('chatStatus').innerHTML = '';
+                        updateUrlWithChat(null);
                     }
                     
                     updateChatsList();
@@ -1429,9 +1457,7 @@
                     localStorage.setItem('messages', JSON.stringify(messages));
                     
                     if (currentChat && currentChat.id === chat.id) {
-                        // Render only new messages with animation
                         renderMessages(true);
-                        // Clear unread for this chat
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
@@ -1441,7 +1467,7 @@
             });
             
             chatChannel.subscribe('delete', (data) => {
-                const { messageId, senderId } = data.data;
+                const { messageId } = data.data;
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
                     localStorage.setItem('messages', JSON.stringify(messages));
@@ -1494,7 +1520,6 @@
                     
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
-                        // Clear unread for this chat
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
@@ -1515,12 +1540,13 @@
             
             const userKey = username.toLowerCase();
             if (users[userKey] && users[userKey].password === password) {
+                const isAdmin = username === ADMIN_USERNAME;
                 currentUser = {
                     id: users[userKey].id,
                     name: users[userKey].name,
                     avatar: users[userKey].avatar || '👤',
                     bio: users[userKey].bio || '',
-                    isAdmin: username === ADMIN_USERNAME
+                    isAdmin: isAdmin
                 };
                 
                 if (remember) {
@@ -1534,7 +1560,7 @@
                 document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('profileName').textContent = currentUser.name;
                 if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                    document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
                 }
                 document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
                 document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
@@ -1575,6 +1601,7 @@
                 return;
             }
             
+            const isAdmin = username === ADMIN_USERNAME;
             const newUser = {
                 id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
                 name: username,
@@ -1592,7 +1619,7 @@
                 name: newUser.name,
                 avatar: newUser.avatar,
                 bio: newUser.bio,
-                isAdmin: username === ADMIN_USERNAME
+                isAdmin: isAdmin
             };
             
             if (remember) {
@@ -1603,7 +1630,7 @@
             document.getElementById('appContainer').style.display = 'flex';
             document.getElementById('profileName').textContent = currentUser.name;
             if (currentUser.isAdmin) {
-                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Admin</span>`;
+                document.getElementById('profileName').innerHTML = `${currentUser.name} <span class="admin-badge">Админ</span>`;
             }
             document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
             document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
@@ -1678,7 +1705,6 @@
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
             if (ably) {
-                // Broadcast new chat to all users
                 const globalChatsChannel = ably.channels.get('global-chats');
                 globalChatsChannel.publish('new-chat', newChat);
             }
@@ -1702,38 +1728,37 @@
                 return;
             }
             
-            // Remove from public chats
+            // Remove from public chats immediately
             publicChats = publicChats.filter(c => c.id !== chatId);
             localStorage.setItem('publicChats', JSON.stringify(publicChats));
             
-            // Remove from all users' myChats (will be synced via Ably)
-            const allUsers = Object.keys(users);
-            allUsers.forEach(userKey => {
-                const user = users[userKey];
-                const userChats = JSON.parse(localStorage.getItem(`myChats_${user.id}`)) || [];
-                const filteredChats = userChats.filter(c => c.id !== chatId);
-                localStorage.setItem(`myChats_${user.id}`, JSON.stringify(filteredChats));
-            });
+            // Remove from my chats immediately
+            myChats = myChats.filter(c => c.id !== chatId);
+            localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             
-            // Remove messages
+            // Remove messages immediately
             if (messages[chatId]) {
                 delete messages[chatId];
                 localStorage.setItem('messages', JSON.stringify(messages));
             }
             
-            // Broadcast deletion to all users
+            // Broadcast deletion to all users immediately
             if (ably) {
                 const adminChannel = ably.channels.get('admin-actions');
-                adminChannel.publish('delete-chat', { chatId });
+                adminChannel.publish('delete-chat', { 
+                    chatId, 
+                    deletedBy: currentUser.id 
+                });
             }
             
-            // If current chat is deleted, clear it
+            // If current chat is deleted, clear it immediately
             if (currentChat && currentChat.id === chatId) {
                 currentChat = null;
-                renderMessages();
-                updateUrlWithChat(null);
-                document.getElementById('currentChatName').innerHTML = 'Выберите чат';
+                const container = document.getElementById('messagesContainer');
+                container.innerHTML = `<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>`;
+                document.getElementById('currentChatName').innerHTML = 'Чат удален';
                 document.getElementById('chatStatus').innerHTML = '';
+                updateUrlWithChat(null);
             }
             
             updateChatsList();
@@ -1762,7 +1787,6 @@
                 myChats.push(chat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                 
-                // Subscribe to this chat
                 if (ably) {
                     subscribeToChat(chat);
                 }
@@ -1772,7 +1796,7 @@
             currentChat = chat;
             updateUrlWithChat(chat);
             
-            // Update header with delete button for admin
+            // Update header with delete button for admin only
             let chatTitleHTML = `${chat.name} ${chat.password ? '🔒' : ''}`;
             if (currentUser && currentUser.isAdmin) {
                 chatTitleHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>`;
@@ -1848,7 +1872,8 @@
                 sender: currentUser.id,
                 senderName: currentUser.name,
                 text: text,
-                time: timeString
+                time: timeString,
+                isAdmin: currentUser.isAdmin || false
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
@@ -1892,9 +1917,11 @@
             
             if (!confirm('Удалить сообщение?')) return;
             
+            // Remove message immediately
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
             localStorage.setItem('messages', JSON.stringify(messages));
             
+            // Broadcast deletion immediately
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('delete', {
@@ -1902,7 +1929,7 @@
                     senderId: currentUser.id
                 });
                 
-                // If admin, broadcast to all users
+                // If admin, broadcast to all users through admin channel for extra reliability
                 if (currentUser.isAdmin) {
                     const adminChannel = ably.channels.get('admin-actions');
                     adminChannel.publish('delete-message', {
@@ -1997,8 +2024,8 @@
                 }
                 
                 let actions = '';
-                // Show delete button for owner or admin
-                if (msg.sender === currentUser.id || currentUser.isAdmin) {
+                // Show delete button for owner or admin (ТОЛЬКО АДМИН!)
+                if (msg.sender === currentUser.id || (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME)) {
                     actions = `
                         <div class="message-actions">
                             ${msg.sender === currentUser.id ? '<button class="message-action-btn" onclick="editMessage(\'' + msg.id + '\')">✏️</button>' : ''}
@@ -2007,9 +2034,12 @@
                     `;
                 }
                 
+                // Show admin badge only for the real admin
+                const showAdminBadge = msg.isAdmin && msg.senderName === ADMIN_USERNAME;
+                
                 messageDiv.innerHTML = `
                     ${actions}
-                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${currentUser && currentUser.isAdmin && msg.sender !== currentUser.id ? ' <span class="admin-badge">Admin</span>' : ''}</div>` : ''}
+                    ${msg.type === 'in' ? `<div class="message-sender">${msg.senderName}${showAdminBadge ? ' <span class="admin-badge">Админ</span>' : ''}</div>` : ''}
                     ${content}
                     <div class="message-time">${msg.time}</div>
                 `;
@@ -2030,7 +2060,7 @@
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
                 const msg = messages[currentChat.id].find(m => m.id === messageId);
-                if (msg && (msg.sender === currentUser.id || currentUser.isAdmin)) {
+                if (msg && (msg.sender === currentUser.id || (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME))) {
                     const action = confirm('Что сделать с сообщением?\nOK - редактировать (только свои)\nОтмена - удалить');
                     if (action && msg.sender === currentUser.id) {
                         editMessage(messageId);
@@ -2103,6 +2133,7 @@
                             <div class="chat-name">
                                 ${item.name}
                                 ${item.online ? '<span class="online-indicator"></span>' : ''}
+                                ${item.isAdmin && item.name === ADMIN_USERNAME ? '<span class="admin-badge">Админ</span>' : ''}
                             </div>
                             <div class="chat-last-message">${item.bio || 'Нет информации'}</div>
                         </div>
@@ -2115,8 +2146,8 @@
                     
                     let chatNameHTML = `${item.name || 'Без названия'} ${item.password ? '<span class="lock-icon">🔒</span>' : ''}`;
                     
-                    // Add delete button for admin in public chats
-                    if (currentUser && currentUser.isAdmin && currentTab === 'public') {
+                    // Add delete button for admin in public chats (ТОЛЬКО АДМИН!)
+                    if (currentUser && currentUser.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public') {
                         chatNameHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>`;
                     }
                     
@@ -2219,8 +2250,8 @@
             if (newName && newName !== currentUser.name) {
                 currentUser.name = newName;
                 document.getElementById('profileName').textContent = newName;
-                if (currentUser.isAdmin) {
-                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Admin</span>`;
+                if (currentUser.isAdmin && currentUser.name === ADMIN_USERNAME) {
+                    document.getElementById('profileName').innerHTML = `${newName} <span class="admin-badge">Админ</span>`;
                 }
                 
                 const userKey = currentUser.name.toLowerCase();
