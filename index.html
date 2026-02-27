@@ -1250,14 +1250,8 @@
         let pendingChatToJoin = null;
         let messageToEdit = null;
 
-        // Initialize public chats if empty
-        if (publicChats.length === 0) {
-            // Можно добавить демо-чат если нужно
-        }
-        localStorage.setItem('publicChats', JSON.stringify(publicChats));
-
-        // Get all registered users
-        function getAllUsers() {
+        // Функция для получения всех зарегистрированных пользователей
+        function getAllRegisteredUsers() {
             const userList = [];
             for (let key in users) {
                 const user = users[key];
@@ -1273,14 +1267,52 @@
             return userList;
         }
 
-        // Check for saved session
+        // Функция для обновления публичных чатов в localStorage
+        function savePublicChats() {
+            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+        }
+
+        // Функция для обновления моих чатов
+        function saveMyChats() {
+            if (currentUser) {
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+            }
+        }
+
+        // Функция для обновления сообщений
+        function saveMessages() {
+            localStorage.setItem('messages', JSON.stringify(messages));
+        }
+
+        // Функция для обновления непрочитанных
+        function saveUnreadCounts() {
+            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+        }
+
+        // Инициализация публичных чатов если пусто
+        if (publicChats.length === 0) {
+            // Можно добавить демо-чаты
+            publicChats.push({
+                id: 'general',
+                name: 'Общий чат',
+                description: 'Чат для всех пользователей',
+                password: '',
+                createdBy: 'system',
+                createdByName: 'System',
+                members: [],
+                createdAt: new Date().toISOString()
+            });
+            savePublicChats();
+        }
+
+        // Проверка сохраненной сессии
         function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
                     
-                    // Load user's chats
+                    // Загружаем мои чаты
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
                     document.getElementById('loginModal').classList.remove('active');
@@ -1300,7 +1332,7 @@
             }
         }
 
-        // Check URL for chat ID
+        // Проверка URL на ID чата
         function checkUrlForChat() {
             const hash = window.location.hash.substring(1);
             if (hash) {
@@ -1313,7 +1345,7 @@
             }
         }
 
-        // Update URL with chat ID
+        // Обновление URL с ID чата
         function updateUrlWithChat(chat) {
             if (chat) {
                 const newUrl = `${window.location.pathname}#${chat.id}`;
@@ -1326,10 +1358,10 @@
             }
         }
 
-        // Call on load
+        // Вызов при загрузке
         checkSavedSession();
 
-        // Initialize Ably
+        // Инициализация Ably
         function initAbly() {
             if (!currentUser) return;
             
@@ -1342,7 +1374,7 @@
             ably.connection.on('connected', () => {
                 console.log('✅ Connected to Ably');
                 
-                // Global presence
+                // Канал присутствия для онлайн статусов
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.enter({ 
                     name: currentUser.name, 
@@ -1370,36 +1402,47 @@
                 });
                 
                 presenceChannel.presence.get((err, members) => {
+                    onlineUsers.clear();
                     members.forEach(member => {
                         if (member.clientId !== currentUser.id) {
                             onlineUsers.add(member.clientId);
                         }
                     });
+                    // Добавляем себя в онлайн
+                    onlineUsers.add(currentUser.id);
+                    
                     if (currentTab === 'users') {
                         updateChatsList();
                     }
                 });
 
-                // Global chats channel for public chats
-                const globalChatsChannel = ably.channels.get('global-chats');
-                globalChatsChannel.subscribe('new-chat', (message) => {
+                // Канал для публичных чатов
+                const publicChatsChannel = ably.channels.get('public-chats');
+                publicChatsChannel.subscribe('new-chat', (message) => {
                     const newChat = message.data;
                     if (!publicChats.find(c => c.id === newChat.id)) {
                         publicChats.push(newChat);
-                        localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                        savePublicChats();
+                        
+                        // Подписываемся на новый чат
+                        const chatChannel = ably.channels.get(`chat-${newChat.id}`);
+                        chatChannel.subscribe('message', handleIncomingMessage);
+                        chatChannel.subscribe('delete', handleDeleteMessage);
+                        chatChannel.subscribe('edit', handleEditMessage);
+                        
                         if (currentTab === 'public') {
                             updateChatsList();
                         }
                     }
                 });
 
-                // Admin commands channel
+                // Админский канал
                 const adminChannel = ably.channels.get('admin-commands');
                 adminChannel.subscribe('delete-message', (data) => {
                     const { chatId, messageId } = data.data;
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        localStorage.setItem('messages', JSON.stringify(messages));
+                        saveMessages();
                         if (currentChat?.id === chatId) {
                             renderMessages();
                         }
@@ -1410,11 +1453,11 @@
                 adminChannel.subscribe('delete-chat', (data) => {
                     const { chatId } = data.data;
                     
-                    // Remove from public chats
+                    // Удаляем из публичных чатов
                     publicChats = publicChats.filter(c => c.id !== chatId);
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                    savePublicChats();
                     
-                    // Remove from myChats for all users
+                    // Удаляем из моих чатов всех пользователей
                     const allKeys = Object.keys(localStorage);
                     allKeys.forEach(key => {
                         if (key.startsWith('myChats_')) {
@@ -1424,9 +1467,9 @@
                         }
                     });
                     
-                    // Delete all messages in this chat
+                    // Удаляем все сообщения в этом чате
                     delete messages[chatId];
-                    localStorage.setItem('messages', JSON.stringify(messages));
+                    saveMessages();
                     
                     if (currentChat?.id === chatId) {
                         currentChat = null;
@@ -1438,138 +1481,128 @@
                         updateChatsList();
                     }
                     
-                    // Update myChats for current user
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    // Обновляем мои чаты для текущего пользователя
+                    if (currentUser) {
+                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    }
                 });
 
-                // Subscribe to all my chats
-                myChats.forEach(chat => {
-                    subscribeToChat(chat);
-                });
-                
-                // Also subscribe to public chats that user might join
+                // Подписываемся на все существующие публичные чаты
                 publicChats.forEach(chat => {
-                    if (!myChats.find(c => c.id === chat.id)) {
-                        // Just subscribe to channel without adding to myChats
-                        const chatChannel = ably.channels.get(`chat-${chat.id}`);
-                        chatChannel.subscribe('message', (message) => {
-                            const msg = message.data;
-                            
+                    const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                    chatChannel.subscribe('message', handleIncomingMessage);
+                    chatChannel.subscribe('delete', handleDeleteMessage);
+                    chatChannel.subscribe('edit', handleEditMessage);
+                    
+                    // Получаем историю сообщений для этого чата
+                    chatChannel.history({ limit: 200 }, (err, resultPage) => {
+                        if (resultPage && resultPage.items.length > 0) {
                             if (!messages[chat.id]) messages[chat.id] = [];
                             
-                            const exists = messages[chat.id].some(m => m.id === msg.id);
-                            if (!exists) {
-                                messages[chat.id].push({
-                                    ...msg,
-                                    type: msg.sender === currentUser.id ? 'out' : 'in'
-                                });
-                                
-                                if (currentChat?.id === chat.id && msg.sender !== currentUser.id) {
-                                    renderMessages();
+                            resultPage.items.forEach(item => {
+                                const msg = item.data;
+                                if (msg && msg.id && msg.text && msg.sender && msg.senderName) {
+                                    const exists = messages[chat.id].some(m => m && m.id === msg.id);
+                                    if (!exists) {
+                                        messages[chat.id].push({
+                                            ...msg,
+                                            type: msg.sender === currentUser.id ? 'out' : 'in'
+                                        });
+                                    }
                                 }
-                                
-                                localStorage.setItem('messages', JSON.stringify(messages));
-                                updateChatsList();
+                            });
+                            
+                            saveMessages();
+                            
+                            if (currentChat?.id === chat.id) {
+                                renderMessages();
+                                unreadCounts[chat.id] = 0;
+                                saveUnreadCounts();
                             }
-                        });
-                    }
+                        }
+                    });
+                });
+
+                // Подписываемся на мои чаты
+                myChats.forEach(chat => {
+                    const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                    chatChannel.subscribe('message', handleIncomingMessage);
+                    chatChannel.subscribe('delete', handleDeleteMessage);
+                    chatChannel.subscribe('edit', handleEditMessage);
                 });
             });
 
             updateChatsList();
         }
 
-        // Subscribe to chat channel
-        function subscribeToChat(chat) {
-            const chatChannel = ably.channels.get(`chat-${chat.id}`);
+        // Обработчик входящих сообщений
+        function handleIncomingMessage(message) {
+            const msg = message.data;
             
-            // Remove any existing listeners
-            chatChannel.unsubscribe();
+            // Проверяем, что сообщение корректное
+            if (!msg || !msg.id || !msg.chatId || !msg.sender || !msg.senderName) {
+                console.log('Invalid message received:', msg);
+                return;
+            }
             
-            chatChannel.subscribe('message', (message) => {
-                const msg = message.data;
+            const chatId = msg.chatId;
+            
+            if (!messages[chatId]) messages[chatId] = [];
+            
+            const exists = messages[chatId].some(m => m && m.id === msg.id);
+            if (!exists) {
+                messages[chatId].push({
+                    ...msg,
+                    type: msg.sender === currentUser.id ? 'out' : 'in'
+                });
                 
-                if (!messages[chat.id]) messages[chat.id] = [];
+                if (currentChat?.id !== chatId && msg.sender !== currentUser.id) {
+                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                    saveUnreadCounts();
+                }
                 
-                const exists = messages[chat.id].some(m => m.id === msg.id);
-                if (!exists) {
-                    messages[chat.id].push({
-                        ...msg,
-                        type: msg.sender === currentUser.id ? 'out' : 'in'
-                    });
-                    
-                    if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
-                        unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                    }
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
-                    if (currentChat && currentChat.id === chat.id) {
-                        renderMessages();
-                        unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                    }
-                    
-                    updateChatsList();
+                saveMessages();
+                
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
+                    unreadCounts[chatId] = 0;
+                    saveUnreadCounts();
                 }
-            });
-            
-            chatChannel.subscribe('delete', (data) => {
-                const { messageId } = data.data;
-                if (messages[chat.id]) {
-                    messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    if (currentChat?.id === chat.id) {
-                        renderMessages();
-                    }
-                    updateChatsList();
-                }
-            });
-            
-            chatChannel.subscribe('edit', (data) => {
-                const { messageId, newText } = data.data;
-                if (messages[chat.id]) {
-                    const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
-                    if (msgIndex !== -1) {
-                        messages[chat.id][msgIndex].text = newText;
-                        messages[chat.id][msgIndex].edited = true;
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        if (currentChat?.id === chat.id) {
-                            renderMessages();
-                        }
-                    }
-                }
-            });
-            
-            // Get history
-            chatChannel.history({ limit: 200 }, (err, resultPage) => {
-                if (resultPage && resultPage.items.length > 0) {
-                    if (!messages[chat.id]) messages[chat.id] = [];
-                    
-                    resultPage.items.forEach(item => {
-                        const msg = item.data;
-                        const exists = messages[chat.id].some(m => m.id === msg.id);
-                        if (!exists) {
-                            messages[chat.id].push({
-                                ...msg,
-                                type: msg.sender === currentUser.id ? 'out' : 'in'
-                            });
-                        }
-                    });
-                    
-                    localStorage.setItem('messages', JSON.stringify(messages));
-                    
-                    if (currentChat?.id === chat.id) {
-                        renderMessages();
-                        unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                    }
-                }
-            });
+                
+                updateChatsList();
+            }
         }
 
-        // Login
+        // Обработчик удаления сообщений
+        function handleDeleteMessage(data) {
+            const { messageId, chatId } = data.data;
+            if (messages[chatId]) {
+                messages[chatId] = messages[chatId].filter(m => m && m.id !== messageId);
+                saveMessages();
+                if (currentChat?.id === chatId) {
+                    renderMessages();
+                }
+                updateChatsList();
+            }
+        }
+
+        // Обработчик редактирования сообщений
+        function handleEditMessage(data) {
+            const { messageId, chatId, newText } = data.data;
+            if (messages[chatId]) {
+                const msgIndex = messages[chatId].findIndex(m => m && m.id === messageId);
+                if (msgIndex !== -1) {
+                    messages[chatId][msgIndex].text = newText;
+                    messages[chatId][msgIndex].edited = true;
+                    saveMessages();
+                    if (currentChat?.id === chatId) {
+                        renderMessages();
+                    }
+                }
+            }
+        }
+
+        // Логин
         function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -1609,7 +1642,7 @@
             }
         }
 
-        // Register
+        // Регистрация
         function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
@@ -1669,7 +1702,7 @@
             initAbly();
         }
 
-        // Logout
+        // Выход
         function logout() {
             if (ably) {
                 const presenceChannel = ably.channels.get('presence');
@@ -1690,7 +1723,7 @@
             document.getElementById('registerConfirmPassword').value = '';
         }
 
-        // Switch auth mode
+        // Переключение режима авторизации
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -1710,7 +1743,7 @@
             }
         }
 
-        // Switch tabs
+        // Переключение вкладок
         function switchTab(tab) {
             currentTab = tab;
             
@@ -1729,7 +1762,7 @@
             updateChatsList();
         }
 
-        // Create public chat
+        // Создание публичного чата
         function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
@@ -1752,44 +1785,29 @@
             };
             
             publicChats.push(newChat);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+            savePublicChats();
             
             if (ably) {
-                const globalChatsChannel = ably.channels.get('global-chats');
-                globalChatsChannel.publish('new-chat', newChat);
+                // Отправляем новый чат всем пользователям
+                const publicChatsChannel = ably.channels.get('public-chats');
+                publicChatsChannel.publish('new-chat', newChat);
                 
-                // Subscribe to this chat
+                // Подписываемся на этот чат
                 const chatChannel = ably.channels.get(`chat-${newChat.id}`);
-                chatChannel.subscribe('message', (message) => {
-                    const msg = message.data;
-                    
-                    if (!messages[newChat.id]) messages[newChat.id] = [];
-                    
-                    const exists = messages[newChat.id].some(m => m.id === msg.id);
-                    if (!exists) {
-                        messages[newChat.id].push({
-                            ...msg,
-                            type: msg.sender === currentUser.id ? 'out' : 'in'
-                        });
-                        
-                        localStorage.setItem('messages', JSON.stringify(messages));
-                        
-                        if (currentChat?.id === newChat.id) {
-                            renderMessages();
-                        }
-                        updateChatsList();
-                    }
-                });
+                chatChannel.subscribe('message', handleIncomingMessage);
+                chatChannel.subscribe('delete', handleDeleteMessage);
+                chatChannel.subscribe('edit', handleEditMessage);
             }
             
             joinChat(newChat);
             closeCreateChatModal();
         }
 
-        // Join chat
+        // Присоединение к чату
         function joinChat(chat) {
             if (!chat) return;
             
+            // Проверка пароля
             if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
                 pendingChatToJoin = chat;
                 document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
@@ -1800,15 +1818,19 @@
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
+                savePublicChats();
             }
             
-            // Add to my chats if not already
+            // Добавляем в мои чаты если еще нет
             if (!myChats.find(c => c.id === chat.id)) {
                 myChats.push(chat);
-                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                saveMyChats();
                 
                 if (ably) {
-                    subscribeToChat(chat);
+                    const chatChannel = ably.channels.get(`chat-${chat.id}`);
+                    chatChannel.subscribe('message', handleIncomingMessage);
+                    chatChannel.subscribe('delete', handleDeleteMessage);
+                    chatChannel.subscribe('edit', handleEditMessage);
                 }
             }
             
@@ -1824,7 +1846,7 @@
             if (!messages[chat.id]) messages[chat.id] = [];
             
             unreadCounts[chat.id] = 0;
-            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+            saveUnreadCounts();
             
             renderMessages();
             updateChatsList();
@@ -1834,13 +1856,14 @@
             }
         }
 
-        // Join protected chat
+        // Присоединение к защищенному чату
         function joinProtectedChat() {
             const password = document.getElementById('joinPasswordInput').value;
             
             if (pendingChatToJoin && password === pendingChatToJoin.password) {
                 if (!pendingChatToJoin.members) pendingChatToJoin.members = [];
                 pendingChatToJoin.members.push(currentUser.id);
+                savePublicChats();
                 
                 joinChat(pendingChatToJoin);
                 closeJoinChatModal();
@@ -1849,7 +1872,7 @@
             }
         }
 
-        // Send message
+        // Отправка сообщения
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -1881,7 +1904,7 @@
                 type: 'out'
             });
             
-            localStorage.setItem('messages', JSON.stringify(messages));
+            saveMessages();
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -1894,31 +1917,23 @@
             updateChatsList();
         }
 
-        // Delete message (user or admin)
+        // Удаление сообщения
         function deleteMessage(messageId) {
             if (!currentChat) return;
             
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
+            const msg = messages[currentChat.id].find(m => m && m.id === messageId);
             
-            // Allow delete if user is sender OR is admin
+            // Разрешаем удаление если отправитель или админ
             if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
-                messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
-                localStorage.setItem('messages', JSON.stringify(messages));
+                messages[currentChat.id] = messages[currentChat.id].filter(m => m && m.id !== messageId);
+                saveMessages();
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('delete', {
-                        messageId: messageId
+                        messageId: messageId,
+                        chatId: currentChat.id
                     });
-                    
-                    // Also publish to admin channel if admin
-                    if (currentUser.name === ADMIN_USERNAME) {
-                        const adminChannel = ably.channels.get('admin-commands');
-                        adminChannel.publish('delete-message', {
-                            chatId: currentChat.id,
-                            messageId: messageId
-                        });
-                    }
                 }
                 
                 renderMessages();
@@ -1926,11 +1941,11 @@
             }
         }
 
-        // Edit message
+        // Редактирование сообщения
         function editMessage(messageId) {
             if (!currentChat) return;
             
-            const msg = messages[currentChat.id].find(m => m.id === messageId);
+            const msg = messages[currentChat.id].find(m => m && m.id === messageId);
             if (msg && msg.sender === currentUser.id) {
                 messageToEdit = msg;
                 document.getElementById('editMessageText').value = msg.text || '';
@@ -1938,21 +1953,22 @@
             }
         }
 
-        // Save edited message
+        // Сохранение отредактированного сообщения
         function saveEditedMessage() {
             const newText = document.getElementById('editMessageText').value.trim();
             if (!newText || !messageToEdit || !currentChat) return;
             
-            const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageToEdit.id);
+            const msgIndex = messages[currentChat.id].findIndex(m => m && m.id === messageToEdit.id);
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
-                localStorage.setItem('messages', JSON.stringify(messages));
+                saveMessages();
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('edit', {
                         messageId: messageToEdit.id,
+                        chatId: currentChat.id,
                         newText: newText
                     });
                 }
@@ -1962,15 +1978,17 @@
             }
         }
 
-        // Admin delete chat
+        // Удаление чата админом
         function adminDeleteChat(chatId) {
             if (currentUser.name !== ADMIN_USERNAME) return;
             
             if (!confirm('Удалить этот чат для всех пользователей?')) return;
             
+            // Удаляем из публичных чатов
             publicChats = publicChats.filter(c => c.id !== chatId);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
+            savePublicChats();
             
+            // Удаляем из моих чатов всех пользователей
             const allKeys = Object.keys(localStorage);
             allKeys.forEach(key => {
                 if (key.startsWith('myChats_')) {
@@ -1980,8 +1998,9 @@
                 }
             });
             
+            // Удаляем все сообщения
             delete messages[chatId];
-            localStorage.setItem('messages', JSON.stringify(messages));
+            saveMessages();
             
             if (ably) {
                 const adminChannel = ably.channels.get('admin-commands');
@@ -1996,14 +2015,17 @@
                 updateUrlWithChat(null);
             }
             
-            myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+            // Обновляем мои чаты
+            if (currentUser) {
+                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+            }
             
             if (currentTab === 'public' || currentTab === 'chats') {
                 updateChatsList();
             }
         }
 
-        // Render messages
+        // Отображение сообщений
         function renderMessages() {
             const container = document.getElementById('messagesContainer');
             if (!container) return;
@@ -2020,7 +2042,11 @@
                 return;
             }
             
-            const sortedMessages = [...messages[currentChat.id]].sort((a, b) => a.id - b.id);
+            // Фильтруем некорректные сообщения
+            const validMessages = messages[currentChat.id].filter(m => m && m.id && m.text && m.sender && m.senderName);
+            
+            // Сортируем по времени
+            const sortedMessages = [...validMessages].sort((a, b) => a.id - b.id);
             
             sortedMessages.forEach(msg => {
                 const messageDiv = document.createElement('div');
@@ -2039,7 +2065,7 @@
                 }
                 
                 let actions = '';
-                // Show delete for sender OR admin
+                // Показываем кнопки удаления для отправителя или админа
                 if (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME) {
                     actions = `
                         <div class="message-actions">
@@ -2064,10 +2090,10 @@
             }, 10);
         }
 
-        // Handle message click (for mobile)
+        // Клик по сообщению для мобильных
         function handleMessageClick(messageId) {
             if (window.innerWidth <= 768) {
-                const msg = messages[currentChat.id].find(m => m.id === messageId);
+                const msg = messages[currentChat.id].find(m => m && m.id === messageId);
                 if (msg && (msg.sender === currentUser.id || currentUser.name === ADMIN_USERNAME)) {
                     if (confirm('Удалить сообщение?')) {
                         deleteMessage(messageId);
@@ -2076,7 +2102,7 @@
             }
         }
 
-        // Open media
+        // Открыть медиа
         function openMedia(url) {
             const viewer = document.getElementById('mediaViewer');
             const content = document.getElementById('mediaViewerContent');
@@ -2090,13 +2116,13 @@
             viewer.classList.add('active');
         }
 
-        // Close media viewer
+        // Закрыть медиа просмотрщик
         function closeMediaViewer() {
             document.getElementById('mediaViewer').classList.remove('active');
             document.getElementById('mediaViewerContent').innerHTML = '';
         }
 
-        // Update chats list
+        // Обновление списка чатов
         function updateChatsList() {
             const list = document.getElementById('chatsList');
             if (!list) return;
@@ -2111,14 +2137,14 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
-                items = getAllUsers();
+                items = getAllRegisteredUsers();
             }
             
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             if (searchTerm) {
                 items = items.filter(item => 
-                    (item.name || '').toLowerCase().includes(searchTerm) ||
-                    (item.description || '').toLowerCase().includes(searchTerm)
+                    item && ((item.name || '').toLowerCase().includes(searchTerm) ||
+                    (item.description || '').toLowerCase().includes(searchTerm))
                 );
             }
             
@@ -2128,6 +2154,8 @@
             }
             
             items.forEach(item => {
+                if (!item) return;
+                
                 const element = document.createElement('div');
                 element.className = `chat-item ${currentChat?.id === item.id ? 'active' : ''}`;
                 
@@ -2145,7 +2173,7 @@
                         </div>
                     `;
                 } else {
-                    const lastMsg = messages[item.id]?.slice(-1)[0];
+                    const lastMsg = messages[item.id] ? messages[item.id].slice(-1)[0] : null;
                     const unread = unreadCounts[item.id] || 0;
                     
                     element.onclick = () => joinChat(item);
@@ -2155,7 +2183,7 @@
                             <div class="chat-name">
                                 ${item.name || 'Без названия'}
                                 ${item.password ? '<span class="lock-icon">🔒</span>' : ''}
-                                ${currentUser.name === ADMIN_USERNAME ? '<button class="delete-chat-btn" onclick="event.stopPropagation(); adminDeleteChat(\'' + item.id + '\')">🗑️</button>' : ''}
+                                ${currentUser && currentUser.name === ADMIN_USERNAME ? '<button class="delete-chat-btn" onclick="event.stopPropagation(); adminDeleteChat(\'' + item.id + '\')">🗑️</button>' : ''}
                             </div>
                             <div class="chat-last-message">
                                 ${lastMsg ? (lastMsg.text || '📷 Медиа') : (item.description || 'Нет сообщений')}
@@ -2174,8 +2202,10 @@
             list.scrollTop = scrollPos;
         }
 
-        // Create private chat
+        // Создание приватного чата
         function createPrivateChat(user) {
+            if (!currentUser || !user) return;
+            
             const chatId = [currentUser.id, user.id].sort().join('-');
             
             let privateChat = myChats.find(c => c.id === chatId);
@@ -2189,22 +2219,25 @@
                     members: [currentUser.id, user.id]
                 };
                 myChats.push(privateChat);
-                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                saveMyChats();
                 
                 if (ably) {
-                    subscribeToChat(privateChat);
+                    const chatChannel = ably.channels.get(`chat-${chatId}`);
+                    chatChannel.subscribe('message', handleIncomingMessage);
+                    chatChannel.subscribe('delete', handleDeleteMessage);
+                    chatChannel.subscribe('edit', handleEditMessage);
                 }
             }
             
             joinChat(privateChat);
         }
 
-        // Search handler
+        // Поиск
         function handleSearch() {
             updateChatsList();
         }
 
-        // Modal functions
+        // Функции модальных окон
         function openCreateChatModal() {
             document.getElementById('createChatModal').classList.add('active');
         }
@@ -2263,7 +2296,7 @@
             closeProfileModal();
         }
 
-        // Utility functions
+        // Утилиты
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             input.type = input.type === 'password' ? 'text' : 'password';
@@ -2291,7 +2324,7 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
-        // Handle popstate
+        // Обработка popstate
         window.addEventListener('popstate', function(event) {
             const hash = window.location.hash.substring(1);
             if (hash) {
@@ -2306,34 +2339,34 @@
             }
         });
 
-        // Auto-resize textarea
+        // Авто-изменение размера textarea
         document.getElementById('messageInput').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Handle window resize
+        // Обработка изменения размера окна
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 document.getElementById('sidebar').classList.remove('active');
             }
         });
 
-        // Close media viewer with Escape
+        // Закрыть медиа просмотрщик по Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeMediaViewer();
             }
         });
 
-        // Click outside to close emoji picker
+        // Клик вне эмодзи панели для закрытия
         document.addEventListener('click', function(e) {
             const emojiPicker = document.getElementById('emojiPicker');
             const emojiBtn = document.querySelector('.emoji-btn');
             
-            if (emojiPicker.style.display === 'flex' && 
+            if (emojiPicker && emojiPicker.style.display === 'flex' && 
                 !emojiPicker.contains(e.target) && 
-                !emojiBtn.contains(e.target)) {
+                emojiBtn && !emojiBtn.contains(e.target)) {
                 emojiPicker.style.display = 'none';
             }
         });
