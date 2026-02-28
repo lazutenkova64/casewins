@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-    <!-- Подключаем Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1422,25 +1420,16 @@
         // ============================================================
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
-        // ============================================================
-        // SUPABASE CONNECTION - ИСПРАВЛЕНО!
-        // ============================================================
-        const SUPABASE_URL = 'https://olwgfesedzrnpwfwqpa.supabase.co'; // Убрал лишнюю 'q'
-        const SUPABASE_KEY = 'sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY';
-        
-        // Создаем клиент Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
         let ably;
         let currentUser = null;
         
         // Data structures
-        let users = {};
+        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
         let onlineUsers = {};
         let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
+        let messages = {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
@@ -1522,6 +1511,7 @@
                     const emojiPicker = document.getElementById('emojiPicker');
                     const emojiBtn = document.querySelector('.emoji-toggle-btn');
                     
+                    // Если клик не по полю ввода, не по эмодзи-пикеру и не по кнопке эмодзи
                     if (!messageInput.contains(e.target) && 
                         !emojiPicker.contains(e.target) && 
                         !emojiBtn.contains(e.target)) {
@@ -1583,43 +1573,32 @@
             });
         }
 
-        async function checkSavedSession() {
+        function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     const parsedUser = JSON.parse(savedUser);
                     
-                    const { data: userData, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', parsedUser.id)
-                        .single();
-                    
-                    if (!error && userData) {
-                        currentUser = {
-                            id: userData.id,
-                            name: userData.username,
-                            avatar: userData.avatar || '👤',
-                            bio: userData.bio || '',
-                            isAdmin: userData.is_admin || false,
-                            dnd: userData.dnd || false
-                        };
-                        
-                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                        
-                        document.getElementById('loginModal').classList.remove('active');
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        updateProfileUI();
-                        
-                        setTimeout(() => {
-                            initAbly();
-                            checkUrlForChat();
-                            startHeartbeat();
-                        }, 100);
-                    } else {
+                    const userExists = Object.values(users).some(u => u.id === parsedUser.id);
+                    if (!userExists) {
                         localStorage.removeItem('currentUser');
+                        return;
                     }
+                    
+                    currentUser = parsedUser;
+                    
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    
+                    updateProfileUI();
+                    
+                    setTimeout(() => {
+                        initAbly();
+                        checkUrlForChat();
+                        startHeartbeat();
+                    }, 100);
                 } catch (e) {
                     console.error('Failed to load session', e);
                     localStorage.removeItem('currentUser');
@@ -1831,6 +1810,7 @@
                     }
                 });
 
+                // Подписываемся на все мои чаты
                 myChats.forEach(chat => subscribeToChat(chat));
             });
 
@@ -1871,7 +1851,9 @@
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
+                    // Обновляем статус для отправленных сообщений
                     if (msg.sender !== currentUser.id) {
+                        // Это входящее сообщение, отправляем подтверждение доставки
                         sendDeliveryReceipt(chat.id, msg.id);
                     }
                     
@@ -1888,6 +1870,8 @@
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        
+                        // Если мы в чате, отмечаем сообщения как прочитанные
                         markMessagesAsRead(chat.id);
                     }
                     
@@ -1902,6 +1886,7 @@
                     deliveredMessages[currentChat?.id].push(messageId);
                     localStorage.setItem('deliveredMessages', JSON.stringify(deliveredMessages));
                     
+                    // Обновляем статус сообщения
                     if (messageStatuses[messageId]) {
                         messageStatuses[messageId].status = 'delivered';
                         messageStatuses[messageId].deliveredAt = Date.now();
@@ -1959,6 +1944,7 @@
                 }
             });
             
+            // Загружаем историю
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -1998,6 +1984,7 @@
         function markMessagesAsRead(chatId) {
             if (!ably || !messages[chatId]) return;
             
+            // Отправляем подтверждение прочтения для всех непрочитанных сообщений
             messages[chatId].forEach(msg => {
                 if (msg.sender !== currentUser.id && 
                     (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
@@ -2030,7 +2017,7 @@
         }
 
         // ========== Аутентификация ==========
-        async function login() {
+        function login() {
             const now = Date.now();
             if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
             if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
@@ -2049,50 +2036,36 @@
                 return;
             }
             
-            try {
-                const { data: users, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('username', username)
-                    .eq('password', password);
+            const userKey = username.toLowerCase();
+            if (users[userKey] && users[userKey].password === password) {
+                const isAdmin = username === ADMIN_USERNAME;
+                currentUser = {
+                    id: users[userKey].id,
+                    name: users[userKey].name,
+                    avatar: users[userKey].avatar || '👤',
+                    bio: users[userKey].bio || '',
+                    isAdmin: isAdmin,
+                    dnd: users[userKey].dnd || false
+                };
                 
-                if (error) throw error;
+                if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
-                if (users && users.length > 0) {
-                    const user = users[0];
-                    currentUser = {
-                        id: user.id,
-                        name: user.username,
-                        avatar: user.avatar || '👤',
-                        bio: user.bio || '',
-                        isAdmin: user.is_admin || false,
-                        dnd: user.dnd || false
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                    checkUrlForChat();
-                } else {
-                    alert('Неверное имя пользователя или пароль');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Ошибка входа');
+                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                updateProfileUI();
+                
+                initAbly();
+                startHeartbeat();
+                checkUrlForChat();
+            } else {
+                alert('Неверное имя пользователя или пароль');
             }
         }
 
-        async function register() {
+        function register() {
             const now = Date.now();
             if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
             if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
@@ -2120,64 +2093,44 @@
                 return;
             }
             
-            try {
-                const { data: existing } = await supabase
-                    .from('users')
-                    .select('username')
-                    .eq('username', username);
-                
-                if (existing && existing.length > 0) {
-                    alert('Пользователь с таким именем уже существует');
-                    return;
-                }
-                
-                const isAdmin = username === ADMIN_USERNAME;
-                
-                const { data, error } = await supabase
-                    .from('users')
-                    .insert([
-                        { 
-                            username: username, 
-                            password: password,
-                            avatar: isAdmin ? '👑' : '👤',
-                            is_admin: isAdmin,
-                            bio: '',
-                            dnd: false
-                        }
-                    ])
-                    .select();
-                
-                if (error) throw error;
-                
-                if (data && data[0]) {
-                    const newUser = data[0];
-                    currentUser = {
-                        id: newUser.id,
-                        name: newUser.username,
-                        avatar: newUser.avatar || '👤',
-                        bio: newUser.bio || '',
-                        isAdmin: newUser.is_admin || false,
-                        dnd: newUser.dnd || false
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    myChats = [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                }
-            } catch (error) {
-                console.error('Register error:', error);
-                alert('Ошибка регистрации');
+            const userKey = username.toLowerCase();
+            if (users[userKey]) {
+                alert('Пользователь с таким именем уже существует');
+                return;
             }
+            
+            const isAdmin = username === ADMIN_USERNAME;
+            const newUser = {
+                id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                name: username,
+                password: password,
+                avatar: '👤',
+                bio: '',
+                dnd: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            users[userKey] = newUser;
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+            
+            currentUser = {
+                id: newUser.id,
+                name: newUser.name,
+                avatar: newUser.avatar,
+                bio: newUser.bio,
+                isAdmin: isAdmin,
+                dnd: false
+            };
+            
+            if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('appContainer').style.display = 'flex';
+            
+            updateProfileUI();
+            
+            initAbly();
+            startHeartbeat();
         }
 
         function logout() {
@@ -2190,6 +2143,7 @@
                 mediaStream = null;
             }
             
+            // Останавливаем все аудио
             Object.values(audioElements).forEach(audio => {
                 if (audio) {
                     audio.pause();
@@ -2280,6 +2234,7 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
             
+            // Сохраняем статус сообщения
             messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
             
             const message = {
@@ -2291,7 +2246,7 @@
                 time: timeString,
                 isAdmin: currentUser.isAdmin || false,
                 timestamp: timestamp,
-                status: 'sent'
+                status: 'sent' // начальный статус
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
@@ -2330,6 +2285,7 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
+            // Статус pending для голосовых
             messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
 
             const reader = new FileReader();
@@ -2362,6 +2318,7 @@
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('message', message);
                     
+                    // Через небольшую задержку меняем статус на sent (имитация успешной отправки)
                     setTimeout(() => {
                         if (messageStatuses[messageId]) {
                             messageStatuses[messageId].status = 'sent';
@@ -2448,6 +2405,7 @@
 
         function toggleAudio(messageId, audioSrc) {
             if (activeAudioId === messageId && activeAudio) {
+                // То же сообщение - переключаем паузу/воспроизведение
                 if (!activeAudio.paused) {
                     activeAudio.pause();
                 } else {
@@ -2456,12 +2414,14 @@
                 return;
             }
             
+            // Другое сообщение - останавливаем предыдущее и запускаем новое
             if (activeAudio) {
                 activeAudio.pause();
                 activeAudio.currentTime = 0;
                 updateAudioButton(activeAudioId, false);
             }
             
+            // Создаем новый аудио элемент, если его нет
             if (!audioElements[messageId]) {
                 audioElements[messageId] = new Audio(audioSrc);
                 audioElements[messageId].addEventListener('timeupdate', () => updateAudioProgress(messageId));
@@ -2577,6 +2537,7 @@
                 let content = '';
                 let statusHtml = '';
                 
+                // Получаем статус сообщения
                 const status = messageStatuses[msg.id] || { status: msg.sender === currentUser.id ? 'sent' : 'delivered' };
                 
                 if (msg.type === 'out') {
@@ -2642,6 +2603,7 @@
                 });
             }
             
+            // Если мы в чате, отмечаем сообщения как прочитанные
             if (currentChat) {
                 markMessagesAsRead(currentChat.id);
             }
@@ -3029,37 +2991,40 @@
             document.getElementById('profileModal').classList.remove('active');
         }
 
-        async function saveProfile() {
+        function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             const newBio = document.getElementById('profileBioInput').value.trim();
             const dnd = document.getElementById('profileDNDCheckbox').checked;
-            const selectedAvatar = document.querySelector('.avatar-option.selected')?.textContent || currentUser.avatar;
             
-            if (!newName) {
-                alert('Имя не может быть пустым');
-                return;
+            if (newName && newName !== currentUser.name) {
+                const oldKey = currentUser.name.toLowerCase();
+                const newKey = newName.toLowerCase();
+                
+                if (users[newKey] && newKey !== oldKey) {
+                    alert('Пользователь с таким именем уже существует');
+                    return;
+                }
+                
+                if (users[oldKey]) {
+                    users[oldKey].name = newName;
+                    if (newKey !== oldKey) {
+                        users[newKey] = users[oldKey];
+                        delete users[oldKey];
+                    }
+                }
+                currentUser.name = newName;
             }
             
-            try {
-                const { error } = await supabase
-                    .from('users')
-                    .update({ 
-                        username: newName,
-                        bio: newBio,
-                        dnd: dnd,
-                        avatar: selectedAvatar
-                    })
-                    .eq('id', currentUser.id);
-                
-                if (error) throw error;
-                
-                currentUser.name = newName;
+            if (newBio !== currentUser.bio) {
                 currentUser.bio = newBio;
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].bio = newBio;
+            }
+            
+            if (dnd !== currentUser.dnd) {
                 currentUser.dnd = dnd;
-                currentUser.avatar = selectedAvatar;
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].dnd = dnd;
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     presenceChannel.presence.update({ 
@@ -3070,15 +3035,13 @@
                         dnd: dnd
                     });
                 }
-                
-                updateProfileUI();
-                closeProfileModal();
-                
-                alert('Профиль успешно обновлен!');
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('Ошибка при сохранении профиля');
             }
+            
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            updateProfileUI();
+            closeProfileModal();
         }
 
         function openAvatarModal() {
@@ -3102,34 +3065,23 @@
             selectedAvatar = emoji;
         }
 
-        async function saveAvatar() {
+        function saveAvatar() {
             if (selectedAvatar) {
-                try {
-                    const { error } = await supabase
-                        .from('users')
-                        .update({ avatar: selectedAvatar })
-                        .eq('id', currentUser.id);
-                    
-                    if (error) throw error;
-                    
-                    currentUser.avatar = selectedAvatar;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
-                    updateProfileUI();
-                    
-                    if (ably) {
-                        const presenceChannel = ably.channels.get('presence');
-                        presenceChannel.presence.update({ 
-                            name: currentUser.name, 
-                            avatar: selectedAvatar,
-                            bio: currentUser.bio,
-                            isAdmin: currentUser.isAdmin,
-                            dnd: currentUser.dnd
-                        });
-                    }
-                } catch (error) {
-                    console.error('Avatar save error:', error);
-                    alert('Ошибка при сохранении аватара');
+                currentUser.avatar = selectedAvatar;
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].avatar = selectedAvatar;
+                localStorage.setItem('telegram_users', JSON.stringify(users));
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateProfileUI();
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.update({ 
+                        name: currentUser.name, 
+                        avatar: selectedAvatar,
+                        bio: currentUser.bio,
+                        isAdmin: currentUser.isAdmin,
+                        dnd: currentUser.dnd
+                    });
                 }
             }
             closeAvatarModal();
