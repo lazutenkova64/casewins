@@ -1145,7 +1145,6 @@
             box-shadow: 0 0 15px var(--accent-green);
         }
 
-        /* Мобильные стили */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -1222,12 +1221,10 @@
             }
         }
         
-        /* Анимация для клавиатуры */
         .keyboard-open .message-input-container {
             transform: translateY(0);
         }
         
-        /* Затемнение фона при открытой клавиатуре на мобильных */
         .keyboard-open .sidebar {
             opacity: 0.5;
             pointer-events: none;
@@ -1267,7 +1264,7 @@
             <div id="registerForm" style="display: none;">
                 <input type="text" class="modal-input" id="registerUsername" placeholder="Имя пользователя" maxlength="20">
                 <div class="password-input-container">
-                    <input type="password" class="modal-input" id="registerPassword" placeholder="Пароль">
+                    <input type="password" class="modal-input" id="registerPassword" placeholder="Пароль (мин. 6 символов)">
                     <button class="toggle-password" onclick="togglePassword('registerPassword')">👁️</button>
                 </div>
                 <div class="password-input-container">
@@ -1427,6 +1424,7 @@
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
+                detectSessionInUrl: false
             }
         });
 
@@ -1443,7 +1441,7 @@
         let publicChats = [];
         let onlineUsers = {};
         let currentChat = null;
-        let messages = {};
+        let messages = JSON.parse(localStorage.getItem('messages')) || {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
@@ -1453,7 +1451,6 @@
         // Для статусов сообщений
         let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
         let deliveredMessages = JSON.parse(localStorage.getItem('deliveredMessages')) || {};
-        let readMessages = JSON.parse(localStorage.getItem('readMessages')) || {};
 
         // ID для отслеживания удаленных сообщений
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
@@ -1505,12 +1502,6 @@
 
         // ========== Инициализация ==========
         function init() {
-            try {
-                messages = JSON.parse(localStorage.getItem('messages')) || {};
-            } catch (e) {
-                messages = {};
-            }
-            
             setupMicrophoneHandlers();
             populateEmojiPicker();
             checkSavedSession();
@@ -1525,7 +1516,10 @@
                     .select('*')
                     .eq('type', 'public');
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error loading public chats:', error);
+                    return;
+                }
                 
                 publicChats = data || [];
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -1536,14 +1530,12 @@
         }
 
         function setupMobileKeyboardHandlers() {
-            // Обработка кликов вне поля ввода на мобильных
             document.addEventListener('touchstart', function(e) {
                 if (window.innerWidth <= 768) {
                     const messageInput = document.getElementById('messageInput');
                     const emojiPicker = document.getElementById('emojiPicker');
                     const emojiBtn = document.querySelector('.emoji-toggle-btn');
                     
-                    // Если клик не по полю ввода, не по эмодзи-пикеру и не по кнопке эмодзи
                     if (!messageInput.contains(e.target) && 
                         !emojiPicker.contains(e.target) && 
                         !emojiBtn.contains(e.target)) {
@@ -1606,16 +1598,22 @@
         }
 
         async function checkSavedSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (session?.user) {
-                const { data: userData } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                
-                if (userData) {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    
+                    const { data: userData, error } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', currentUser.id)
+                        .single();
+                    
+                    if (error || !userData) {
+                        localStorage.removeItem('currentUser');
+                        return;
+                    }
+                    
                     currentUser = {
                         id: userData.id,
                         name: userData.username,
@@ -1637,6 +1635,9 @@
                         checkUrlForChat();
                         startHeartbeat();
                     }, 100);
+                } catch (e) {
+                    console.error('Failed to load session', e);
+                    localStorage.removeItem('currentUser');
                 }
             }
         }
@@ -1886,9 +1887,7 @@
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
-                    // Обновляем статус для отправленных сообщений
                     if (msg.sender !== currentUser.id) {
-                        // Это входящее сообщение, отправляем подтверждение доставки
                         sendDeliveryReceipt(chat.id, msg.id);
                     }
                     
@@ -1905,8 +1904,6 @@
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                        
-                        // Если мы в чате, отмечаем сообщения как прочитанные
                         markMessagesAsRead(chat.id);
                     }
                     
@@ -1921,7 +1918,6 @@
                     deliveredMessages[currentChat?.id].push(messageId);
                     localStorage.setItem('deliveredMessages', JSON.stringify(deliveredMessages));
                     
-                    // Обновляем статус сообщения
                     if (messageStatuses[messageId]) {
                         messageStatuses[messageId].status = 'delivered';
                         messageStatuses[messageId].deliveredAt = Date.now();
@@ -2019,7 +2015,6 @@
         function markMessagesAsRead(chatId) {
             if (!ably || !messages[chatId]) return;
             
-            // Отправляем подтверждение прочтения для всех непрочитанных сообщений
             messages[chatId].forEach(msg => {
                 if (msg.sender !== currentUser.id && 
                     (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
@@ -2072,32 +2067,24 @@
             }
             
             try {
-                // Find user by username
-                const { data: users, error: findError } = await supabaseClient
+                const { data: users, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('username', username)
+                    .eq('password', password)
                     .limit(1);
                 
-                if (findError) throw findError;
+                if (error) throw error;
                 
-                const user = users?.[0];
-                
-                if (user && user.password === password) {
-                    const { data: { session }, error: signInError } = await supabaseClient.auth.signInWithPassword({
-                        email: `${username}@telegram.local`,
-                        password: password
-                    });
+                if (users && users.length > 0) {
+                    const user = users[0];
                     
-                    if (signInError) throw signInError;
-                    
-                    const isAdmin = username === ADMIN_USERNAME;
                     currentUser = {
                         id: user.id,
                         name: user.username,
                         avatar: user.avatar || '👤',
                         bio: user.bio || '',
-                        isAdmin: isAdmin,
+                        isAdmin: user.username === ADMIN_USERNAME,
                         dnd: user.dnd || false
                     };
                     
@@ -2151,7 +2138,6 @@
             }
             
             try {
-                // Check if username exists
                 const { data: existingUsers } = await supabaseClient
                     .from('users')
                     .select('username')
@@ -2163,22 +2149,9 @@
                     return;
                 }
                 
-                // Create auth user
-                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                    email: `${username}@telegram.local`,
-                    password: password,
-                    options: {
-                        data: {
-                            username: username
-                        }
-                    }
-                });
-                
-                if (authError) throw authError;
-                
                 const isAdmin = username === ADMIN_USERNAME;
                 const newUser = {
-                    id: authData.user.id,
+                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                     username: username,
                     password: password,
                     avatar: '👤',
@@ -2187,7 +2160,6 @@
                     created_at: new Date().toISOString()
                 };
                 
-                // Save user to users table
                 const { error: insertError } = await supabaseClient
                     .from('users')
                     .insert([newUser]);
@@ -2228,7 +2200,6 @@
                 mediaStream = null;
             }
             
-            // Останавливаем все аудио
             Object.values(audioElements).forEach(audio => {
                 if (audio) {
                     audio.pause();
@@ -2272,8 +2243,6 @@
                 }
                 ably = null;
             }
-            
-            await supabaseClient.auth.signOut();
             
             localStorage.removeItem('currentUser');
             currentUser = null;
@@ -2321,7 +2290,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
             
-            // Сохраняем статус сообщения
             messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
             
             const message = {
@@ -2333,7 +2301,7 @@
                 time: timeString,
                 isAdmin: currentUser.isAdmin || false,
                 timestamp: timestamp,
-                status: 'sent' // начальный статус
+                status: 'sent'
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
@@ -2372,7 +2340,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
-            // Статус pending для голосовых
             messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
 
             const reader = new FileReader();
@@ -2405,7 +2372,6 @@
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('message', message);
                     
-                    // Через небольшую задержку меняем статус на sent (имитация успешной отправки)
                     setTimeout(() => {
                         if (messageStatuses[messageId]) {
                             messageStatuses[messageId].status = 'sent';
@@ -2492,7 +2458,6 @@
 
         function toggleAudio(messageId, audioSrc) {
             if (activeAudioId === messageId && activeAudio) {
-                // То же сообщение - переключаем паузу/воспроизведение
                 if (!activeAudio.paused) {
                     activeAudio.pause();
                 } else {
@@ -2501,14 +2466,12 @@
                 return;
             }
             
-            // Другое сообщение - останавливаем предыдущее и запускаем новое
             if (activeAudio) {
                 activeAudio.pause();
                 activeAudio.currentTime = 0;
                 updateAudioButton(activeAudioId, false);
             }
             
-            // Создаем новый аудио элемент, если его нет
             if (!audioElements[messageId]) {
                 audioElements[messageId] = new Audio(audioSrc);
                 audioElements[messageId].addEventListener('timeupdate', () => updateAudioProgress(messageId));
@@ -2624,7 +2587,6 @@
                 let content = '';
                 let statusHtml = '';
                 
-                // Получаем статус сообщения
                 const status = messageStatuses[msg.id] || { status: msg.sender === currentUser.id ? 'sent' : 'delivered' };
                 
                 if (msg.type === 'out') {
@@ -2690,7 +2652,6 @@
                 });
             }
             
-            // Если мы в чате, отмечаем сообщения как прочитанные
             if (currentChat) {
                 markMessagesAsRead(currentChat.id);
             }
@@ -2986,7 +2947,6 @@
             };
             
             try {
-                // Save to Supabase
                 const { error } = await supabaseClient
                     .from('chats')
                     .insert([newChat]);
@@ -3101,7 +3061,6 @@
             const dnd = document.getElementById('profileDNDCheckbox').checked;
             
             if (newName && newName !== currentUser.name) {
-                // Check if username exists
                 const { data: existingUsers } = await supabaseClient
                     .from('users')
                     .select('username')
@@ -3121,7 +3080,6 @@
             currentUser.dnd = dnd;
             
             try {
-                // Update user in Supabase
                 const { error } = await supabaseClient
                     .from('users')
                     .update({
@@ -3181,7 +3139,6 @@
                 currentUser.avatar = selectedAvatar;
                 
                 try {
-                    // Update avatar in Supabase
                     const { error } = await supabaseClient
                         .from('users')
                         .update({ avatar: currentUser.avatar })
