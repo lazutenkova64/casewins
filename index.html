@@ -1432,7 +1432,6 @@
         let currentUser = null;
         
         // Data structures
-        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
         let onlineUsers = {};
@@ -1512,14 +1511,12 @@
         }
 
         function setupMobileKeyboardHandlers() {
-            // Обработка кликов вне поля ввода на мобильных
             document.addEventListener('touchstart', function(e) {
                 if (window.innerWidth <= 768) {
                     const messageInput = document.getElementById('messageInput');
                     const emojiPicker = document.getElementById('emojiPicker');
                     const emojiBtn = document.querySelector('.emoji-toggle-btn');
                     
-                    // Если клик не по полю ввода, не по эмодзи-пикеру и не по кнопке эмодзи
                     if (!messageInput.contains(e.target) && 
                         !emojiPicker.contains(e.target) && 
                         !emojiBtn.contains(e.target)) {
@@ -1581,19 +1578,31 @@
             });
         }
 
-        function checkSavedSession() {
+        async function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     const parsedUser = JSON.parse(savedUser);
                     
-                    const userExists = Object.values(users).some(u => u.id === parsedUser.id);
-                    if (!userExists) {
+                    const { data: user, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', parsedUser.id)
+                        .single();
+                    
+                    if (error || !user) {
                         localStorage.removeItem('currentUser');
                         return;
                     }
                     
-                    currentUser = parsedUser;
+                    currentUser = {
+                        id: user.id,
+                        name: user.username,
+                        avatar: user.avatar || '👤',
+                        bio: user.bio || '',
+                        isAdmin: user.username === ADMIN_USERNAME,
+                        dnd: user.dnd || false
+                    };
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
@@ -1818,7 +1827,6 @@
                     }
                 });
 
-                // Подписываемся на все мои чаты
                 myChats.forEach(chat => subscribeToChat(chat));
             });
 
@@ -1859,9 +1867,7 @@
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
-                    // Обновляем статус для отправленных сообщений
                     if (msg.sender !== currentUser.id) {
-                        // Это входящее сообщение, отправляем подтверждение доставки
                         sendDeliveryReceipt(chat.id, msg.id);
                     }
                     
@@ -1879,7 +1885,6 @@
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         
-                        // Если мы в чате, отмечаем сообщения как прочитанные
                         markMessagesAsRead(chat.id);
                     }
                     
@@ -1894,7 +1899,6 @@
                     deliveredMessages[currentChat?.id].push(messageId);
                     localStorage.setItem('deliveredMessages', JSON.stringify(deliveredMessages));
                     
-                    // Обновляем статус сообщения
                     if (messageStatuses[messageId]) {
                         messageStatuses[messageId].status = 'delivered';
                         messageStatuses[messageId].deliveredAt = Date.now();
@@ -1952,7 +1956,6 @@
                 }
             });
             
-            // Загружаем историю
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -1992,7 +1995,6 @@
         function markMessagesAsRead(chatId) {
             if (!ably || !messages[chatId]) return;
             
-            // Отправляем подтверждение прочтения для всех непрочитанных сообщений
             messages[chatId].forEach(msg => {
                 if (msg.sender !== currentUser.id && 
                     (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
@@ -2036,7 +2038,7 @@
             }
             
             try {
-                const { data: users, error } = await supabase
+                const { data: foundUsers, error } = await supabase
                     .from('users')
                     .select('*')
                     .eq('username', username)
@@ -2044,8 +2046,8 @@
                 
                 if (error) throw error;
                 
-                if (users && users.length > 0) {
-                    const user = users[0];
+                if (foundUsers && foundUsers.length > 0) {
+                    const user = foundUsers[0];
                     const isAdmin = username === ADMIN_USERNAME;
                     
                     currentUser = {
@@ -2168,7 +2170,6 @@
                 mediaStream = null;
             }
             
-            // Останавливаем все аудио
             Object.values(audioElements).forEach(audio => {
                 if (audio) {
                     audio.pause();
@@ -2259,7 +2260,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
             
-            // Сохраняем статус сообщения
             messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
             
             const message = {
@@ -2271,7 +2271,7 @@
                 time: timeString,
                 isAdmin: currentUser.isAdmin || false,
                 timestamp: timestamp,
-                status: 'sent' // начальный статус
+                status: 'sent'
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
@@ -2310,7 +2310,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
-            // Статус pending для голосовых
             messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
 
             const reader = new FileReader();
@@ -2343,7 +2342,6 @@
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('message', message);
                     
-                    // Через небольшую задержку меняем статус на sent (имитация успешной отправки)
                     setTimeout(() => {
                         if (messageStatuses[messageId]) {
                             messageStatuses[messageId].status = 'sent';
@@ -2430,7 +2428,6 @@
 
         function toggleAudio(messageId, audioSrc) {
             if (activeAudioId === messageId && activeAudio) {
-                // То же сообщение - переключаем паузу/воспроизведение
                 if (!activeAudio.paused) {
                     activeAudio.pause();
                 } else {
@@ -2439,14 +2436,12 @@
                 return;
             }
             
-            // Другое сообщение - останавливаем предыдущее и запускаем новое
             if (activeAudio) {
                 activeAudio.pause();
                 activeAudio.currentTime = 0;
                 updateAudioButton(activeAudioId, false);
             }
             
-            // Создаем новый аудио элемент, если его нет
             if (!audioElements[messageId]) {
                 audioElements[messageId] = new Audio(audioSrc);
                 audioElements[messageId].addEventListener('timeupdate', () => updateAudioProgress(messageId));
@@ -2562,7 +2557,6 @@
                 let content = '';
                 let statusHtml = '';
                 
-                // Получаем статус сообщения
                 const status = messageStatuses[msg.id] || { status: msg.sender === currentUser.id ? 'sent' : 'delivered' };
                 
                 if (msg.type === 'out') {
@@ -2628,7 +2622,6 @@
                 });
             }
             
-            // Если мы в чате, отмечаем сообщения как прочитанные
             if (currentChat) {
                 markMessagesAsRead(currentChat.id);
             }
