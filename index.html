@@ -1423,7 +1423,7 @@
         const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
@@ -1520,7 +1520,7 @@
 
         async function loadPublicChats() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('chats')
                     .select('*')
                     .eq('type', 'public');
@@ -1606,10 +1606,10 @@
         }
 
         async function checkSavedSession() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (session?.user) {
-                const { data: userData } = await supabase
+                const { data: userData } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', session.user.id)
@@ -2073,7 +2073,7 @@
             
             try {
                 // Find user by username
-                const { data: users, error: findError } = await supabase
+                const { data: users, error: findError } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('username', username)
@@ -2084,7 +2084,7 @@
                 const user = users?.[0];
                 
                 if (user && user.password === password) {
-                    const { data: { session }, error: signInError } = await supabase.auth.signInWithPassword({
+                    const { data: { session }, error: signInError } = await supabaseClient.auth.signInWithPassword({
                         email: `${username}@telegram.local`,
                         password: password
                     });
@@ -2152,7 +2152,7 @@
             
             try {
                 // Check if username exists
-                const { data: existingUsers } = await supabase
+                const { data: existingUsers } = await supabaseClient
                     .from('users')
                     .select('username')
                     .eq('username', username)
@@ -2164,7 +2164,7 @@
                 }
                 
                 // Create auth user
-                const { data: authData, error: authError } = await supabase.auth.signUp({
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: `${username}@telegram.local`,
                     password: password,
                     options: {
@@ -2188,7 +2188,7 @@
                 };
                 
                 // Save user to users table
-                const { error: insertError } = await supabase
+                const { error: insertError } = await supabaseClient
                     .from('users')
                     .insert([newUser]);
                 
@@ -2273,7 +2273,7 @@
                 ably = null;
             }
             
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             
             localStorage.removeItem('currentUser');
             currentUser = null;
@@ -2987,7 +2987,7 @@
             
             try {
                 // Save to Supabase
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('chats')
                     .insert([newChat]);
                 
@@ -3102,7 +3102,7 @@
             
             if (newName && newName !== currentUser.name) {
                 // Check if username exists
-                const { data: existingUsers } = await supabase
+                const { data: existingUsers } = await supabaseClient
                     .from('users')
                     .select('username')
                     .eq('username', newName)
@@ -3122,7 +3122,7 @@
             
             try {
                 // Update user in Supabase
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('users')
                     .update({
                         username: currentUser.name,
@@ -3182,7 +3182,7 @@
                 
                 try {
                     // Update avatar in Supabase
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('users')
                         .update({ avatar: currentUser.avatar })
                         .eq('id', currentUser.id);
