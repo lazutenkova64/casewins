@@ -22,7 +22,7 @@ body {
     background:#1e1e1e;
     padding:30px;
     border-radius:12px;
-    width:300px;
+    width:320px;
 }
 
 input {
@@ -58,7 +58,7 @@ button:hover {
     <h2>Вход</h2>
     <input id="loginUsername" placeholder="Имя">
     <input id="loginPassword" type="password" placeholder="Пароль">
-    <button onclick="login()">Войти</button>
+    <button id="loginBtn">Войти</button>
 
     <hr>
 
@@ -66,52 +66,46 @@ button:hover {
     <input id="registerUsername" placeholder="Имя">
     <input id="registerPassword" type="password" placeholder="Пароль">
     <input id="registerConfirmPassword" type="password" placeholder="Подтвердите пароль">
-    <button onclick="register()">Зарегистрироваться</button>
+    <button id="registerBtn">Зарегистрироваться</button>
 </div>
 
 <div class="box hidden" id="appBox">
     <h2>Вы вошли</h2>
     <p id="welcomeText"></p>
-    <button onclick="logout()">Выйти</button>
+    <button id="logoutBtn">Выйти</button>
 </div>
 
 <script>
-/* =========================
-   ВСТАВЬ СВОИ ДАННЫЕ
-========================= */
-
 const SUPABASE_URL = "ВСТАВЬ_СЮДА_URL";
 const SUPABASE_KEY = "ВСТАВЬ_СЮДА_ANON_KEY";
-
-/* ========================= */
 
 let supabase = null;
 let currentUser = null;
 
-function initSupabase() {
-    try {
-        if (!window.supabase) {
-            alert("Supabase не загрузился");
-            return;
-        }
+document.addEventListener("DOMContentLoaded", () => {
 
-        supabase = window.supabase.createClient(
-            SUPABASE_URL.trim(),
-            SUPABASE_KEY.trim()
-        );
-
-        console.log("Supabase подключен");
-    } catch (err) {
-        console.error(err);
-        alert("Ошибка подключения к Supabase");
-    }
-}
-
-async function login() {
-    if (!supabase) {
-        alert("Нет подключения к серверу");
+    // Инициализация Supabase
+    if (!window.supabase) {
+        alert("Supabase не загрузился");
         return;
     }
+
+    supabase = window.supabase.createClient(
+        SUPABASE_URL.trim(),
+        SUPABASE_KEY.trim()
+    );
+
+    console.log("Supabase подключен");
+
+    // Навешиваем события
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("registerBtn").addEventListener("click", register);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    checkSession();
+});
+
+async function login() {
 
     const username = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
@@ -136,20 +130,15 @@ async function login() {
 
         currentUser = data;
         localStorage.setItem("currentUser", JSON.stringify(data));
-
         showApp();
 
     } catch (err) {
-        console.error(err);
+        console.error("Login error:", err);
         alert("Ошибка входа");
     }
 }
 
 async function register() {
-    if (!supabase) {
-        alert("Нет подключения к серверу");
-        return;
-    }
 
     const username = document.getElementById("registerUsername").value.trim();
     const password = document.getElementById("registerPassword").value;
@@ -187,7 +176,7 @@ async function register() {
 
         alert("Регистрация успешна!");
     } catch (err) {
-        console.error(err);
+        console.error("Register error:", err);
         alert("Ошибка регистрации");
     }
 }
@@ -211,11 +200,6 @@ function checkSession() {
         showApp();
     }
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    initSupabase();
-    checkSession();
-});
 </script>
 
 </body>
