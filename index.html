@@ -22,4 +22,38 @@
 <button onclick="login()" style="width:100%;padding:8px;">Войти</button>
 </div>
 
-<s
+<script>
+const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
+const SUPABASE_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
+
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function register() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { error } = await client.auth.signUp({ email, password });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Регистрация успешна!");
+  }
+}
+
+async function login() {
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+
+  const { error } = await client.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Вход выполнен!");
+  }
+}
+</script>
+
+</body>
+</html>
