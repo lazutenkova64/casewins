@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Web</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1422,7 +1421,7 @@
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
         // ============================================================
-        // SUPABASE
+        // SUPABASE - УБЕДИТЕСЬ, ЧТО ЭТОТ БЛОК ТОЛЬКО ОДИН РАЗ!
         // ============================================================
         const SUPABASE_URL = 'https://nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzQwMDQyODAwLAogICJleHAiOiAxODk3ODA5MjAwCn0.3-kWohcIy1GS7L5cYtqkLAMQy6sEfNFRMxZqQq_R-OU';
@@ -1432,6 +1431,7 @@
         let currentUser = null;
         
         // Data structures
+        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
         let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
         let onlineUsers = {};
@@ -1578,31 +1578,19 @@
             });
         }
 
-        async function checkSavedSession() {
+        function checkSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
                     const parsedUser = JSON.parse(savedUser);
                     
-                    const { data: user, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', parsedUser.id)
-                        .single();
-                    
-                    if (error || !user) {
+                    const userExists = Object.values(users).some(u => u.id === parsedUser.id);
+                    if (!userExists) {
                         localStorage.removeItem('currentUser');
                         return;
                     }
                     
-                    currentUser = {
-                        id: user.id,
-                        name: user.username,
-                        avatar: user.avatar || '👤',
-                        bio: user.bio || '',
-                        isAdmin: user.username === ADMIN_USERNAME,
-                        dnd: user.dnd || false
-                    };
+                    currentUser = parsedUser;
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
@@ -2026,8 +2014,8 @@
             }
         }
 
-        // ========== Аутентификация через Supabase ==========
-        async function login() {
+        // ========== Аутентификация ==========
+        function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
             const remember = document.getElementById('rememberMe').checked;
@@ -2037,52 +2025,36 @@
                 return;
             }
             
-            try {
-                const { data: foundUsers, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('username', username)
-                    .eq('password', password);
+            const userKey = username.toLowerCase();
+            if (users[userKey] && users[userKey].password === password) {
+                const isAdmin = username === ADMIN_USERNAME;
+                currentUser = {
+                    id: users[userKey].id,
+                    name: users[userKey].name,
+                    avatar: users[userKey].avatar || '👤',
+                    bio: users[userKey].bio || '',
+                    isAdmin: isAdmin,
+                    dnd: users[userKey].dnd || false
+                };
                 
-                if (error) throw error;
+                if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
-                if (foundUsers && foundUsers.length > 0) {
-                    const user = foundUsers[0];
-                    const isAdmin = username === ADMIN_USERNAME;
-                    
-                    currentUser = {
-                        id: user.id,
-                        name: user.username,
-                        avatar: user.avatar || '👤',
-                        bio: user.bio || '',
-                        isAdmin: isAdmin,
-                        dnd: user.dnd || false
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                    checkUrlForChat();
-                } else {
-                    alert('Неверное имя пользователя или пароль');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Ошибка при входе: ' + error.message);
+                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                updateProfileUI();
+                
+                initAbly();
+                startHeartbeat();
+                checkUrlForChat();
+            } else {
+                alert('Неверное имя пользователя или пароль');
             }
         }
 
-        async function register() {
+        function register() {
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
@@ -2101,62 +2073,44 @@
                 return;
             }
             
-            try {
-                const { data: existingUsers, error: checkError } = await supabase
-                    .from('users')
-                    .select('username')
-                    .eq('username', username);
-                
-                if (checkError) throw checkError;
-                
-                if (existingUsers && existingUsers.length > 0) {
-                    alert('Пользователь с таким именем уже существует');
-                    return;
-                }
-                
-                const isAdmin = username === ADMIN_USERNAME;
-                const newUser = {
-                    username: username,
-                    password: password,
-                    avatar: '👤',
-                    bio: '',
-                    dnd: false
-                };
-                
-                const { data, error } = await supabase
-                    .from('users')
-                    .insert([newUser])
-                    .select();
-                
-                if (error) throw error;
-                
-                if (data && data.length > 0) {
-                    const user = data[0];
-                    currentUser = {
-                        id: user.id,
-                        name: user.username,
-                        avatar: user.avatar || '👤',
-                        bio: user.bio || '',
-                        isAdmin: isAdmin,
-                        dnd: false
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                }
-            } catch (error) {
-                console.error('Registration error:', error);
-                alert('Ошибка при регистрации: ' + error.message);
+            const userKey = username.toLowerCase();
+            if (users[userKey]) {
+                alert('Пользователь с таким именем уже существует');
+                return;
             }
+            
+            const isAdmin = username === ADMIN_USERNAME;
+            const newUser = {
+                id: 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                name: username,
+                password: password,
+                avatar: '👤',
+                bio: '',
+                dnd: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            users[userKey] = newUser;
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+            
+            currentUser = {
+                id: newUser.id,
+                name: newUser.name,
+                avatar: newUser.avatar,
+                bio: newUser.bio,
+                isAdmin: isAdmin,
+                dnd: false
+            };
+            
+            if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('appContainer').style.display = 'flex';
+            
+            updateProfileUI();
+            
+            initAbly();
+            startHeartbeat();
         }
 
         function logout() {
@@ -3008,52 +2962,40 @@
             document.getElementById('profileModal').classList.remove('active');
         }
 
-        async function saveProfile() {
+        function saveProfile() {
             const newName = document.getElementById('profileNameInput').value.trim();
             const newBio = document.getElementById('profileBioInput').value.trim();
             const dnd = document.getElementById('profileDNDCheckbox').checked;
             
-            try {
-                const updates = {};
+            if (newName && newName !== currentUser.name) {
+                const oldKey = currentUser.name.toLowerCase();
+                const newKey = newName.toLowerCase();
                 
-                if (newName && newName !== currentUser.name) {
-                    const { data: existingUsers } = await supabase
-                        .from('users')
-                        .select('username')
-                        .eq('username', newName)
-                        .neq('id', currentUser.id);
-                    
-                    if (existingUsers && existingUsers.length > 0) {
-                        alert('Пользователь с таким именем уже существует');
-                        return;
+                if (users[newKey] && newKey !== oldKey) {
+                    alert('Пользователь с таким именем уже существует');
+                    return;
+                }
+                
+                if (users[oldKey]) {
+                    users[oldKey].name = newName;
+                    if (newKey !== oldKey) {
+                        users[newKey] = users[oldKey];
+                        delete users[oldKey];
                     }
-                    
-                    updates.username = newName;
                 }
-                
-                if (newBio !== currentUser.bio) {
-                    updates.bio = newBio;
-                }
-                
-                if (dnd !== currentUser.dnd) {
-                    updates.dnd = dnd;
-                }
-                
-                if (Object.keys(updates).length > 0) {
-                    const { error } = await supabase
-                        .from('users')
-                        .update(updates)
-                        .eq('id', currentUser.id);
-                    
-                    if (error) throw error;
-                }
-                
-                if (updates.username) currentUser.name = updates.username;
-                if (updates.bio !== undefined) currentUser.bio = updates.bio;
-                if (updates.dnd !== undefined) currentUser.dnd = updates.dnd;
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
+                currentUser.name = newName;
+            }
+            
+            if (newBio !== currentUser.bio) {
+                currentUser.bio = newBio;
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].bio = newBio;
+            }
+            
+            if (dnd !== currentUser.dnd) {
+                currentUser.dnd = dnd;
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].dnd = dnd;
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     presenceChannel.presence.update({ 
@@ -3064,13 +3006,13 @@
                         dnd: dnd
                     });
                 }
-                
-                updateProfileUI();
-                closeProfileModal();
-            } catch (error) {
-                console.error('Error saving profile:', error);
-                alert('Ошибка при сохранении профиля');
             }
+            
+            localStorage.setItem('telegram_users', JSON.stringify(users));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            updateProfileUI();
+            closeProfileModal();
         }
 
         function openAvatarModal() {
@@ -3094,33 +3036,23 @@
             selectedAvatar = emoji;
         }
 
-        async function saveAvatar() {
+        function saveAvatar() {
             if (selectedAvatar) {
-                try {
-                    const { error } = await supabase
-                        .from('users')
-                        .update({ avatar: selectedAvatar })
-                        .eq('id', currentUser.id);
-                    
-                    if (error) throw error;
-                    
-                    currentUser.avatar = selectedAvatar;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    updateProfileUI();
-                    
-                    if (ably) {
-                        const presenceChannel = ably.channels.get('presence');
-                        presenceChannel.presence.update({ 
-                            name: currentUser.name, 
-                            avatar: selectedAvatar,
-                            bio: currentUser.bio,
-                            isAdmin: currentUser.isAdmin,
-                            dnd: currentUser.dnd
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error saving avatar:', error);
-                    alert('Ошибка при сохранении аватара');
+                currentUser.avatar = selectedAvatar;
+                const userKey = currentUser.name.toLowerCase();
+                if (users[userKey]) users[userKey].avatar = selectedAvatar;
+                localStorage.setItem('telegram_users', JSON.stringify(users));
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateProfileUI();
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.update({ 
+                        name: currentUser.name, 
+                        avatar: selectedAvatar,
+                        bio: currentUser.bio,
+                        isAdmin: currentUser.isAdmin,
+                        dnd: currentUser.dnd
+                    });
                 }
             }
             closeAvatarModal();
@@ -3254,7 +3186,7 @@
             document.getElementById('mediaViewerContent').innerHTML = '';
         }
 
-        // ========== Привязываем все функции к window ==========
+        // ========== Делаем функции доступными глобально ==========
         window.switchAuthMode = switchAuthMode;
         window.togglePassword = togglePassword;
         window.login = login;
@@ -3330,43 +3262,6 @@
 
         // Запуск инициализации
         init();
-
-        // ========== Делаем функции доступными глобально ==========
-window.switchAuthMode = switchAuthMode;
-window.togglePassword = togglePassword;
-window.login = login;
-window.register = register;
-window.logout = logout;
-window.switchTab = switchTab;
-window.handleSearch = handleSearch;
-window.openCreateChatModal = openCreateChatModal;
-window.closeCreateChatModal = closeCreateChatModal;
-window.createPublicChat = createPublicChat;
-window.closeJoinChatModal = closeJoinChatModal;
-window.joinProtectedChat = joinProtectedChat;
-window.sendMessage = sendMessage;
-window.toggleEmojiPicker = toggleEmojiPicker;
-window.handleKeyPress = handleKeyPress;
-window.handleInputFocus = handleInputFocus;
-window.handleInputBlur = handleInputBlur;
-window.handleMessagesContainerClick = handleMessagesContainerClick;
-window.openProfileModal = openProfileModal;
-window.closeProfileModal = closeProfileModal;
-window.saveProfile = saveProfile;
-window.openAvatarModal = openAvatarModal;
-window.closeAvatarModal = closeAvatarModal;
-window.saveAvatar = saveAvatar;
-window.toggleSidebar = toggleSidebar;
-window.closeEditMessageModal = closeEditMessageModal;
-window.saveEditedMessage = saveEditedMessage;
-window.editMessage = editMessage;
-window.deleteMessage = deleteMessage;
-window.openMedia = openMedia;
-window.closeMediaViewer = closeMediaViewer;
-window.toggleAudio = toggleAudio;
-window.seekAudio = seekAudio;
-        
     </script>
 </body>
 </html>
-
