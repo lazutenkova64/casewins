@@ -7,7 +7,8 @@
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Все стили остаются без изменений */
+        /* Все стили остаются без изменений - я их не менял для краткости, 
+           но в вашем коде они должны остаться такими же как были */
         * {
             margin: 0;
             padding: 0;
@@ -1442,7 +1443,7 @@
         // Data structures
         let myChats = [];
         let publicChats = [];
-        let allUsers = []; // Все пользователи из БД
+        let allUsers = [];
         let onlineUsers = {};
         let currentChat = null;
         let messages = {};
@@ -1529,7 +1530,6 @@
                 
                 if (error) throw error;
                 
-                // Исключаем пользователя 'test' из списка
                 allUsers = (data || []).filter(user => user.username !== 'test');
                 
                 if (currentTab === 'users') {
@@ -1547,20 +1547,30 @@
                     .select('*')
                     .eq('type', 'public');
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error loading chats:', error);
+                    return;
+                }
                 
-                publicChats = data || [];
-                // Преобразуем строку members обратно в массив, если она есть
-                publicChats.forEach(chat => {
-                    if (chat.members && typeof chat.members === 'string') {
-                        try {
-                            chat.members = JSON.parse(chat.members);
-                        } catch (e) {
-                            chat.members = [];
+                publicChats = (data || []).map(chat => {
+                    // Парсим members если это строка
+                    let members = [];
+                    if (chat.members) {
+                        if (typeof chat.members === 'string') {
+                            try {
+                                members = JSON.parse(chat.members);
+                            } catch (e) {
+                                members = [];
+                            }
+                        } else if (Array.isArray(chat.members)) {
+                            members = chat.members;
                         }
-                    } else if (!chat.members) {
-                        chat.members = [];
                     }
+                    
+                    return {
+                        ...chat,
+                        members: members
+                    };
                 });
                 
                 localStorage.setItem('publicChats', JSON.stringify(publicChats));
@@ -1644,7 +1654,6 @@
                 try {
                     currentUser = JSON.parse(savedUser);
                     
-                    // Проверяем, существует ли пользователь в базе
                     const { data, error } = await supabaseClient
                         .from('users')
                         .select('*')
@@ -1656,7 +1665,6 @@
                         return;
                     }
                     
-                    // Обновляем данные из базы
                     currentUser = {
                         id: data.id,
                         name: data.username,
@@ -1889,7 +1897,6 @@
                     }
                 });
 
-                // Подписываемся на все мои чаты
                 myChats.forEach(chat => subscribeToChat(chat));
             });
 
@@ -1913,12 +1920,15 @@
         }
 
         function subscribeToChat(chat) {
-            if (!ably) return;
+            if (!ably || !chat) return;
+            
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             chatChannel.unsubscribe();
             
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
+                if (!msg) return;
+                
                 if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
                 if (!messages[chat.id]) messages[chat.id] = [];
                 
@@ -2018,7 +2028,6 @@
                 }
             });
             
-            // Загружаем историю
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -2110,7 +2119,6 @@
             }
             
             try {
-                // Ищем пользователя в таблице users
                 const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -2143,7 +2151,6 @@
                 
                 updateProfileUI();
                 
-                // Загружаем пользователей после входа
                 await loadAllUsers();
                 
                 initAbly();
@@ -2185,19 +2192,17 @@
             }
             
             try {
-                // Проверяем, не занято ли имя пользователя
                 const { data: existingUser } = await supabaseClient
                     .from('users')
                     .select('username')
                     .eq('username', username)
-                    .single();
+                    .maybeSingle();
                 
                 if (existingUser) {
                     alert('Пользователь с таким именем уже существует');
                     return;
                 }
                 
-                // Создаем нового пользователя
                 const newUser = {
                     username: username,
                     password: password,
@@ -2213,7 +2218,15 @@
                     .select()
                     .single();
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Insert error:', error);
+                    if (error.code === '23505') {
+                        alert('Пользователь с таким именем уже существует');
+                    } else {
+                        alert('Ошибка при регистрации: ' + error.message);
+                    }
+                    return;
+                }
                 
                 currentUser = {
                     id: data.id,
@@ -2233,7 +2246,6 @@
                 
                 updateProfileUI();
                 
-                // Загружаем пользователей после регистрации
                 await loadAllUsers();
                 
                 initAbly();
@@ -2729,7 +2741,6 @@
             } else if (currentTab === 'public') {
                 items = publicChats;
             } else if (currentTab === 'users') {
-                // Объединяем онлайн пользователей со всеми пользователями из БД
                 const allUsersList = allUsers.map(user => {
                     const onlineUser = onlineUsers[user.id.toString()];
                     return {
@@ -2882,7 +2893,6 @@
         function joinChat(chat) {
             if (!chat) return;
             
-            // Проверяем пароль для защищенных чатов
             if (chat.password && (!chat.members || !chat.members.includes(currentUser.id))) {
                 pendingChatToJoin = chat;
                 document.getElementById('joinChatTitle').textContent = `Введите пароль для "${chat.name}"`;
@@ -2890,12 +2900,9 @@
                 return;
             }
             
-            // Добавляем пользователя в список участников, если его там нет
             if (!chat.members) chat.members = [];
             if (!chat.members.includes(currentUser.id)) {
                 chat.members.push(currentUser.id);
-                
-                // Обновляем в базе данных
                 updateChatMembers(chat.id, chat.members);
             }
             
@@ -2960,7 +2967,6 @@
         }
 
         function createPrivateChat(user) {
-            // Создаем уникальный ID для личного чата
             const chatId = [currentUser.id, user.id].sort().join('-');
             let privateChat = myChats.find(c => c.id === chatId);
             
@@ -2972,7 +2978,6 @@
                     members: [currentUser.id, user.id]
                 };
                 
-                // Сохраняем в локальное хранилище
                 myChats.push(privateChat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             }
@@ -2993,7 +2998,6 @@
             myChats = myChats.filter(c => c.id !== chatId);
             localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             
-            // Удаляем из базы данных
             supabaseClient
                 .from('chats')
                 .delete()
@@ -3052,7 +3056,7 @@
                 password: password || null,
                 created_by: currentUser.id,
                 created_by_name: currentUser.name,
-                members: JSON.stringify([currentUser.id]), // Сохраняем как JSON строку
+                members: JSON.stringify([currentUser.id]),
                 type: 'public',
                 created_at: new Date().toISOString()
             };
@@ -3072,10 +3076,9 @@
                 
                 console.log('Чат создан успешно:', data);
                 
-                // Преобразуем для локального использования
                 const createdChat = {
                     ...newChat,
-                    members: [currentUser.id] // Преобразуем обратно в массив
+                    members: [currentUser.id]
                 };
                 
                 publicChats.push(createdChat);
@@ -3089,7 +3092,6 @@
                 joinChat(createdChat);
                 closeCreateChatModal();
                 
-                // Очищаем поля ввода
                 document.getElementById('chatNameInput').value = '';
                 document.getElementById('chatPasswordInput').value = '';
                 document.getElementById('chatDescriptionInput').value = '';
@@ -3239,7 +3241,6 @@
                 updateProfileUI();
                 closeProfileModal();
                 
-                // Обновляем список пользователей
                 await loadAllUsers();
                 
             } catch (err) {
@@ -3334,7 +3335,6 @@
             document.getElementById('searchInput').value = '';
             
             if (tab === 'users') {
-                // Обновляем список пользователей при переключении на вкладку
                 loadAllUsers();
             } else if (tab === 'public') {
                 loadPublicChats();
