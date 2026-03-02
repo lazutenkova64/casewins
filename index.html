@@ -759,7 +759,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            height: var(--input-height);
+            min-height: var(--input-height);
             flex-shrink: 0;
             z-index: 10;
             position: sticky;
@@ -1716,6 +1716,9 @@
                     
                     // Проверяем URL
                     checkUrlForChat();
+                    
+                    // Убеждаемся, что поле ввода видимо
+                    ensureInputVisible();
                 } else {
                     document.getElementById('loginModal').classList.add('active');
                     document.getElementById('appContainer').style.display = 'none';
@@ -1730,6 +1733,16 @@
                 
             } catch (err) {
                 console.error('Init error:', err);
+            }
+        }
+
+        // ========== Обеспечение видимости поля ввода ==========
+        function ensureInputVisible() {
+            const inputContainer = document.getElementById('messageInputContainer');
+            if (inputContainer) {
+                inputContainer.style.display = 'flex';
+                inputContainer.style.visibility = 'visible';
+                inputContainer.style.opacity = '1';
             }
         }
 
@@ -1849,6 +1862,9 @@
                         document.getElementById('messagesContainer').scrollHeight;
                 }, 300);
             });
+            
+            // Убеждаемся, что поле ввода всегда видимо
+            ensureInputVisible();
         }
 
         // ========== Обновление статусов в реальном времени ==========
@@ -2206,6 +2222,7 @@
                     }
                 });
 
+                // Подписываемся на все чаты пользователя
                 myChats.forEach(chat => subscribeToChat(chat));
             });
 
@@ -2270,6 +2287,7 @@
                 
                 if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
                 
+                // Сохраняем в БД даже если пользователь не в сети
                 saveMessageToDatabase(msg);
                 
                 if (!messages[chat.id]) messages[chat.id] = [];
@@ -2374,6 +2392,7 @@
                 }
             });
             
+            // Загружаем историю сообщений
             loadChatHistory(chat.id);
         }
 
@@ -2503,6 +2522,11 @@
                     if (!messages[chatId]) messages[chatId] = [];
                     
                     data.forEach(msg => {
+                        // Проверяем, не удалено ли сообщение
+                        if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) {
+                            return;
+                        }
+                        
                         const existingMsg = messages[chatId].find(m => m.id === msg.id);
                         if (!existingMsg) {
                             messages[chatId].push({
@@ -2878,6 +2902,7 @@
                 }
                 
                 updateBackButtonVisibility();
+                ensureInputVisible();
                 
             } catch (err) {
                 console.error('Login error:', err);
@@ -2990,6 +3015,7 @@
                 
                 joinChat(selfChat);
                 updateBackButtonVisibility();
+                ensureInputVisible();
                 
                 alert('Регистрация успешна!');
                 
@@ -3140,7 +3166,7 @@
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
-            // Отправляем через Ably
+            // Отправляем через Ably (даже если пользователь не в сети, сообщение сохранится в БД)
             if (ably && !currentChat.isSelf) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('message', message);
@@ -3359,6 +3385,11 @@
                 const fragment = [];
                 
                 messages[currentChat.id].forEach(msg => {
+                    // Проверяем, не удалено ли сообщение
+                    if (deletedMessages[currentChat.id] && deletedMessages[currentChat.id].includes(msg.id)) {
+                        return;
+                    }
+                    
                     const status = messageStatuses[msg.id] || { status: msg.sender == currentUser.id ? 'pending' : 'delivered' };
                     
                     let content = '';
@@ -3619,6 +3650,7 @@
             
             setTimeout(() => {
                 document.getElementById('messageInput').focus();
+                ensureInputVisible();
             }, 100);
         }
 
@@ -4200,6 +4232,9 @@
             // Обновляем высоту для мобильных
             const vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Убеждаемся, что поле ввода видимо
+            ensureInputVisible();
         });
 
         document.addEventListener('keydown', function(e) {
