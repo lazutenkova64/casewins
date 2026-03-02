@@ -46,16 +46,21 @@
             --status-delivered: #8e8e93;
             --status-read: #007aff;
             --tester-badge: #34c759;
+            --header-height: 60px;
+            --input-height: 70px;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
+            height: 100dvh;
             height: 100vh;
             overflow: hidden;
             line-height: 1.4;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            position: fixed;
+            width: 100%;
         }
 
         ::-webkit-scrollbar {
@@ -66,10 +71,12 @@
 
         .app-container {
             display: flex;
+            height: 100dvh;
             height: 100vh;
             width: 100vw;
             background-color: var(--bg-color);
             position: relative;
+            overflow: hidden;
         }
 
         /* Боковая панель */
@@ -112,7 +119,8 @@
             gap: 12px;
             background-color: var(--bg-header);
             border-bottom: 1px solid var(--border-light);
-            min-height: 60px;
+            height: var(--header-height);
+            flex-shrink: 0;
         }
 
         .avatar {
@@ -222,6 +230,7 @@
             gap: 4px;
             background-color: var(--bg-header);
             border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
         }
 
         .tab {
@@ -253,6 +262,7 @@
             padding: 8px 12px;
             position: relative;
             background-color: var(--bg-header);
+            flex-shrink: 0;
         }
 
         .search-bar input {
@@ -451,11 +461,12 @@
             background-color: var(--bg-chat);
             width: 100%;
             min-width: 0;
+            height: 100dvh;
             height: 100vh;
             position: relative;
         }
 
-        /* Шапка чата */
+        /* Шапка чата - фиксированная */
         .chat-header {
             padding: 8px 12px;
             background-color: var(--bg-header);
@@ -463,10 +474,12 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            min-height: 60px;
-            backdrop-filter: none;
-            box-shadow: none;
+            height: var(--header-height);
+            flex-shrink: 0;
             z-index: 10;
+            position: sticky;
+            top: 0;
+            width: 100%;
         }
 
         .back-button {
@@ -738,7 +751,7 @@
             background-color: var(--dnd-red);
         }
 
-        /* Поле ввода */
+        /* Поле ввода - фиксированное снизу */
         .message-input-container {
             padding: 10px 12px;
             background-color: var(--bg-header);
@@ -746,10 +759,12 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            min-height: 70px;
+            height: var(--input-height);
+            flex-shrink: 0;
+            z-index: 10;
             position: sticky;
             bottom: 0;
-            z-index: 15;
+            width: 100%;
         }
 
         .emoji-toggle-btn {
@@ -1309,10 +1324,6 @@
                 max-width: 85%;
             }
             
-            .chat-header {
-                padding: 4px 8px;
-            }
-            
             .back-button.mobile-visible {
                 display: flex;
             }
@@ -1494,9 +1505,7 @@
                         placeholder="Сообщение"
                         rows="1"
                         onkeydown="handleKeyPress(event)"
-                        onfocus="handleInputFocus()"
                         oninput="handleTextInput()"
-                        onblur="handleInputBlur()"
                     ></textarea>
                 </div>
                 <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
@@ -1608,7 +1617,7 @@
         let onlineUsers = {};
         let currentChat = null;
         let messages = {};
-        let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
+        let unreadCounts = {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
@@ -1617,10 +1626,10 @@
         const TESTER_USERNAME = "Martin_tester";
 
         // Для статусов сообщений
-        let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
+        let messageStatuses = {};
 
         // ID для отслеживания удаленных сообщений
-        let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
+        let deletedMessages = {};
 
         // Для защиты от DDoS
         let lastMessageTime = 0;
@@ -1678,43 +1687,174 @@
             isInitialized = true;
 
             try {
-                messages = JSON.parse(localStorage.getItem('messages')) || {};
-            } catch (e) {
-                messages = {};
-            }
-            
-            populateEmojiPicker();
-            
-            // Проверяем сессию и показываем нужный экран
-            const hasSession = await checkSavedSession();
-            
-            if (hasSession) {
-                document.getElementById('loginModal').classList.remove('active');
-                document.getElementById('appContainer').style.display = 'flex';
-            } else {
-                document.getElementById('loginModal').classList.add('active');
-                document.getElementById('appContainer').style.display = 'none';
-            }
-            
-            setupMobileKeyboardHandlers();
-            
-            // Обновляем видимость кнопки назад
-            updateBackButtonVisibility();
-            
-            // Запускаем обновление статусов каждые 2 секунды
-            startStatusUpdates();
-            
-            // Добавляем обработчик для возврата фокуса
-            document.addEventListener('touchstart', function(e) {
-                if (!e.target.closest('.message-input-container') && !e.target.closest('.chat-header')) {
-                    // Не делаем ничего, просто позволяем взаимодействие
+                // Загружаем сохраненные данные
+                loadFromStorage();
+                
+                // Настраиваем обработчики
+                populateEmojiPicker();
+                
+                // Проверяем сессию
+                const hasSession = await checkSavedSession();
+                
+                if (hasSession) {
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    
+                    // Загружаем данные
+                    await Promise.all([
+                        loadAllUsers(),
+                        loadPublicChats(),
+                        loadUnreadCounts(),
+                        loadMessageStatuses()
+                    ]);
+                    
+                    // Инициализируем подключения
+                    initAbly();
+                    startHeartbeat();
+                    startPresenceUpdates();
+                    startStatusUpdates();
+                    
+                    // Проверяем URL
+                    checkUrlForChat();
+                } else {
+                    document.getElementById('loginModal').classList.add('active');
+                    document.getElementById('appContainer').style.display = 'none';
                 }
+                
+                // Настраиваем мобильные обработчики
+                setupMobileHandlers();
+                updateBackButtonVisibility();
+                
+                // Обработчик закрытия вкладки
+                window.addEventListener('beforeunload', handleBeforeUnload);
+                
+            } catch (err) {
+                console.error('Init error:', err);
+            }
+        }
+
+        // ========== Загрузка из localStorage ==========
+        function loadFromStorage() {
+            try {
+                messages = JSON.parse(localStorage.getItem('messages')) || {};
+                unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
+                messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
+                deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
+            } catch (e) {
+                console.error('Error loading from storage:', e);
+                messages = {};
+                unreadCounts = {};
+                messageStatuses = {};
+                deletedMessages = {};
+            }
+        }
+
+        // ========== Обработчик закрытия вкладки ==========
+        async function handleBeforeUnload() {
+            if (currentUser && ably) {
+                // Обновляем last_seen перед закрытием
+                await updateUserLastSeen();
+                
+                const presenceChannel = ably.channels.get('presence');
+                presenceChannel.presence.leave();
+            }
+        }
+
+        // ========== Обновление last_seen ==========
+        async function updateUserLastSeen() {
+            if (!currentUser) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ last_seen: new Date().toISOString() })
+                    .eq('id', currentUser.id);
+                
+                if (error) console.error('Error updating last_seen:', error);
+            } catch (err) {
+                console.error('Error updating last_seen:', err);
+            }
+        }
+
+        // ========== Загрузка непрочитанных ==========
+        async function loadUnreadCounts() {
+            if (!currentUser) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .select('chat_id')
+                    .eq('read', false)
+                    .neq('sender_id', currentUser.id);
+                
+                if (error) throw error;
+                
+                const counts = {};
+                data.forEach(msg => {
+                    counts[msg.chat_id] = (counts[msg.chat_id] || 0) + 1;
+                });
+                
+                unreadCounts = counts;
+                localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                
+            } catch (err) {
+                console.error('Error loading unread counts:', err);
+            }
+        }
+
+        // ========== Загрузка статусов сообщений ==========
+        async function loadMessageStatuses() {
+            if (!currentUser) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .select('id, delivered, read')
+                    .eq('sender_id', currentUser.id);
+                
+                if (error) throw error;
+                
+                data.forEach(msg => {
+                    messageStatuses[msg.id] = {
+                        status: msg.read ? 'read' : (msg.delivered ? 'delivered' : 'sent'),
+                        deliveredAt: msg.delivered ? Date.now() : null,
+                        readAt: msg.read ? Date.now() : null
+                    };
+                });
+                
+                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+                
+            } catch (err) {
+                console.error('Error loading message statuses:', err);
+            }
+        }
+
+        // ========== Настройка мобильных обработчиков ==========
+        function setupMobileHandlers() {
+            // Используем динамические единицы viewport
+            const setVH = () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            };
+            
+            setVH();
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', setVH);
+            
+            // Обработчик фокуса на поле ввода
+            const messageInput = document.getElementById('messageInput');
+            messageInput.addEventListener('focus', () => {
+                setTimeout(() => {
+                    document.getElementById('messagesContainer').scrollTop = 
+                        document.getElementById('messagesContainer').scrollHeight;
+                }, 300);
             });
         }
 
         // ========== Обновление статусов в реальном времени ==========
         function startStatusUpdates() {
             if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+            
             statusUpdateInterval = setInterval(() => {
                 if (currentTab === 'users' || currentTab === 'chats') {
                     updateChatsList();
@@ -1779,25 +1919,6 @@
                 
                 updateProfileUI();
                 
-                // Загружаем данные
-                await Promise.all([
-                    loadAllUsers(),
-                    loadPublicChats()
-                ]);
-                
-                // Инициализируем Ably и запускаем heartbeat
-                initAbly();
-                startHeartbeat();
-                startPresenceUpdates();
-                
-                // Проверяем URL на наличие чата
-                checkUrlForChat();
-                
-                // Если нет текущего чата и есть хотя бы один чат, открываем первый
-                if (!currentChat && myChats.length > 0) {
-                    joinChat(myChats[0]);
-                }
-                
                 return true;
             } catch (err) {
                 console.error('Error checking saved session:', err);
@@ -1828,7 +1949,7 @@
 
         // ========== Форматирование времени последнего визита ==========
         function formatLastSeen(timestamp) {
-            if (!timestamp) return 'никогда';
+            if (!timestamp) return 'давно';
             
             const now = Date.now();
             const diff = now - timestamp;
@@ -1837,8 +1958,6 @@
             const minutes = Math.floor(seconds / 60);
             const hours = Math.floor(minutes / 60);
             const days = Math.floor(hours / 24);
-            const months = Math.floor(days / 30);
-            const years = Math.floor(months / 12);
             
             if (seconds < 60) return 'только что';
             if (minutes < 60) {
@@ -1851,25 +1970,26 @@
                 if (hours >= 2 && hours <= 4) return `${hours} часа назад`;
                 return `${hours} часов назад`;
             }
+            if (days === 1) return 'вчера';
             if (days < 7) {
-                if (days === 1) return 'вчера';
                 if (days >= 2 && days <= 4) return `${days} дня назад`;
                 return `${days} дней назад`;
             }
-            if (days < 30) {
-                const weeks = Math.floor(days / 7);
-                if (weeks === 1) return '1 неделю назад';
-                if (weeks >= 2 && weeks <= 4) return `${weeks} недели назад`;
-                return `${weeks} недель назад`;
+            
+            // Форматируем как дату для старых сообщений
+            const date = new Date(timestamp);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (date.toDateString() === today.toDateString()) {
+                return `сегодня в ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
             }
-            if (months < 12) {
-                if (months === 1) return '1 месяц назад';
-                if (months >= 2 && months <= 4) return `${months} месяца назад`;
-                return `${months} месяцев назад`;
+            if (date.toDateString() === yesterday.toDateString()) {
+                return `вчера в ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
             }
-            if (years === 1) return '1 год назад';
-            if (years >= 2 && years <= 4) return `${years} года назад`;
-            return `${years} лет назад`;
+            
+            return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
         }
 
         // ========== Загрузка всех пользователей ==========
@@ -2091,6 +2211,11 @@
 
             ably.connection.on('disconnected', () => {
                 console.log('⚠️ Disconnected from Ably, reconnecting...');
+                setTimeout(() => {
+                    if (currentUser && ably.connection.state !== 'connected') {
+                        ably.connection.connect();
+                    }
+                }, 1000);
             });
 
             ably.connection.on('suspended', () => {
@@ -2159,13 +2284,11 @@
                     
                     if (msg.sender != currentUser.id) {
                         sendDeliveryReceipt(chat.id, msg.id);
-                    }
-                    
-                    updateChatLastMessageTime(chat.id, msg.timestamp);
-                    
-                    if (currentChat?.id !== chat.id && msg.sender != currentUser.id) {
-                        unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        // Увеличиваем счетчик непрочитанных
+                        if (currentChat?.id !== chat.id) {
+                            unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
+                            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        }
                     }
                     
                     saveMessagesDebounced();
@@ -2184,6 +2307,9 @@
             chatChannel.subscribe('delivery_receipt', (data) => {
                 const { messageId } = data.data;
                 
+                // Обновляем статус в БД
+                updateMessageDeliveryStatus(messageId);
+                
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'delivered';
                     messageStatuses[messageId].deliveredAt = Date.now();
@@ -2198,6 +2324,9 @@
             chatChannel.subscribe('read_receipt', (data) => {
                 const { messageId } = data.data;
                 
+                // Обновляем статус в БД
+                updateMessageReadStatus(messageId);
+                
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'read';
                     messageStatuses[messageId].readAt = Date.now();
@@ -2211,6 +2340,10 @@
             
             chatChannel.subscribe('delete', (data) => {
                 const { messageId } = data.data;
+                
+                // Удаляем из БД
+                deleteMessageFromDatabase(messageId);
+                
                 if (!deletedMessages[chat.id]) deletedMessages[chat.id] = [];
                 if (!deletedMessages[chat.id].includes(messageId)) {
                     deletedMessages[chat.id].push(messageId);
@@ -2226,6 +2359,10 @@
             
             chatChannel.subscribe('edit', (data) => {
                 const { messageId, newText } = data.data;
+                
+                // Обновляем в БД
+                updateMessageInDatabase(messageId, newText);
+                
                 if (messages[chat.id]) {
                     const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
                     if (msgIndex !== -1) {
@@ -2238,6 +2375,62 @@
             });
             
             loadChatHistory(chat.id);
+        }
+
+        // ========== Обновление статуса доставки в БД ==========
+        async function updateMessageDeliveryStatus(messageId) {
+            try {
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .update({ delivered: true, delivered_at: new Date().toISOString() })
+                    .eq('id', messageId);
+                
+                if (error) console.error('Error updating delivery status:', error);
+            } catch (err) {
+                console.error('Error updating delivery status:', err);
+            }
+        }
+
+        // ========== Обновление статуса прочтения в БД ==========
+        async function updateMessageReadStatus(messageId) {
+            try {
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .update({ read: true, read_at: new Date().toISOString() })
+                    .eq('id', messageId);
+                
+                if (error) console.error('Error updating read status:', error);
+            } catch (err) {
+                console.error('Error updating read status:', err);
+            }
+        }
+
+        // ========== Удаление сообщения из БД ==========
+        async function deleteMessageFromDatabase(messageId) {
+            try {
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .delete()
+                    .eq('id', messageId);
+                
+                if (error) console.error('Error deleting message from DB:', error);
+            } catch (err) {
+                console.error('Error deleting message from DB:', err);
+            }
+        }
+
+        // ========== Обновление сообщения в БД ==========
+        async function updateMessageInDatabase(messageId, newText) {
+            try {
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .update({ text: newText, edited: true })
+                    .eq('id', messageId);
+                
+                if (error) console.error('Error updating message in DB:', error);
+            } catch (err) {
+                console.error('Error updating message in DB:', err);
+            }
         }
 
         // ========== Сохранение сообщения в БД ==========
@@ -2271,7 +2464,9 @@
                         time: message.time,
                         timestamp: message.timestamp,
                         is_admin: message.isAdmin || false,
-                        edited: message.edited || false
+                        edited: message.edited || false,
+                        delivered: false,
+                        read: false
                     }]);
                 
                 if (error) {
@@ -2355,6 +2550,9 @@
                         messageStatuses[msg.id].readAt = Date.now();
                     }
                     
+                    // Обновляем в БД
+                    updateMessageReadStatus(msg.id);
+                    
                     const chatChannel = ably.channels.get(`chat-${chatId}`);
                     chatChannel.publish('read_receipt', { 
                         messageId: msg.id, 
@@ -2401,6 +2599,7 @@
             saveMessagesTimeout = setTimeout(() => {
                 localStorage.setItem('messages', JSON.stringify(messages));
                 localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+                localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             }, 500);
         }
 
@@ -2435,42 +2634,6 @@
         }
 
         // ========== Обработчики ==========
-        function setupMobileKeyboardHandlers() {
-            document.addEventListener('touchstart', function(e) {
-                if (window.innerWidth <= 768) {
-                    const messageInput = document.getElementById('messageInput');
-                    const sidebar = document.getElementById('sidebar');
-                    const backButton = document.getElementById('backButton');
-                    
-                    // Не закрываем sidebar при клике на поле ввода или кнопку назад
-                    if (e.target.closest('.message-input') || e.target.closest('.back-button')) {
-                        return;
-                    }
-                    
-                    if (!sidebar.contains(e.target) && !backButton.contains(e.target)) {
-                        sidebar.classList.remove('active');
-                    }
-                }
-            });
-        }
-
-        function handleInputFocus() {
-            // Ничего не делаем, просто оставляем фокус
-        }
-
-        function handleInputBlur() {
-            // Не скрываем элементы интерфейса при потере фокуса
-        }
-
-        function handleTextInput() {
-            const input = document.getElementById('messageInput');
-            const hasText = input.value.trim().length > 0;
-            const micBtn = document.getElementById('micBtn');
-            const sendBtn = document.getElementById('sendBtn');
-            
-            // Управление видимостью кнопок не требуется, обе всегда видны
-        }
-
         function handleMessagesContainerClick(event) {
             if (activeMessageId) {
                 const activeMessage = document.querySelector(`.message[data-id="${activeMessageId}"]`);
@@ -2685,12 +2848,17 @@
                 
                 updateProfileUI();
                 
-                await loadAllUsers();
-                await loadPublicChats();
+                await Promise.all([
+                    loadAllUsers(),
+                    loadPublicChats(),
+                    loadUnreadCounts(),
+                    loadMessageStatuses()
+                ]);
                 
                 initAbly();
                 startHeartbeat();
                 startPresenceUpdates();
+                startStatusUpdates();
                 checkUrlForChat();
                 
                 if (myChats.length === 0) {
@@ -2818,6 +2986,7 @@
                 initAbly();
                 startHeartbeat();
                 startPresenceUpdates();
+                startStatusUpdates();
                 
                 joinChat(selfChat);
                 updateBackButtonVisibility();
@@ -2849,6 +3018,9 @@
             audioElements = {};
             activeAudio = null;
             activeAudioId = null;
+            
+            // Обновляем last_seen перед выходом
+            await updateUserLastSeen();
             
             if (heartbeatInterval) {
                 clearInterval(heartbeatInterval);
@@ -2940,8 +3112,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
             
-            messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
-            
             const message = {
                 id: messageId,
                 chatId: currentChat.id,
@@ -2950,24 +3120,33 @@
                 text: text,
                 time: timeString,
                 isAdmin: currentUser.isAdmin || false,
-                timestamp: timestamp
+                timestamp: timestamp,
+                delivered: false,
+                read: false
             };
             
+            // Сохраняем в БД
             saveMessageToDatabase(message);
             
+            // Добавляем в локальные сообщения
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
             messages[currentChat.id].push({ ...message, type: 'out' });
             messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            // Устанавливаем начальный статус
+            messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
             
             saveMessagesDebounced();
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
+            // Отправляем через Ably
             if (ably && !currentChat.isSelf) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('message', message);
             }
             
+            // Обновляем статус на "отправлено" через небольшую задержку
             setTimeout(() => {
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'sent';
@@ -3003,8 +3182,6 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
-            messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
-
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
             reader.onloadend = () => {
@@ -3019,7 +3196,9 @@
                     duration: duration,
                     time: timeString,
                     isAdmin: currentUser.isAdmin || false,
-                    timestamp: timestamp
+                    timestamp: timestamp,
+                    delivered: false,
+                    read: false
                 };
 
                 saveMessageToDatabase(message);
@@ -3028,6 +3207,7 @@
                 messages[currentChat.id].push({ ...message, type: 'out' });
                 messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
+                messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
                 saveMessagesDebounced();
 
                 updateChatLastMessageTime(currentChat.id, timestamp);
@@ -3425,6 +3605,7 @@
             if (!messages[chat.id]) messages[chat.id] = [];
             messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
+            // Сбрасываем счетчик непрочитанных
             unreadCounts[chat.id] = 0;
             localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
@@ -3606,6 +3787,9 @@
             
             if (!confirm('Удалить сообщение?')) return;
             
+            // Удаляем из БД
+            deleteMessageFromDatabase(messageId);
+            
             if (!deletedMessages[currentChat.id]) deletedMessages[currentChat.id] = [];
             if (!deletedMessages[currentChat.id].includes(messageId)) {
                 deletedMessages[currentChat.id].push(messageId);
@@ -3665,6 +3849,9 @@
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
                 saveMessagesDebounced();
+                
+                // Обновляем в БД
+                updateMessageInDatabase(messageToEdit.id, newText);
                 
                 if (ably && !currentChat.isSelf) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -3948,6 +4135,10 @@
             }
         }
 
+        function handleTextInput() {
+            // Пустой обработчик, кнопки всегда видны
+        }
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
@@ -4005,6 +4196,10 @@
         window.addEventListener('resize', function() {
             updateBackButtonVisibility();
             if (window.innerWidth > 768) document.getElementById('sidebar').classList.remove('active');
+            
+            // Обновляем высоту для мобильных
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
         });
 
         document.addEventListener('keydown', function(e) {
