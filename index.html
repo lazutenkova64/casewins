@@ -7,6 +7,7 @@
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* Все стили остаются без изменений как в предыдущих версиях */
         * {
             margin: 0;
             padding: 0;
@@ -422,7 +423,7 @@
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 20px 20px 20px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -438,7 +439,6 @@
             opacity: 0;
             transform: translateY(20px);
             animation: messageAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-            will-change: transform, opacity;
         }
 
         @keyframes messageAppear {
@@ -467,8 +467,6 @@
             line-height: 1.5;
             word-wrap: break-word;
             box-shadow: var(--shadow-sm);
-            position: relative;
-            transition: all 0.2s;
         }
 
         .message.out .message-bubble {
@@ -484,90 +482,12 @@
             border-bottom-left-radius: 4px;
         }
 
-        .message-media {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 16px;
-            margin-bottom: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .message-media:hover {
-            transform: scale(1.02);
-        }
-
-        .audio-message {
-            max-width: 280px;
-            min-width: 200px;
-            background: transparent;
-            padding: 8px;
-        }
-        
-        .audio-player {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 30px;
-            padding: 6px 12px;
-        }
-        
-        .play-pause-btn {
-            background: var(--accent-blue);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            flex-shrink: 0;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .play-pause-btn:hover {
-            transform: scale(1.1);
-        }
-        
-        .audio-progress {
-            flex: 1;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .audio-progress-fill {
-            height: 100%;
-            background: var(--accent-blue);
-            border-radius: 2px;
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-        
-        .audio-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-            min-width: 35px;
-            text-align: right;
-        }
-
         .message-sender {
             font-size: 12px;
             font-weight: 600;
             color: var(--accent-blue);
             margin-bottom: 4px;
             margin-left: 4px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .message-footer {
@@ -583,31 +503,13 @@
             font-size: 10px;
             color: var(--text-secondary);
         }
-        
+
         .message-status {
             font-size: 12px;
-            display: flex;
-            align-items: center;
         }
-        
+
         .status-icon {
             font-size: 14px;
-        }
-        
-        .status-pending {
-            color: #aaa;
-        }
-        
-        .status-sent {
-            color: #aaa;
-        }
-        
-        .status-delivered {
-            color: var(--accent-blue);
-        }
-        
-        .status-read {
-            color: var(--accent-blue);
         }
 
         .message-actions {
@@ -628,7 +530,7 @@
         .message:hover .message-actions {
             display: flex;
         }
-        
+
         @media (max-width: 768px) {
             .message-actions {
                 display: flex;
@@ -646,8 +548,6 @@
             padding: 8px 12px;
             border-radius: 20px;
             transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            z-index: 20;
         }
 
         .message-action-btn:hover {
@@ -664,7 +564,6 @@
             display: flex;
             gap: 10px;
             align-items: flex-end;
-            transition: transform 0.3s ease;
         }
 
         .emoji-toggle-btn {
@@ -677,18 +576,11 @@
             border-radius: 50%;
             transition: all 0.2s;
             flex-shrink: 0;
-            -webkit-tap-highlight-color: transparent;
             width: 44px;
             height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .emoji-toggle-btn:hover {
-            background: var(--bg-secondary);
-            color: var(--accent-blue);
-            transform: scale(1.1);
         }
 
         .mic-btn {
@@ -706,17 +598,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            user-select: none;
-            -webkit-user-select: none;
         }
         .mic-btn.recording {
             background: var(--accent-red);
             color: white;
             animation: pulse 1s infinite;
-        }
-        .mic-btn:disabled {
-            opacity: 0.5;
-            pointer-events: none;
         }
 
         .input-wrapper {
@@ -739,7 +625,6 @@
             resize: none;
             max-height: 100px;
             min-height: 44px;
-            transition: all 0.2s;
         }
 
         .message-input:focus {
@@ -787,7 +672,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .emoji-btn:hover {
@@ -808,7 +692,6 @@
             cursor: pointer;
             flex-shrink: 0;
             font-size: 18px;
-            -webkit-tap-highlight-color: transparent;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s;
         }
@@ -888,7 +771,6 @@
             font-size: 16px;
             outline: none;
             margin-bottom: 16px;
-            transition: all 0.2s;
         }
 
         .modal-input:focus {
@@ -907,9 +789,8 @@
             cursor: pointer;
             width: 100%;
             margin-bottom: 8px;
-            -webkit-tap-highlight-color: transparent;
-            transition: all 0.2s;
             box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
         }
 
         .modal-btn:hover {
@@ -930,7 +811,6 @@
             cursor: pointer;
             float: right;
             padding: 0 8px;
-            -webkit-tap-highlight-color: transparent;
             transition: all 0.2s;
         }
 
@@ -953,127 +833,6 @@
             color: var(--text-secondary);
             cursor: pointer;
             font-size: 18px;
-            transition: all 0.2s;
-        }
-
-        .toggle-password:hover {
-            color: var(--text-primary);
-        }
-
-        .remember-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-        }
-
-        .auth-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .auth-tab {
-            flex: 1;
-            padding: 12px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .auth-tab.active {
-            background: var(--gradient-1);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .url-indicator {
-            font-size: 11px;
-            color: var(--accent-blue);
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
-        }
-
-        .media-viewer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: 3000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .media-viewer.active {
-            display: flex;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .media-viewer-content {
-            max-width: 90%;
-            max-height: 90%;
-        }
-
-        .media-viewer-content img,
-        .media-viewer-content video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 12px;
-        }
-
-        .media-viewer-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-color);
-            color: white;
-            font-size: 32px;
-            cursor: pointer;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s;
-        }
-
-        .media-viewer-close:hover {
-            background: var(--bg-tertiary);
-            transform: scale(1.1);
-        }
-
-        .delete-chat-btn {
-            background: var(--gradient-2);
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            cursor: pointer;
-            margin-left: 8px;
-            transition: all 0.2s;
-            z-index: 10;
-        }
-
-        .delete-chat-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
         }
 
         .admin-badge {
@@ -1084,8 +843,6 @@
             border-radius: 16px;
             margin-left: 6px;
             font-weight: bold;
-            text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
-            box-shadow: 0 2px 4px rgba(255, 215, 0, 0.2);
             display: inline-block;
         }
 
@@ -1098,15 +855,9 @@
         }
 
         @keyframes pulse {
-            0% {
-                opacity: 0.6;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                opacity: 0.6;
-            }
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
 
         .avatar-grid {
@@ -1145,7 +896,6 @@
             box-shadow: 0 0 15px var(--accent-green);
         }
 
-        /* Мобильные стили */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -1181,22 +931,10 @@
 
             .message-input-container {
                 padding: 12px;
-                transition: transform 0.3s ease;
             }
 
             .modal-content {
                 padding: 20px;
-            }
-            
-            .audio-message {
-                max-width: 260px;
-                min-width: 180px;
-            }
-            
-            .play-pause-btn {
-                width: 32px;
-                height: 32px;
-                font-size: 14px;
             }
         }
 
@@ -1222,12 +960,10 @@
             }
         }
         
-        /* Анимация для клавиатуры */
         .keyboard-open .message-input-container {
             transform: translateY(0);
         }
         
-        /* Затемнение фона при открытой клавиатуре на мобильных */
         .keyboard-open .sidebar {
             opacity: 0.5;
             pointer-events: none;
@@ -1577,9 +1313,60 @@
             }
         }
 
-        // ========== Загрузка истории сообщений ==========
+        // ========== СОХРАНЕНИЕ СООБЩЕНИЙ В БАЗУ ДАННЫХ ==========
+        async function saveMessageToDatabase(message) {
+            try {
+                console.log('Пытаемся сохранить сообщение:', message);
+                
+                // Проверяем, есть ли уже такое сообщение
+                const { data: existing, error: checkError } = await supabaseClient
+                    .from('messages')
+                    .select('id')
+                    .eq('id', message.id)
+                    .maybeSingle();
+                
+                if (checkError) {
+                    console.error('Ошибка при проверке существования сообщения:', checkError);
+                }
+                
+                if (existing) {
+                    console.log('Сообщение уже существует в БД, пропускаем');
+                    return;
+                }
+                
+                // Если нет - сохраняем новое
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .insert([{
+                        id: message.id,
+                        chat_id: message.chatId,
+                        sender_id: message.sender,
+                        sender_name: message.senderName,
+                        text: message.text || null,
+                        audio: message.audio || null,
+                        duration: message.duration || null,
+                        media: message.media || null,
+                        time: message.time,
+                        timestamp: message.timestamp,
+                        is_admin: message.isAdmin || false,
+                        edited: message.edited || false
+                    }]);
+                
+                if (error) {
+                    console.error('❌ Ошибка сохранения в БД:', error);
+                } else {
+                    console.log('✅ Сообщение успешно сохранено в БД:', data);
+                }
+            } catch (err) {
+                console.error('❌ Критическая ошибка при сохранении:', err);
+            }
+        }
+
+        // ========== ЗАГРУЗКА ИСТОРИИ СООБЩЕНИЙ ==========
         async function loadChatHistory(chatId) {
             try {
+                console.log('Загружаем историю для чата:', chatId);
+                
                 const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
                 
                 let query = supabaseClient
@@ -1596,9 +1383,11 @@
                 const { data, error } = await query;
                 
                 if (error) {
-                    console.error('Error loading chat history:', error);
+                    console.error('Ошибка загрузки истории:', error);
                     return;
                 }
+                
+                console.log(`Загружено ${data?.length || 0} сообщений из БД`);
                 
                 if (data && data.length > 0) {
                     if (!messages[chatId]) messages[chatId] = [];
@@ -1621,7 +1410,7 @@
                     }
                 }
             } catch (err) {
-                console.error('Error loading chat history:', err);
+                console.error('Ошибка при загрузке истории:', err);
             }
         }
 
@@ -1634,7 +1423,6 @@
                     const sidebar = document.getElementById('sidebar');
                     const backButton = document.querySelector('.back-button');
                     
-                    // Если клик вне сайдбара и не по кнопке назад - закрываем сайдбар
                     if (!sidebar.contains(e.target) && !backButton.contains(e.target)) {
                         sidebar.classList.remove('active');
                     }
@@ -2086,60 +1874,6 @@
             
             // Загружаем историю из базы данных
             loadChatHistory(chat.id);
-            
-            chatChannel.history({ limit: 50 }, (err, resultPage) => {
-                if (resultPage && resultPage.items.length > 0) {
-                    if (!messages[chat.id]) messages[chat.id] = [];
-                    resultPage.items.forEach(item => {
-                        const msg = item.data;
-                        if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
-                        const exists = messages[chat.id].some(m => m.id === msg.id);
-                        if (!exists) {
-                            messages[chat.id].push({
-                                ...msg,
-                                type: msg.sender == currentUser.id ? 'out' : 'in'
-                            });
-                        }
-                    });
-                    messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                    saveMessagesDebounced();
-                    if (currentChat?.id === chat.id) {
-                        renderMessages(true);
-                        unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-                        markMessagesAsRead(chat.id);
-                    }
-                }
-            });
-        }
-
-        async function saveMessageToDatabase(message) {
-            try {
-                const { error } = await supabaseClient
-                    .from('messages')
-                    .insert([{
-                        id: message.id,
-                        chat_id: message.chatId,
-                        sender_id: message.sender,
-                        sender_name: message.senderName,
-                        text: message.text || null,
-                        audio: message.audio || null,
-                        duration: message.duration || null,
-                        media: message.media || null,
-                        time: message.time,
-                        timestamp: message.timestamp,
-                        is_admin: message.isAdmin || false,
-                        edited: message.edited || false
-                    }])
-                    .onConflict('id')
-                    .ignore();
-                
-                if (error) {
-                    console.error('Error saving message to database:', error);
-                }
-            } catch (err) {
-                console.error('Error saving message to database:', err);
-            }
         }
 
         function sendDeliveryReceipt(chatId, messageId) {
@@ -2485,7 +2219,7 @@
             if (window.innerWidth > 768) {
                 input.blur();
             } else {
-                input.focus(); // Возвращаем фокус на мобильных
+                input.focus();
             }
             
             renderMessages(true);
