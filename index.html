@@ -7,7 +7,6 @@
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Все стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -500,13 +499,64 @@
         }
 
         .audio-message {
-            max-width: 250px;
+            max-width: 280px;
+            min-width: 200px;
             background: transparent;
+            padding: 8px;
         }
-        .audio-message audio {
-            width: 100%;
-            height: 40px;
-            border-radius: 20px;
+        
+        .audio-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 30px;
+            padding: 6px 12px;
+        }
+        
+        .play-pause-btn {
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .play-pause-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .audio-progress {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .audio-progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .audio-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            min-width: 35px;
+            text-align: right;
         }
 
         .message-sender {
@@ -520,11 +570,44 @@
             gap: 4px;
         }
 
+        .message-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 4px;
+            margin-left: 8px;
+        }
+
         .message-time {
             font-size: 10px;
             color: var(--text-secondary);
-            margin-top: 4px;
-            margin-left: 8px;
+        }
+        
+        .message-status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-icon {
+            font-size: 14px;
+        }
+        
+        .status-pending {
+            color: #aaa;
+        }
+        
+        .status-sent {
+            color: #aaa;
+        }
+        
+        .status-delivered {
+            color: var(--accent-blue);
+        }
+        
+        .status-read {
+            color: var(--accent-blue);
         }
 
         .message-actions {
@@ -544,6 +627,14 @@
 
         .message:hover .message-actions {
             display: flex;
+        }
+        
+        @media (max-width: 768px) {
+            .message-actions {
+                display: flex;
+                top: -25px;
+                padding: 4px 8px;
+            }
         }
 
         .message-action-btn {
@@ -573,6 +664,7 @@
             display: flex;
             gap: 10px;
             align-items: flex-end;
+            transition: transform 0.3s ease;
         }
 
         .emoji-toggle-btn {
@@ -614,6 +706,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .mic-btn.recording {
             background: var(--accent-red);
@@ -1051,6 +1145,7 @@
             box-shadow: 0 0 15px var(--accent-green);
         }
 
+        /* Мобильные стили */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -1086,10 +1181,22 @@
 
             .message-input-container {
                 padding: 12px;
+                transition: transform 0.3s ease;
             }
 
             .modal-content {
                 padding: 20px;
+            }
+            
+            .audio-message {
+                max-width: 260px;
+                min-width: 180px;
+            }
+            
+            .play-pause-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
             }
         }
 
@@ -1114,6 +1221,17 @@
                 font-size: 12px;
             }
         }
+        
+        /* Анимация для клавиатуры */
+        .keyboard-open .message-input-container {
+            transform: translateY(0);
+        }
+        
+        /* Затемнение фона при открытой клавиатуре на мобильных */
+        .keyboard-open .sidebar {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -1134,7 +1252,7 @@
             </div>
 
             <div id="loginForm">
-                <input type="email" class="modal-input" id="loginEmail" placeholder="Email" autocomplete="off">
+                <input type="text" class="modal-input" id="loginUsername" placeholder="Имя пользователя" autocomplete="off">
                 <div class="password-input-container">
                     <input type="password" class="modal-input" id="loginPassword" placeholder="Пароль">
                     <button class="toggle-password" onclick="togglePassword('loginPassword')">👁️</button>
@@ -1147,10 +1265,9 @@
             </div>
 
             <div id="registerForm" style="display: none;">
-                <input type="email" class="modal-input" id="registerEmail" placeholder="Email" maxlength="50">
                 <input type="text" class="modal-input" id="registerUsername" placeholder="Имя пользователя" maxlength="20">
                 <div class="password-input-container">
-                    <input type="password" class="modal-input" id="registerPassword" placeholder="Пароль (мин. 6 символов)">
+                    <input type="password" class="modal-input" id="registerPassword" placeholder="Пароль">
                     <button class="toggle-password" onclick="togglePassword('registerPassword')">👁️</button>
                 </div>
                 <div class="password-input-container">
@@ -1170,7 +1287,6 @@
     <div class="app-container" id="appContainer" style="display: none;">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <!-- При клике на аватар открываем редактирование профиля -->
                 <div class="avatar" id="profileAvatar" onclick="openProfileModal()">👤</div>
                 <div class="profile-info">
                     <div class="profile-name" id="profileName">Загрузка...</div>
@@ -1210,14 +1326,12 @@
                 </div>
             </div>
 
-            <div class="messages-container" id="messagesContainer"></div>
+            <div class="messages-container" id="messagesContainer" onclick="handleMessagesContainerClick(event)"></div>
 
-            <div class="message-input-container">
+            <div class="message-input-container" id="messageInputContainer">
                 <button class="emoji-toggle-btn" onclick="toggleEmojiPicker()">😊</button>
-                <!-- Кнопка микрофона для голосовых сообщений -->
-                <button class="mic-btn" id="micBtn" onclick="toggleRecording()" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</button>
+                <button class="mic-btn" id="micBtn">🎤</button>
                 <div class="input-wrapper">
-                    <!-- Расширенный эмодзи-пикер будет заполнен JS -->
                     <div class="emoji-picker" id="emojiPicker" style="display: none;"></div>
                     <textarea 
                         class="message-input" 
@@ -1225,6 +1339,8 @@
                         placeholder="Напишите сообщение..."
                         rows="1"
                         onkeydown="handleKeyPress(event)"
+                        onfocus="handleInputFocus()"
+                        onblur="handleInputBlur()"
                     ></textarea>
                 </div>
                 <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
@@ -1270,7 +1386,7 @@
         </div>
     </div>
 
-    <!-- Profile Modal (редактирование профиля) -->
+    <!-- Profile Modal -->
     <div class="modal" id="profileModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeProfileModal()">×</button>
@@ -1289,7 +1405,7 @@
         </div>
     </div>
 
-    <!-- Avatar selection modal (расширенный список) -->
+    <!-- Avatar selection modal -->
     <div class="modal" id="avatarModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeAvatarModal()">×</button>
@@ -1304,13 +1420,18 @@
         // SUPABASE CONFIGURATION
         // ============================================================
         const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
+        const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+            }
+        });
 
         // ============================================================
-        // ABLY CONFIGURATION
+        // ABLY API KEY
         // ============================================================
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         
@@ -1318,24 +1439,28 @@
         let currentUser = null;
         
         // Data structures
-        let users = JSON.parse(localStorage.getItem('telegram_users')) || {};
-        let publicChats = JSON.parse(localStorage.getItem('publicChats')) || [];
         let myChats = [];
+        let publicChats = [];
         let onlineUsers = {};
         let currentChat = null;
-        let messages = JSON.parse(localStorage.getItem('messages')) || {};
+        let messages = {};
         let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
         let currentTab = 'chats';
         let pendingChatToJoin = null;
         let messageToEdit = null;
         const ADMIN_USERNAME = "K1lame";
 
+        // Для статусов сообщений
+        let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
+        let deliveredMessages = JSON.parse(localStorage.getItem('deliveredMessages')) || {};
+        let readMessages = JSON.parse(localStorage.getItem('readMessages')) || {};
+
         // ID для отслеживания удаленных сообщений
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
 
-        // Для защиты от DDoS: ограничение частоты отправки сообщений
+        // Для защиты от DDoS
         let lastMessageTime = 0;
-        const MESSAGE_COOLDOWN = 1000; // 1 секунда
+        const MESSAGE_COOLDOWN = 1000;
         let sendBtnDisabled = false;
 
         // Для голосовых сообщений
@@ -1343,13 +1468,30 @@
         let audioChunks = [];
         let isRecording = false;
         let recordingTimeout;
+        let mediaStream = null;
+        
+        // Для управления аудиоплеерами
+        let activeAudio = null;
+        let activeAudioId = null;
+        let audioElements = {};
 
-        // Расширенный набор эмодзи (более 100)
+        // Таймеры и debounce
+        let saveMessagesTimeout;
+        let heartbeatInterval;
+        let reconnectTimeout;
+
+        // Для защиты от DDoS: лимит на попытки входа/регистрации
+        let loginAttempts = 0;
+        let lastLoginAttemptTime = 0;
+        const MAX_LOGIN_ATTEMPTS = 3;
+        const LOGIN_TIMEFRAME = 60000;
+
+        // Расширенный набор эмодзи
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉', '🙊', '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄', '💋', '🩸'
         ];
 
-        // Необычные эмодзи для аватара (расширенный список)
+        // Необычные эмодзи для аватара
         const weirdEmojis = [
             '👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥',
             '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥',
@@ -1362,20 +1504,128 @@
         ];
 
         // ========== Инициализация ==========
-        async function checkSavedSession() {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                try {
-                    currentUser = JSON.parse(savedUser);
+        function init() {
+            try {
+                messages = JSON.parse(localStorage.getItem('messages')) || {};
+            } catch (e) {
+                messages = {};
+            }
+            
+            setupMicrophoneHandlers();
+            populateEmojiPicker();
+            checkSavedSession();
+            setupMobileKeyboardHandlers();
+            loadPublicChats();
+        }
+
+        async function loadPublicChats() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('chats')
+                    .select('*')
+                    .eq('type', 'public');
+                
+                if (error) throw error;
+                
+                publicChats = data || [];
+                localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                if (currentTab === 'public') updateChatsList();
+            } catch (err) {
+                console.error('Error loading public chats:', err);
+            }
+        }
+
+        function setupMobileKeyboardHandlers() {
+            // Обработка кликов вне поля ввода на мобильных
+            document.addEventListener('touchstart', function(e) {
+                if (window.innerWidth <= 768) {
+                    const messageInput = document.getElementById('messageInput');
+                    const emojiPicker = document.getElementById('emojiPicker');
+                    const emojiBtn = document.querySelector('.emoji-toggle-btn');
                     
-                    // Проверяем, существует ли сессия в Supabase
-                    const { data: { session }, error } = await supabase.auth.getSession();
-                    
-                    if (error || !session) {
-                        // Сессия истекла или недействительна
-                        localStorage.removeItem('currentUser');
-                        return;
+                    // Если клик не по полю ввода, не по эмодзи-пикеру и не по кнопке эмодзи
+                    if (!messageInput.contains(e.target) && 
+                        !emojiPicker.contains(e.target) && 
+                        !emojiBtn.contains(e.target)) {
+                        messageInput.blur();
+                        document.body.classList.remove('keyboard-open');
                     }
+                }
+            });
+        }
+
+        function handleInputFocus() {
+            if (window.innerWidth <= 768) {
+                document.body.classList.add('keyboard-open');
+                setTimeout(() => {
+                    const container = document.getElementById('messagesContainer');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }, 300);
+            }
+        }
+
+        function handleInputBlur() {
+            if (window.innerWidth <= 768) {
+                document.body.classList.remove('keyboard-open');
+            }
+        }
+
+        function handleMessagesContainerClick(event) {
+            if (window.innerWidth <= 768) {
+                const messageInput = document.getElementById('messageInput');
+                if (document.activeElement === messageInput) {
+                    messageInput.blur();
+                }
+            }
+        }
+
+        function setupMicrophoneHandlers() {
+            const micBtn = document.getElementById('micBtn');
+            
+            micBtn.addEventListener('mousedown', startRecording);
+            micBtn.addEventListener('mouseup', stopRecording);
+            micBtn.addEventListener('mouseleave', stopRecording);
+            
+            micBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startRecording();
+            });
+            
+            micBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopRecording();
+            });
+            
+            micBtn.addEventListener('touchcancel', stopRecording);
+            
+            micBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+            });
+        }
+
+        async function checkSavedSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session?.user) {
+                // Get or create user profile
+                const { data: userData } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (userData) {
+                    currentUser = {
+                        id: userData.id,
+                        name: userData.username,
+                        email: session.user.email,
+                        avatar: userData.avatar || '👤',
+                        bio: userData.bio || '',
+                        isAdmin: userData.username === ADMIN_USERNAME,
+                        dnd: userData.dnd || false
+                    };
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
@@ -1387,20 +1637,49 @@
                     setTimeout(() => {
                         initAbly();
                         checkUrlForChat();
+                        startHeartbeat();
                     }, 100);
-                } catch (e) {
-                    console.error('Failed to load session', e);
-                    localStorage.removeItem('currentUser');
                 }
             }
         }
 
-        // Обновление UI профиля
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (ably && ably.connection.state === 'connected' && currentUser) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.update({ 
+                        name: currentUser.name,
+                        avatar: currentUser.avatar || '👤',
+                        bio: currentUser.bio || '',
+                        isAdmin: currentUser.isAdmin || false,
+                        dnd: currentUser.dnd || false,
+                        lastSeen: Date.now()
+                    });
+                }
+            }, 30000);
+        }
+
+        function saveMessagesDebounced() {
+            if (saveMessagesTimeout) clearTimeout(saveMessagesTimeout);
+            saveMessagesTimeout = setTimeout(() => {
+                localStorage.setItem('messages', JSON.stringify(messages));
+                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+                localStorage.setItem('deliveredMessages', JSON.stringify(deliveredMessages));
+            }, 500);
+        }
+
         function updateProfileUI() {
             if (!currentUser) return;
             const nameSpan = document.getElementById('profileName');
             if (currentUser.isAdmin) {
-                nameSpan.innerHTML = `${escapeHtml(currentUser.name)} <span class="admin-badge">ADMIN</span>`;
+                nameSpan.innerHTML = '';
+                const nameText = document.createTextNode(currentUser.name + ' ');
+                nameSpan.appendChild(nameText);
+                const badge = document.createElement('span');
+                badge.className = 'admin-badge';
+                badge.textContent = 'ADMIN';
+                nameSpan.appendChild(badge);
             } else {
                 nameSpan.textContent = currentUser.name;
             }
@@ -1416,7 +1695,6 @@
             document.getElementById('profileDNDCheckbox').checked = currentUser.dnd || false;
         }
 
-        // Экранирование HTML
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -1424,7 +1702,6 @@
             return div.innerHTML;
         }
 
-        // Заполнение эмодзи-пикера
         function populateEmojiPicker() {
             const picker = document.getElementById('emojiPicker');
             picker.innerHTML = '';
@@ -1436,11 +1713,16 @@
                 picker.appendChild(btn);
             });
         }
-        populateEmojiPicker();
 
         // ========== Ably и чаты ==========
         function initAbly() {
             if (!currentUser) return;
+            
+            if (ably) {
+                try {
+                    ably.close();
+                } catch (e) {}
+            }
             
             ably = new Ably.Realtime({
                 key: ABLY_API_KEY,
@@ -1448,7 +1730,8 @@
                 transports: ['web_socket'],
                 disconnectedRetryTimeout: 1000,
                 suspendedRetryTimeout: 2000,
-                realtimeRequestTimeout: 5000
+                realtimeRequestTimeout: 5000,
+                echoMessages: false
             });
 
             ably.connection.on('connected', () => {
@@ -1500,19 +1783,21 @@
                 });
                 
                 presenceChannel.presence.get((err, members) => {
-                    members.forEach(member => {
-                        if (member.clientId !== currentUser.id) {
-                            onlineUsers[member.clientId] = {
-                                id: member.clientId,
-                                name: member.data.name,
-                                avatar: member.data.avatar || '👤',
-                                bio: member.data.bio || '',
-                                online: true,
-                                isAdmin: member.data.isAdmin || false,
-                                dnd: member.data.dnd || false
-                            };
-                        }
-                    });
+                    if (members) {
+                        members.forEach(member => {
+                            if (member.clientId !== currentUser.id) {
+                                onlineUsers[member.clientId] = {
+                                    id: member.clientId,
+                                    name: member.data.name,
+                                    avatar: member.data.avatar || '👤',
+                                    bio: member.data.bio || '',
+                                    online: true,
+                                    isAdmin: member.data.isAdmin || false,
+                                    dnd: member.data.dnd || false
+                                };
+                            }
+                        });
+                    }
                     if (currentTab === 'users') updateChatsList();
                 });
 
@@ -1535,11 +1820,11 @@
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                     if (messages[chatId]) {
                         delete messages[chatId];
-                        localStorage.setItem('messages', JSON.stringify(messages));
+                        saveMessagesDebounced();
                     }
                     if (currentChat && currentChat.id === chatId) {
                         currentChat = null;
-                        document.getElementById('messagesContainer').innerHTML = `<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>`;
+                        document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>';
                         document.getElementById('currentChatName').innerHTML = 'Чат удален';
                         document.getElementById('chatStatus').innerHTML = '';
                         updateUrlWithChat(null);
@@ -1556,19 +1841,37 @@
                     }
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        localStorage.setItem('messages', JSON.stringify(messages));
+                        saveMessagesDebounced();
                         if (currentChat && currentChat.id === chatId) renderMessages();
                         updateChatsList();
                     }
                 });
 
+                // Подписываемся на все мои чаты
                 myChats.forEach(chat => subscribeToChat(chat));
+            });
+
+            ably.connection.on('disconnected', () => {
+                console.log('⚠️ Disconnected from Ably, reconnecting...');
+            });
+
+            ably.connection.on('suspended', () => {
+                console.warn('⚠️ Connection suspended, will retry...');
+            });
+
+            ably.connection.on('failed', (err) => {
+                console.error('❌ Connection failed:', err);
+                if (reconnectTimeout) clearTimeout(reconnectTimeout);
+                reconnectTimeout = setTimeout(() => {
+                    if (currentUser) initAbly();
+                }, 5000);
             });
 
             updateChatsList();
         }
 
         function subscribeToChat(chat) {
+            if (!ably) return;
             const chatChannel = ably.channels.get(`chat-${chat.id}`);
             chatChannel.unsubscribe();
             
@@ -1576,6 +1879,7 @@
                 const msg = message.data;
                 if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
                 if (!messages[chat.id]) messages[chat.id] = [];
+                
                 const exists = messages[chat.id].some(m => m.id === msg.id);
                 if (!exists) {
                     messages[chat.id].push({
@@ -1584,7 +1888,12 @@
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
-                    // Поднимаем чат вверх (обновляем время последнего сообщения)
+                    // Обновляем статус для отправленных сообщений
+                    if (msg.sender !== currentUser.id) {
+                        // Это входящее сообщение, отправляем подтверждение доставки
+                        sendDeliveryReceipt(chat.id, msg.id);
+                    }
+                    
                     updateChatLastMessageTime(chat.id, msg.timestamp);
                     
                     if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
@@ -1592,15 +1901,55 @@
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
                     
-                    localStorage.setItem('messages', JSON.stringify(messages));
+                    saveMessagesDebounced();
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        
+                        // Если мы в чате, отмечаем сообщения как прочитанные
+                        markMessagesAsRead(chat.id);
                     }
                     
                     updateChatsList();
+                }
+            });
+            
+            chatChannel.subscribe('delivery_receipt', (data) => {
+                const { messageId } = data.data;
+                if (!deliveredMessages[currentChat?.id]) deliveredMessages[currentChat?.id] = [];
+                if (!deliveredMessages[currentChat?.id].includes(messageId)) {
+                    deliveredMessages[currentChat?.id].push(messageId);
+                    localStorage.setItem('deliveredMessages', JSON.stringify(deliveredMessages));
+                    
+                    // Обновляем статус сообщения
+                    if (messageStatuses[messageId]) {
+                        messageStatuses[messageId].status = 'delivered';
+                        messageStatuses[messageId].deliveredAt = Date.now();
+                    } else {
+                        messageStatuses[messageId] = { status: 'delivered', deliveredAt: Date.now() };
+                    }
+                    saveMessagesDebounced();
+                    
+                    if (currentChat && currentChat.id === chat.id) {
+                        renderMessages(true);
+                    }
+                }
+            });
+            
+            chatChannel.subscribe('read_receipt', (data) => {
+                const { messageId } = data.data;
+                if (messageStatuses[messageId]) {
+                    messageStatuses[messageId].status = 'read';
+                    messageStatuses[messageId].readAt = Date.now();
+                } else {
+                    messageStatuses[messageId] = { status: 'read', readAt: Date.now() };
+                }
+                saveMessagesDebounced();
+                
+                if (currentChat && currentChat.id === chat.id) {
+                    renderMessages(true);
                 }
             });
             
@@ -1613,7 +1962,7 @@
                 }
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    localStorage.setItem('messages', JSON.stringify(messages));
+                    saveMessagesDebounced();
                     if (currentChat?.id === chat.id) renderMessages(true);
                     updateChatsList();
                 }
@@ -1626,12 +1975,13 @@
                     if (msgIndex !== -1) {
                         messages[chat.id][msgIndex].text = newText;
                         messages[chat.id][msgIndex].edited = true;
-                        localStorage.setItem('messages', JSON.stringify(messages));
+                        saveMessagesDebounced();
                         if (currentChat?.id === chat.id) renderMessages(true);
                     }
                 }
             });
             
+            // Загружаем историю
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -1647,17 +1997,53 @@
                         }
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                    localStorage.setItem('messages', JSON.stringify(messages));
+                    saveMessagesDebounced();
                     if (currentChat?.id === chat.id) {
                         renderMessages(true);
                         unreadCounts[chat.id] = 0;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+                        markMessagesAsRead(chat.id);
                     }
                 }
             });
         }
 
-        // Обновление времени последнего сообщения в чате (для сортировки)
+        function sendDeliveryReceipt(chatId, messageId) {
+            if (!ably) return;
+            const chatChannel = ably.channels.get(`chat-${chatId}`);
+            chatChannel.publish('delivery_receipt', { 
+                messageId, 
+                receiver: currentUser.id,
+                timestamp: Date.now() 
+            });
+        }
+
+        function markMessagesAsRead(chatId) {
+            if (!ably || !messages[chatId]) return;
+            
+            // Отправляем подтверждение прочтения для всех непрочитанных сообщений
+            messages[chatId].forEach(msg => {
+                if (msg.sender !== currentUser.id && 
+                    (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
+                    
+                    if (!messageStatuses[msg.id]) {
+                        messageStatuses[msg.id] = { status: 'read', readAt: Date.now() };
+                    } else {
+                        messageStatuses[msg.id].status = 'read';
+                        messageStatuses[msg.id].readAt = Date.now();
+                    }
+                    
+                    const chatChannel = ably.channels.get(`chat-${chatId}`);
+                    chatChannel.publish('read_receipt', { 
+                        messageId: msg.id, 
+                        reader: currentUser.id,
+                        timestamp: Date.now() 
+                    });
+                }
+            });
+            saveMessagesDebounced();
+        }
+
         function updateChatLastMessageTime(chatId, timestamp) {
             const chat = myChats.find(c => c.id === chatId);
             if (chat) {
@@ -1667,59 +2053,87 @@
             }
         }
 
-        // ========== Аутентификация через Supabase ==========
+        // ========== Аутентификация ==========
         async function login() {
-            const email = document.getElementById('loginEmail').value.trim();
+            const now = Date.now();
+            if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
+            if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                alert('Слишком много попыток входа. Попробуйте позже.');
+                return;
+            }
+            loginAttempts++;
+            lastLoginAttemptTime = now;
+
+            const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
             const remember = document.getElementById('rememberMe').checked;
             
-            if (!email || !password) {
-                alert('Введите email и пароль');
+            if (!username || !password) {
+                alert('Введите имя и пароль');
                 return;
             }
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                // Создаем email из username для входа
+                const email = `${username}@telegram.local`;
+                
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-
-                if (error) {
-                    alert(error.message);
-                    return;
-                }
-
+                
+                if (error) throw error;
+                
                 if (data.user) {
-                    // Получаем дополнительные данные пользователя из нашей таблицы profiles
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
+                    // Получаем или создаем профиль пользователя
+                    const { data: userData, error: userError } = await supabaseClient
+                        .from('users')
                         .select('*')
                         .eq('id', data.user.id)
                         .single();
-
-                    const isAdmin = email.split('@')[0] === ADMIN_USERNAME;
                     
-                    currentUser = {
-                        id: data.user.id,
-                        email: data.user.email,
-                        name: profile?.name || email.split('@')[0],
-                        avatar: profile?.avatar || '👤',
-                        bio: profile?.bio || '',
-                        isAdmin: isAdmin,
-                        dnd: profile?.dnd || false
-                    };
+                    if (userError && userError.code === 'PGRST116') {
+                        // Профиль не существует, создаем новый
+                        const newUser = {
+                            id: data.user.id,
+                            username: username,
+                            email: email,
+                            avatar: '👤',
+                            bio: '',
+                            dnd: false,
+                            created_at: new Date().toISOString()
+                        };
+                        
+                        const { error: insertError } = await supabaseClient
+                            .from('users')
+                            .insert([newUser]);
+                        
+                        if (insertError) throw insertError;
+                        
+                        currentUser = {
+                            id: newUser.id,
+                            name: newUser.username,
+                            email: email,
+                            avatar: newUser.avatar,
+                            bio: newUser.bio,
+                            isAdmin: newUser.username === ADMIN_USERNAME,
+                            dnd: newUser.dnd
+                        };
+                    } else if (userData) {
+                        currentUser = {
+                            id: userData.id,
+                            name: userData.username,
+                            email: email,
+                            avatar: userData.avatar || '👤',
+                            bio: userData.bio || '',
+                            isAdmin: userData.username === ADMIN_USERNAME,
+                            dnd: userData.dnd || false
+                        };
+                    }
                     
-                    if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
-                    // Создаем или обновляем профиль
-                    await supabase.from('profiles').upsert({
-                        id: currentUser.id,
-                        name: currentUser.name,
-                        avatar: currentUser.avatar,
-                        bio: currentUser.bio,
-                        dnd: currentUser.dnd,
-                        updated_at: new Date().toISOString()
-                    });
+                    if (remember) {
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
@@ -1729,82 +2143,92 @@
                     updateProfileUI();
                     
                     initAbly();
+                    startHeartbeat();
                     checkUrlForChat();
                 }
             } catch (err) {
+                console.error('Login error:', err);
                 alert('Ошибка при входе: ' + err.message);
             }
         }
 
         async function register() {
-            const email = document.getElementById('registerEmail').value.trim();
+            const now = Date.now();
+            if (now - lastLoginAttemptTime > LOGIN_TIMEFRAME) loginAttempts = 0;
+            if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                alert('Слишком много попыток регистрации. Попробуйте позже.');
+                return;
+            }
+            loginAttempts++;
+            lastLoginAttemptTime = now;
+
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
             const remember = document.getElementById('rememberMeRegister').checked;
             
-            if (!email || !username || !password) {
+            if (!username || !password) {
                 alert('Заполните все поля');
                 return;
             }
-            
             if (password !== confirmPassword) {
                 alert('Пароли не совпадают');
                 return;
             }
-            
-            if (password.length < 6) {
-                alert('Пароль должен быть минимум 6 символов');
+            if (password.length < 3) {
+                alert('Пароль должен быть минимум 3 символа');
                 return;
             }
             
             try {
-                const { data, error } = await supabase.auth.signUp({
+                // Создаем email из username
+                const email = `${username}@telegram.local`;
+                
+                // Регистрируем пользователя
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
                         data: {
-                            name: username,
-                            avatar: '👤',
-                            bio: ''
+                            username: username
                         }
                     }
                 });
-
-                if (error) {
-                    alert(error.message);
-                    return;
-                }
-
+                
+                if (error) throw error;
+                
                 if (data.user) {
                     // Создаем профиль пользователя
                     const isAdmin = username === ADMIN_USERNAME;
-                    
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: data.user.id,
-                            name: username,
-                            avatar: '👤',
-                            bio: '',
-                            dnd: false
-                        });
-
-                    if (profileError) {
-                        console.error('Error creating profile:', profileError);
-                    }
-
-                    currentUser = {
+                    const newUser = {
                         id: data.user.id,
-                        email: data.user.email,
-                        name: username,
+                        username: username,
+                        email: email,
                         avatar: '👤',
                         bio: '',
-                        isAdmin: isAdmin,
-                        dnd: false
+                        dnd: false,
+                        created_at: new Date().toISOString()
                     };
                     
-                    if (remember) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    const { error: insertError } = await supabaseClient
+                        .from('users')
+                        .insert([newUser]);
+                    
+                    if (insertError) throw insertError;
+                    
+                    currentUser = {
+                        id: newUser.id,
+                        name: newUser.username,
+                        email: email,
+                        avatar: newUser.avatar,
+                        bio: newUser.bio,
+                        isAdmin: isAdmin,
+                        dnd: newUser.dnd
+                    };
+                    
+                    if (remember) {
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -1812,40 +2236,91 @@
                     updateProfileUI();
                     
                     initAbly();
+                    startHeartbeat();
                     
-                    alert('Регистрация успешна! Проверьте вашу почту для подтверждения, если требуется.');
+                    alert('Регистрация успешна!');
                 }
             } catch (err) {
+                console.error('Registration error:', err);
                 alert('Ошибка при регистрации: ' + err.message);
             }
         }
 
         async function logout() {
-            if (ably) {
-                const presenceChannel = ably.channels.get('presence');
-                presenceChannel.presence.leave();
-                ably.close();
+            if (mediaRecorder && isRecording) {
+                stopRecording();
             }
             
-            await supabase.auth.signOut();
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            // Останавливаем все аудио
+            Object.values(audioElements).forEach(audio => {
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
+            audioElements = {};
+            activeAudio = null;
+            activeAudioId = null;
+            
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+            if (saveMessagesTimeout) {
+                clearTimeout(saveMessagesTimeout);
+                saveMessagesTimeout = null;
+            }
+            if (recordingTimeout) {
+                clearTimeout(recordingTimeout);
+                recordingTimeout = null;
+            }
+            
+            if (ably) {
+                try {
+                    myChats.forEach(chat => {
+                        const channel = ably.channels.get(`chat-${chat.id}`);
+                        channel.unsubscribe();
+                    });
+                    
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.leave();
+                    
+                    ably.close();
+                } catch (e) {
+                    console.error('Error closing Ably:', e);
+                }
+                ably = null;
+            }
+            
+            await supabaseClient.auth.signOut();
             
             localStorage.removeItem('currentUser');
             currentUser = null;
             currentChat = null;
+            myChats = [];
+            onlineUsers = {};
+            
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
             updateUrlWithChat(null);
             
-            // Очищаем поля ввода
-            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
-            document.getElementById('registerEmail').value = '';
             document.getElementById('registerUsername').value = '';
             document.getElementById('registerPassword').value = '';
             document.getElementById('registerConfirmPassword').value = '';
         }
 
-        // ========== Отправка сообщений (текст и аудио) ==========
+        // ========== Отправка сообщений ==========
         function sendMessage() {
             if (sendBtnDisabled) {
                 alert('Слишком часто! Подождите секунду.');
@@ -1874,6 +2349,9 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
             
+            // Сохраняем статус сообщения
+            messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
+            
             const message = {
                 id: messageId,
                 chatId: currentChat.id,
@@ -1882,14 +2360,15 @@
                 text: text,
                 time: timeString,
                 isAdmin: currentUser.isAdmin || false,
-                timestamp: timestamp
+                timestamp: timestamp,
+                status: 'sent' // начальный статус
             };
             
             if (!messages[currentChat.id]) messages[currentChat.id] = [];
             messages[currentChat.id].push({ ...message, type: 'out' });
             messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
-            localStorage.setItem('messages', JSON.stringify(messages));
+            saveMessagesDebounced();
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
@@ -1904,7 +2383,7 @@
             updateChatsList();
         }
 
-        async function sendAudioMessage(audioBase64, duration) {
+        async function sendAudioMessage(audioBlob, duration) {
             if (!currentChat) {
                 alert('Сначала выберите чат');
                 return;
@@ -1921,34 +2400,52 @@
             const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
             const timestamp = Date.now();
 
-            const message = {
-                id: messageId,
-                chatId: currentChat.id,
-                sender: currentUser.id,
-                senderName: currentUser.name,
-                audio: audioBase64,
-                duration: duration,
-                time: timeString,
-                isAdmin: currentUser.isAdmin || false,
-                timestamp: timestamp,
-                type: 'audio'
+            // Статус pending для голосовых
+            messageStatuses[messageId] = { status: 'pending', sentAt: timestamp };
+
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                const base64Audio = reader.result;
+
+                const message = {
+                    id: messageId,
+                    chatId: currentChat.id,
+                    sender: currentUser.id,
+                    senderName: currentUser.name,
+                    audio: base64Audio,
+                    duration: duration,
+                    time: timeString,
+                    isAdmin: currentUser.isAdmin || false,
+                    timestamp: timestamp,
+                    status: 'pending'
+                };
+
+                if (!messages[currentChat.id]) messages[currentChat.id] = [];
+                messages[currentChat.id].push({ ...message, type: 'out' });
+                messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                saveMessagesDebounced();
+
+                updateChatLastMessageTime(currentChat.id, timestamp);
+
+                if (ably) {
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('message', message);
+                    
+                    // Через небольшую задержку меняем статус на sent (имитация успешной отправки)
+                    setTimeout(() => {
+                        if (messageStatuses[messageId]) {
+                            messageStatuses[messageId].status = 'sent';
+                            saveMessagesDebounced();
+                            renderMessages(true);
+                        }
+                    }, 500);
+                }
+
+                renderMessages(true);
+                updateChatsList();
             };
-
-            if (!messages[currentChat.id]) messages[currentChat.id] = [];
-            messages[currentChat.id].push({ ...message, type: 'out' });
-            messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-            localStorage.setItem('messages', JSON.stringify(messages));
-
-            updateChatLastMessageTime(currentChat.id, timestamp);
-
-            if (ably) {
-                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                chatChannel.publish('message', message);
-            }
-
-            renderMessages(true);
-            updateChatsList();
         }
 
         function disableSendButton() {
@@ -1962,16 +2459,20 @@
             }, MESSAGE_COOLDOWN);
         }
 
-        // ========== Голосовые сообщения ==========
+        // ========== Голосовые сообщения и аудиоплеер ==========
         async function startRecording() {
             if (isRecording) return;
+            if (!currentChat) {
+                alert('Сначала выберите чат');
+                return;
+            }
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 alert('Ваш браузер не поддерживает запись аудио');
                 return;
             }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(mediaStream);
                 audioChunks = [];
 
                 mediaRecorder.ondataavailable = event => {
@@ -1980,19 +2481,22 @@
 
                 mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = () => {
-                        const base64Audio = reader.result;
-                        const duration = audioBlob.size / 16000; // примерная длительность
-                        sendAudioMessage(base64Audio, Math.round(duration));
-                    };
-                    stream.getTracks().forEach(track => track.stop());
+                    const duration = Math.round(audioBlob.size / 16000);
+                    
+                    if (mediaStream) {
+                        mediaStream.getTracks().forEach(track => track.stop());
+                        mediaStream = null;
+                    }
+                    
+                    if (audioBlob.size > 0) {
+                        sendAudioMessage(audioBlob, duration);
+                    }
                 };
 
                 mediaRecorder.start();
                 isRecording = true;
                 document.getElementById('micBtn').classList.add('recording');
+                
                 recordingTimeout = setTimeout(() => {
                     if (isRecording) stopRecording();
                 }, 60000);
@@ -2007,15 +2511,110 @@
                 mediaRecorder.stop();
                 isRecording = false;
                 document.getElementById('micBtn').classList.remove('recording');
-                clearTimeout(recordingTimeout);
+                if (recordingTimeout) {
+                    clearTimeout(recordingTimeout);
+                    recordingTimeout = null;
+                }
             }
         }
 
-        function toggleRecording() {
-            if (isRecording) {
-                stopRecording();
-            } else {
-                startRecording();
+        function toggleAudio(messageId, audioSrc) {
+            if (activeAudioId === messageId && activeAudio) {
+                // То же сообщение - переключаем паузу/воспроизведение
+                if (!activeAudio.paused) {
+                    activeAudio.pause();
+                } else {
+                    activeAudio.play().catch(e => console.error('Play failed:', e));
+                }
+                return;
+            }
+            
+            // Другое сообщение - останавливаем предыдущее и запускаем новое
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio.currentTime = 0;
+                updateAudioButton(activeAudioId, false);
+            }
+            
+            // Создаем новый аудио элемент, если его нет
+            if (!audioElements[messageId]) {
+                audioElements[messageId] = new Audio(audioSrc);
+                audioElements[messageId].addEventListener('timeupdate', () => updateAudioProgress(messageId));
+                audioElements[messageId].addEventListener('ended', () => {
+                    updateAudioButton(messageId, false);
+                    updateAudioProgress(messageId);
+                });
+                audioElements[messageId].addEventListener('pause', () => updateAudioButton(messageId, false));
+                audioElements[messageId].addEventListener('play', () => updateAudioButton(messageId, true));
+            }
+            
+            activeAudio = audioElements[messageId];
+            activeAudioId = messageId;
+            
+            activeAudio.play().catch(e => console.error('Play failed:', e));
+        }
+
+        function updateAudioButton(messageId, isPlaying) {
+            const btn = document.querySelector(`.play-pause-btn[data-message-id="${messageId}"]`);
+            if (btn) {
+                btn.textContent = isPlaying ? '⏸️' : '▶️';
+            }
+        }
+
+        function updateAudioProgress(messageId) {
+            const audio = audioElements[messageId];
+            if (!audio) return;
+            
+            const progressFill = document.querySelector(`.audio-progress-fill[data-message-id="${messageId}"]`);
+            const timeDisplay = document.querySelector(`.audio-time[data-message-id="${messageId}"]`);
+            
+            if (progressFill) {
+                const percent = (audio.currentTime / audio.duration) * 100 || 0;
+                progressFill.style.width = percent + '%';
+            }
+            
+            if (timeDisplay) {
+                const current = formatTime(audio.currentTime);
+                const total = formatTime(audio.duration);
+                timeDisplay.textContent = `${current}/${total}`;
+            }
+        }
+
+        function seekAudio(messageId, event) {
+            const audio = audioElements[messageId];
+            if (!audio) return;
+            
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percent = clickX / rect.width;
+            audio.currentTime = percent * audio.duration;
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'pending': return '⏳';
+                case 'sent': return '✓';
+                case 'delivered': return '✓✓';
+                case 'read': return '✓✓';
+                default: return '';
+            }
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'pending': return 'status-pending';
+                case 'sent': return 'status-sent';
+                case 'delivered': return 'status-delivered';
+                case 'read': return 'status-read';
+                default: return '';
             }
         }
 
@@ -2042,6 +2641,8 @@
             
             messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
+            const fragment = document.createDocumentFragment();
+            
             messages[currentChat.id].forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${msg.type}`;
@@ -2049,10 +2650,32 @@
                 messageDiv.setAttribute('data-id', msg.id);
                 
                 let content = '';
+                let statusHtml = '';
+                
+                // Получаем статус сообщения
+                const status = messageStatuses[msg.id] || { status: msg.sender === currentUser.id ? 'sent' : 'delivered' };
+                
+                if (msg.type === 'out') {
+                    statusHtml = `<span class="message-status ${getStatusClass(status.status)}"><span class="status-icon">${getStatusIcon(status.status)}</span></span>`;
+                }
+                
                 if (msg.text) {
                     content = `<div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size: 10px; opacity: 0.7;">(ред.)</span>' : ''}</div>`;
                 } else if (msg.audio) {
-                    content = `<div class="message-bubble audio-message"><audio src="${msg.audio}" controls></audio> ${msg.duration ? `<span style="font-size: 10px;">${msg.duration}с</span>` : ''}</div>`;
+                    const messageId = msg.id;
+                    const duration = msg.duration || 0;
+                    
+                    content = `
+                        <div class="message-bubble audio-message">
+                            <div class="audio-player">
+                                <button class="play-pause-btn" data-message-id="${messageId}" onclick="toggleAudio('${messageId}', '${msg.audio}')">▶️</button>
+                                <div class="audio-progress" onclick="seekAudio('${messageId}', event)">
+                                    <div class="audio-progress-fill" data-message-id="${messageId}" style="width: 0%"></div>
+                                </div>
+                                <span class="audio-time" data-message-id="${messageId}">0:00/${formatTime(duration)}</span>
+                            </div>
+                        </div>
+                    `;
                 } else if (msg.media) {
                     if (msg.media.type.startsWith('image/')) {
                         content = `<img src="${msg.media.url}" class="message-media" onclick="openMedia('${msg.media.url}')">`;
@@ -2062,7 +2685,7 @@
                 }
                 
                 let actions = '';
-                if (msg.sender === currentUser.id || currentUser.isAdmin) {
+                if (msg.sender === currentUser.id || (currentUser && currentUser.isAdmin)) {
                     actions = `
                         <div class="message-actions">
                             ${msg.sender === currentUser.id ? `<button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>` : ''}
@@ -2077,17 +2700,27 @@
                     ${actions}
                     ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}${showAdminBadge ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>` : ''}
                     ${content}
-                    <div class="message-time">${msg.time}</div>
+                    <div class="message-footer">
+                        <span class="message-time">${msg.time}</span>
+                        ${statusHtml}
+                    </div>
                 `;
                 
-                container.appendChild(messageDiv);
+                fragment.appendChild(messageDiv);
             });
+            
+            container.appendChild(fragment);
             
             if (isAtBottom) {
                 container.scrollTo({
                     top: container.scrollHeight,
                     behavior: animate ? 'smooth' : 'auto'
                 });
+            }
+            
+            // Если мы в чате, отмечаем сообщения как прочитанные
+            if (currentChat) {
+                markMessagesAsRead(currentChat.id);
             }
         }
 
@@ -2128,45 +2761,114 @@
                 
                 if (currentTab === 'users') {
                     element.onclick = () => createPrivateChat(item);
-                    element.innerHTML = `
-                        <div class="chat-avatar">${item.avatar || '👤'}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">
-                                ${escapeHtml(item.name)}
-                                ${item.online ? '<span class="online-indicator"></span>' : ''}
-                                ${item.dnd ? '<span class="dnd-badge">DND</span>' : ''}
-                                ${item.isAdmin && item.name === ADMIN_USERNAME ? '<span class="admin-badge">ADMIN</span>' : ''}
-                            </div>
-                            <div class="chat-last-message">${escapeHtml(item.bio || 'Нет информации')}</div>
-                        </div>
-                    `;
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = item.name || '';
+                    
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'chat-details';
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'chat-name';
+                    nameDiv.appendChild(nameSpan);
+                    
+                    if (item.online) {
+                        const onlineSpan = document.createElement('span');
+                        onlineSpan.className = 'online-indicator';
+                        nameDiv.appendChild(onlineSpan);
+                    }
+                    
+                    if (item.dnd) {
+                        const dndSpan = document.createElement('span');
+                        dndSpan.className = 'dnd-badge';
+                        dndSpan.textContent = 'DND';
+                        nameDiv.appendChild(dndSpan);
+                    }
+                    
+                    if (item.isAdmin && item.name === ADMIN_USERNAME) {
+                        const adminSpan = document.createElement('span');
+                        adminSpan.className = 'admin-badge';
+                        adminSpan.textContent = 'ADMIN';
+                        nameDiv.appendChild(adminSpan);
+                    }
+                    
+                    const bioDiv = document.createElement('div');
+                    bioDiv.className = 'chat-last-message';
+                    bioDiv.textContent = item.bio || 'Нет информации';
+                    
+                    detailsDiv.appendChild(nameDiv);
+                    detailsDiv.appendChild(bioDiv);
+                    
+                    element.innerHTML = `<div class="chat-avatar">${item.avatar || '👤'}</div>`;
+                    element.appendChild(detailsDiv);
                 } else {
                     const lastMsg = messages[item.id] && messages[item.id].length > 0 ? messages[item.id][messages[item.id].length - 1] : null;
                     const unread = unreadCounts[item.id] || 0;
                     
                     element.onclick = () => joinChat(item);
                     
-                    let chatNameHTML = `${escapeHtml(item.name || 'Без названия')} ${item.password ? '<span class="lock-icon">🔒</span>' : ''}`;
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'chat-avatar';
+                    avatarDiv.textContent = (item.name || '?').charAt(0);
                     
-                    if (currentUser && currentUser.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public') {
-                        chatNameHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${item.id}', event)">Удалить</button>`;
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'chat-details';
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'chat-name';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = item.name || 'Без названия';
+                    nameDiv.appendChild(nameSpan);
+                    
+                    if (item.password) {
+                        const lockSpan = document.createElement('span');
+                        lockSpan.className = 'lock-icon';
+                        lockSpan.textContent = '🔒';
+                        nameDiv.appendChild(lockSpan);
                     }
                     
-                    element.innerHTML = `
-                        <div class="chat-avatar">${(item.name || '?').charAt(0)}</div>
-                        <div class="chat-details">
-                            <div class="chat-name">
-                                ${chatNameHTML}
-                            </div>
-                            <div class="chat-last-message">
-                                ${lastMsg ? (lastMsg.text ? escapeHtml(lastMsg.text) : (lastMsg.audio ? '🎤 Голосовое сообщение' : '📷 Медиа')) : (escapeHtml(item.description || 'Нет сообщений'))}
-                            </div>
-                        </div>
-                        <div class="chat-meta">
-                            <div class="chat-time">${lastMsg ? lastMsg.time : ''}</div>
-                            ${unread > 0 ? `<div class="chat-unread">${unread}</div>` : ''}
-                        </div>
-                    `;
+                    if (currentUser && currentUser.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public') {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-chat-btn';
+                        deleteBtn.textContent = 'Удалить';
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteChat(item.id, e);
+                        };
+                        nameDiv.appendChild(deleteBtn);
+                    }
+                    
+                    const lastMsgDiv = document.createElement('div');
+                    lastMsgDiv.className = 'chat-last-message';
+                    if (lastMsg) {
+                        lastMsgDiv.textContent = lastMsg.text ? lastMsg.text : (lastMsg.audio ? '🎤 Голосовое сообщение' : '📷 Медиа');
+                    } else {
+                        lastMsgDiv.textContent = item.description || 'Нет сообщений';
+                    }
+                    
+                    detailsDiv.appendChild(nameDiv);
+                    detailsDiv.appendChild(lastMsgDiv);
+                    
+                    const metaDiv = document.createElement('div');
+                    metaDiv.className = 'chat-meta';
+                    
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'chat-time';
+                    timeDiv.textContent = lastMsg ? lastMsg.time : '';
+                    
+                    metaDiv.appendChild(timeDiv);
+                    
+                    if (unread > 0) {
+                        const unreadDiv = document.createElement('div');
+                        unreadDiv.className = 'chat-unread';
+                        unreadDiv.textContent = unread;
+                        metaDiv.appendChild(unreadDiv);
+                    }
+                    
+                    element.appendChild(avatarDiv);
+                    element.appendChild(detailsDiv);
+                    element.appendChild(metaDiv);
                 }
                 
                 list.appendChild(element);
@@ -2195,11 +2897,30 @@
             currentChat = chat;
             updateUrlWithChat(chat);
             
-            let chatTitleHTML = `${escapeHtml(chat.name)} ${chat.password ? '🔒' : ''}`;
-            if (currentUser && currentUser.isAdmin) {
-                chatTitleHTML += ` <button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить чат</button>`;
+            const titleElement = document.getElementById('currentChatName');
+            titleElement.innerHTML = '';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = chat.name;
+            titleElement.appendChild(nameSpan);
+            
+            if (chat.password) {
+                const lockSpan = document.createElement('span');
+                lockSpan.textContent = ' 🔒';
+                titleElement.appendChild(lockSpan);
             }
-            document.getElementById('currentChatName').innerHTML = chatTitleHTML;
+            
+            if (currentUser && currentUser.isAdmin) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-chat-btn';
+                deleteBtn.textContent = 'Удалить чат';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteChat(chat.id, e);
+                };
+                titleElement.appendChild(deleteBtn);
+            }
+            
             document.getElementById('chatStatus').textContent = chat.description || 'Чат';
             
             if (!messages[chat.id]) messages[chat.id] = [];
@@ -2243,7 +2964,7 @@
             localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             if (messages[chatId]) {
                 delete messages[chatId];
-                localStorage.setItem('messages', JSON.stringify(messages));
+                saveMessagesDebounced();
             }
             if (ably) {
                 const adminChannel = ably.channels.get('admin-actions');
@@ -2251,7 +2972,7 @@
             }
             if (currentChat && currentChat.id === chatId) {
                 currentChat = null;
-                document.getElementById('messagesContainer').innerHTML = `<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>`;
+                document.getElementById('messagesContainer').innerHTML = '<div class="chat-deleted-message">⚠️ Чат был удален администратором</div>';
                 document.getElementById('currentChatName').innerHTML = 'Чат удален';
                 document.getElementById('chatStatus').innerHTML = '';
                 updateUrlWithChat(null);
@@ -2271,7 +2992,7 @@
             }
         }
 
-        function createPublicChat() {
+        async function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
             const password = document.getElementById('chatPasswordInput').value.trim();
             const description = document.getElementById('chatDescriptionInput').value.trim();
@@ -2279,24 +3000,41 @@
                 alert('Введите название чата');
                 return;
             }
+            
             const newChat = {
                 id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                 name: name,
                 description: description || '',
                 password: password || null,
-                createdBy: currentUser.id,
-                createdByName: currentUser.name,
+                created_by: currentUser.id,
+                created_by_name: currentUser.name,
                 members: [currentUser.id],
-                createdAt: new Date().toISOString()
+                type: 'public',
+                created_at: new Date().toISOString()
             };
-            publicChats.push(newChat);
-            localStorage.setItem('publicChats', JSON.stringify(publicChats));
-            if (ably) {
-                const globalChatsChannel = ably.channels.get('global-chats');
-                globalChatsChannel.publish('new-chat', newChat);
+            
+            try {
+                // Save to Supabase
+                const { error } = await supabaseClient
+                    .from('chats')
+                    .insert([newChat]);
+                
+                if (error) throw error;
+                
+                publicChats.push(newChat);
+                localStorage.setItem('publicChats', JSON.stringify(publicChats));
+                
+                if (ably) {
+                    const globalChatsChannel = ably.channels.get('global-chats');
+                    globalChatsChannel.publish('new-chat', newChat);
+                }
+                
+                joinChat(newChat);
+                closeCreateChatModal();
+            } catch (err) {
+                console.error('Error creating chat:', err);
+                alert('Ошибка при создании чата');
             }
-            joinChat(newChat);
-            closeCreateChatModal();
         }
 
         // ========== Редактирование/удаление сообщений ==========
@@ -2307,6 +3045,7 @@
             }
             if (!currentChat) return;
             const msg = messages[currentChat.id].find(m => m.id === messageId);
+            if (!msg) return;
             if (!currentUser.isAdmin && msg.sender !== currentUser.id) {
                 alert('Вы можете удалять только свои сообщения');
                 return;
@@ -2320,7 +3059,7 @@
             }
             
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
-            localStorage.setItem('messages', JSON.stringify(messages));
+            saveMessagesDebounced();
             
             if (ably) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -2359,7 +3098,7 @@
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
-                localStorage.setItem('messages', JSON.stringify(messages));
+                saveMessagesDebounced();
                 
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
@@ -2390,15 +3129,41 @@
             const dnd = document.getElementById('profileDNDCheckbox').checked;
             
             if (newName && newName !== currentUser.name) {
+                // Check if username exists
+                const { data: existingUsers } = await supabaseClient
+                    .from('users')
+                    .select('username')
+                    .eq('username', newName)
+                    .neq('id', currentUser.id)
+                    .limit(1);
+                
+                if (existingUsers && existingUsers.length > 0) {
+                    alert('Пользователь с таким именем уже существует');
+                    return;
+                }
+                
                 currentUser.name = newName;
             }
             
-            if (newBio !== currentUser.bio) {
-                currentUser.bio = newBio;
-            }
+            currentUser.bio = newBio;
+            currentUser.dnd = dnd;
             
-            if (dnd !== currentUser.dnd) {
-                currentUser.dnd = dnd;
+            try {
+                // Update user in Supabase
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({
+                        username: currentUser.name,
+                        bio: currentUser.bio,
+                        dnd: currentUser.dnd,
+                        avatar: currentUser.avatar
+                    })
+                    .eq('id', currentUser.id);
+                
+                if (error) throw error;
+                
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     presenceChannel.presence.update({ 
@@ -2409,35 +3174,13 @@
                         dnd: dnd
                     });
                 }
-            }
-            
-            // Обновляем профиль в Supabase
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({
-                        name: currentUser.name,
-                        bio: currentUser.bio,
-                        dnd: currentUser.dnd,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentUser.id);
-
-                if (error) {
-                    console.error('Error updating profile:', error);
-                    alert('Ошибка при сохранении профиля');
-                    return;
-                }
+                
+                updateProfileUI();
+                closeProfileModal();
             } catch (err) {
                 console.error('Error updating profile:', err);
                 alert('Ошибка при сохранении профиля');
-                return;
             }
-            
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-            updateProfileUI();
-            closeProfileModal();
         }
 
         function openAvatarModal() {
@@ -2465,38 +3208,31 @@
             if (selectedAvatar) {
                 currentUser.avatar = selectedAvatar;
                 
-                // Обновляем аватар в Supabase
                 try {
-                    const { error } = await supabase
-                        .from('profiles')
-                        .update({
-                            avatar: selectedAvatar,
-                            updated_at: new Date().toISOString()
-                        })
+                    // Update avatar in Supabase
+                    const { error } = await supabaseClient
+                        .from('users')
+                        .update({ avatar: currentUser.avatar })
                         .eq('id', currentUser.id);
-
-                    if (error) {
-                        console.error('Error updating avatar:', error);
-                        alert('Ошибка при сохранении аватара');
-                        return;
+                    
+                    if (error) throw error;
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateProfileUI();
+                    
+                    if (ably) {
+                        const presenceChannel = ably.channels.get('presence');
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name, 
+                            avatar: selectedAvatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            dnd: currentUser.dnd
+                        });
                     }
                 } catch (err) {
-                    console.error('Error updating avatar:', err);
+                    console.error('Error saving avatar:', err);
                     alert('Ошибка при сохранении аватара');
-                    return;
-                }
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                updateProfileUI();
-                if (ably) {
-                    const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ 
-                        name: currentUser.name, 
-                        avatar: selectedAvatar,
-                        bio: currentUser.bio,
-                        isAdmin: currentUser.isAdmin,
-                        dnd: currentUser.dnd
-                    });
                 }
             }
             closeAvatarModal();
@@ -2653,7 +3389,12 @@
         });
 
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeMediaViewer();
+            if (e.key === 'Escape') {
+                closeMediaViewer();
+                if (document.activeElement === document.getElementById('messageInput')) {
+                    document.getElementById('messageInput').blur();
+                }
+            }
         });
 
         document.addEventListener('click', function(e) {
@@ -2664,38 +3405,8 @@
             }
         });
 
-        // Запуск проверки сессии
-        checkSavedSession();
-
-        // Создаем таблицу profiles в Supabase, если её нет
-        async function createProfilesTable() {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .limit(1);
-                
-                if (error && error.code === '42P01') { // Таблица не существует
-                    console.log('Creating profiles table...');
-                    // Создаем таблицу через SQL (требует прав администратора)
-                    // Вам нужно выполнить этот SQL в Supabase SQL editor:
-                    /*
-                    CREATE TABLE profiles (
-                        id UUID REFERENCES auth.users PRIMARY KEY,
-                        name TEXT,
-                        avatar TEXT DEFAULT '👤',
-                        bio TEXT,
-                        dnd BOOLEAN DEFAULT false,
-                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                    );
-                    */
-                }
-            } catch (err) {
-                console.error('Error checking profiles table:', err);
-            }
-        }
-
-        createProfilesTable();
+        // Запуск инициализации
+        init();
     </script>
 </body>
 </html>
