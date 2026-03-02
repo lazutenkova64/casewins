@@ -1421,14 +1421,13 @@
         // SUPABASE CONFIGURATION
         // ============================================================
         const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9scXdnZmVzZWR6cm5wd2Z3cXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwMTQ0MDAsImV4cCI6MjA0ODU5MDQwMH0.dQmZqWQs2P5ZznZTOX5zPq5KU2ZzjWl0C3k5K5y5XK4";
+        const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
         
         // Initialize Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
-                detectSessionInUrl: false
             }
         });
 
@@ -1455,7 +1454,6 @@
         // Для статусов сообщений
         let messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
         let deliveredMessages = JSON.parse(localStorage.getItem('deliveredMessages')) || {};
-        let readMessages = JSON.parse(localStorage.getItem('readMessages')) || {};
 
         // ID для отслеживания удаленных сообщений
         let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
@@ -1606,49 +1604,49 @@
         }
 
         async function checkSavedSession() {
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session?.user) {
-                    // Get user profile from users table
-                    const { data: userData, error: userError } = await supabaseClient
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    
+                    // Проверяем, существует ли пользователь в базе
+                    const { data, error } = await supabaseClient
                         .from('users')
                         .select('*')
-                        .eq('id', session.user.id)
+                        .eq('id', currentUser.id)
                         .single();
                     
-                    if (userError) {
-                        console.error('Error fetching user profile:', userError);
+                    if (error || !data) {
+                        localStorage.removeItem('currentUser');
                         return;
                     }
                     
-                    if (userData) {
-                        currentUser = {
-                            id: userData.id,
-                            name: userData.username,
-                            email: session.user.email,
-                            avatar: userData.avatar || '👤',
-                            bio: userData.bio || '',
-                            isAdmin: userData.username === ADMIN_USERNAME,
-                            dnd: userData.dnd || false
-                        };
-                        
-                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                        
-                        document.getElementById('loginModal').classList.remove('active');
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        updateProfileUI();
-                        
-                        setTimeout(() => {
-                            initAbly();
-                            checkUrlForChat();
-                            startHeartbeat();
-                        }, 100);
-                    }
+                    // Обновляем данные из базы
+                    currentUser = {
+                        id: data.id,
+                        name: data.username,
+                        avatar: data.avatar || '👤',
+                        bio: data.bio || '',
+                        isAdmin: data.username === ADMIN_USERNAME,
+                        dnd: data.dnd || false
+                    };
+                    
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    
+                    updateProfileUI();
+                    
+                    setTimeout(() => {
+                        initAbly();
+                        checkUrlForChat();
+                        startHeartbeat();
+                    }, 100);
+                } catch (err) {
+                    console.error('Error checking saved session:', err);
+                    localStorage.removeItem('currentUser');
                 }
-            } catch (err) {
-                console.error('Error checking saved session:', err);
             }
         }
 
@@ -1735,7 +1733,7 @@
             
             ably = new Ably.Realtime({
                 key: ABLY_API_KEY,
-                clientId: currentUser.id,
+                clientId: currentUser.id.toString(),
                 transports: ['web_socket'],
                 disconnectedRetryTimeout: 1000,
                 suspendedRetryTimeout: 2000,
@@ -1756,9 +1754,9 @@
                 });
                 
                 presenceChannel.presence.subscribe('enter', (member) => {
-                    if (member.clientId !== currentUser.id) {
+                    if (member.clientId !== currentUser.id.toString()) {
                         onlineUsers[member.clientId] = {
-                            id: member.clientId,
+                            id: parseInt(member.clientId),
                             name: member.data.name,
                             avatar: member.data.avatar || '👤',
                             bio: member.data.bio || '',
@@ -1771,7 +1769,7 @@
                 });
                 
                 presenceChannel.presence.subscribe('update', (member) => {
-                    if (member.clientId !== currentUser.id && onlineUsers[member.clientId]) {
+                    if (member.clientId !== currentUser.id.toString() && onlineUsers[member.clientId]) {
                         onlineUsers[member.clientId] = {
                             ...onlineUsers[member.clientId],
                             name: member.data.name,
@@ -1794,9 +1792,9 @@
                 presenceChannel.presence.get((err, members) => {
                     if (members) {
                         members.forEach(member => {
-                            if (member.clientId !== currentUser.id) {
+                            if (member.clientId !== currentUser.id.toString()) {
                                 onlineUsers[member.clientId] = {
-                                    id: member.clientId,
+                                    id: parseInt(member.clientId),
                                     name: member.data.name,
                                     avatar: member.data.avatar || '👤',
                                     bio: member.data.bio || '',
@@ -1893,17 +1891,17 @@
                 if (!exists) {
                     messages[chat.id].push({
                         ...msg,
-                        type: msg.sender === currentUser.id ? 'out' : 'in'
+                        type: msg.sender == currentUser.id ? 'out' : 'in'
                     });
                     messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
-                    if (msg.sender !== currentUser.id) {
+                    if (msg.sender != currentUser.id) {
                         sendDeliveryReceipt(chat.id, msg.id);
                     }
                     
                     updateChatLastMessageTime(chat.id, msg.timestamp);
                     
-                    if (currentChat?.id !== chat.id && msg.sender !== currentUser.id) {
+                    if (currentChat?.id !== chat.id && msg.sender != currentUser.id) {
                         unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
                         localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                     }
@@ -1985,6 +1983,7 @@
                 }
             });
             
+            // Загружаем историю
             chatChannel.history({ limit: 200 }, (err, resultPage) => {
                 if (resultPage && resultPage.items.length > 0) {
                     if (!messages[chat.id]) messages[chat.id] = [];
@@ -1995,7 +1994,7 @@
                         if (!exists) {
                             messages[chat.id].push({
                                 ...msg,
-                                type: msg.sender === currentUser.id ? 'out' : 'in'
+                                type: msg.sender == currentUser.id ? 'out' : 'in'
                             });
                         }
                     });
@@ -2025,7 +2024,7 @@
             if (!ably || !messages[chatId]) return;
             
             messages[chatId].forEach(msg => {
-                if (msg.sender !== currentUser.id && 
+                if (msg.sender != currentUser.id && 
                     (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
                     
                     if (!messageStatuses[msg.id]) {
@@ -2076,58 +2075,46 @@
             }
             
             try {
-                // Создаем email из username для входа
-                const email = `${username}@telegram.local`;
+                // Ищем пользователя в таблице users
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('username', username)
+                    .eq('password', password)
+                    .single();
                 
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) throw error;
-                
-                if (data.user) {
-                    // Получаем профиль пользователя
-                    const { data: userData, error: userError } = await supabaseClient
-                        .from('users')
-                        .select('*')
-                        .eq('id', data.user.id)
-                        .single();
-                    
-                    if (userError) {
-                        console.error('Error fetching user profile:', userError);
-                        alert('Ошибка при загрузке профиля');
-                        return;
-                    }
-                    
-                    currentUser = {
-                        id: userData.id,
-                        name: userData.username,
-                        email: email,
-                        avatar: userData.avatar || '👤',
-                        bio: userData.bio || '',
-                        isAdmin: userData.username === ADMIN_USERNAME,
-                        dnd: userData.dnd || false
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                    checkUrlForChat();
+                if (error || !data) {
+                    alert('Неверное имя пользователя или пароль');
+                    return;
                 }
+                
+                currentUser = {
+                    id: data.id,
+                    name: data.username,
+                    avatar: data.avatar || '👤',
+                    bio: data.bio || '',
+                    isAdmin: data.username === ADMIN_USERNAME,
+                    dnd: data.dnd || false
+                };
+                
+                if (remember) {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
+                
+                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                updateProfileUI();
+                
+                initAbly();
+                startHeartbeat();
+                checkUrlForChat();
+                
             } catch (err) {
                 console.error('Login error:', err);
-                alert('Ошибка при входе: Неверное имя пользователя или пароль');
+                alert('Ошибка при входе');
             }
         }
 
@@ -2161,77 +2148,58 @@
             
             try {
                 // Проверяем, не занято ли имя пользователя
-                const { data: existingUsers, error: checkError } = await supabaseClient
+                const { data: existingUser } = await supabaseClient
                     .from('users')
                     .select('username')
-                    .eq('username', username);
+                    .eq('username', username)
+                    .single();
                 
-                if (checkError) throw checkError;
-                
-                if (existingUsers && existingUsers.length > 0) {
+                if (existingUser) {
                     alert('Пользователь с таким именем уже существует');
                     return;
                 }
                 
-                // Создаем email из username
-                const email = `${username}@telegram.local`;
-                
-                // Регистрируем пользователя в Auth
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: email,
+                // Создаем нового пользователя
+                const newUser = {
+                    username: username,
                     password: password,
-                    options: {
-                        data: {
-                            username: username
-                        }
-                    }
-                });
+                    avatar: '👤',
+                    bio: '',
+                    dnd: false,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .insert([newUser])
+                    .select()
+                    .single();
                 
                 if (error) throw error;
                 
-                if (data.user) {
-                    // Создаем профиль пользователя в таблице users
-                    const isAdmin = username === ADMIN_USERNAME;
-                    const newUser = {
-                        id: data.user.id,
-                        username: username,
-                        email: email,
-                        avatar: '👤',
-                        bio: '',
-                        dnd: false,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const { error: insertError } = await supabaseClient
-                        .from('users')
-                        .insert([newUser]);
-                    
-                    if (insertError) throw insertError;
-                    
-                    currentUser = {
-                        id: newUser.id,
-                        name: newUser.username,
-                        email: email,
-                        avatar: newUser.avatar,
-                        bio: newUser.bio,
-                        isAdmin: isAdmin,
-                        dnd: newUser.dnd
-                    };
-                    
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    initAbly();
-                    startHeartbeat();
-                    
-                    alert('Регистрация успешна!');
+                currentUser = {
+                    id: data.id,
+                    name: data.username,
+                    avatar: data.avatar || '👤',
+                    bio: data.bio || '',
+                    isAdmin: data.username === ADMIN_USERNAME,
+                    dnd: data.dnd || false
+                };
+                
+                if (remember) {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
+                
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                updateProfileUI();
+                
+                initAbly();
+                startHeartbeat();
+                
+                alert('Регистрация успешна!');
+                
             } catch (err) {
                 console.error('Registration error:', err);
                 alert('Ошибка при регистрации: ' + err.message);
@@ -2291,8 +2259,6 @@
                 }
                 ably = null;
             }
-            
-            await supabaseClient.auth.signOut();
             
             localStorage.removeItem('currentUser');
             currentUser = null;
@@ -2637,7 +2603,7 @@
                 let content = '';
                 let statusHtml = '';
                 
-                const status = messageStatuses[msg.id] || { status: msg.sender === currentUser.id ? 'sent' : 'delivered' };
+                const status = messageStatuses[msg.id] || { status: msg.sender == currentUser.id ? 'sent' : 'delivered' };
                 
                 if (msg.type === 'out') {
                     statusHtml = `<span class="message-status ${getStatusClass(status.status)}"><span class="status-icon">${getStatusIcon(status.status)}</span></span>`;
@@ -2669,10 +2635,10 @@
                 }
                 
                 let actions = '';
-                if (msg.sender === currentUser.id || (currentUser && currentUser.isAdmin)) {
+                if (msg.sender == currentUser.id || (currentUser && currentUser.isAdmin)) {
                     actions = `
                         <div class="message-actions">
-                            ${msg.sender === currentUser.id ? `<button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>` : ''}
+                            ${msg.sender == currentUser.id ? `<button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>` : ''}
                             <button class="message-action-btn" onclick="deleteMessage('${msg.id}', event)">🗑️</button>
                         </div>
                     `;
@@ -3028,7 +2994,7 @@
             if (!currentChat) return;
             const msg = messages[currentChat.id].find(m => m.id === messageId);
             if (!msg) return;
-            if (!currentUser.isAdmin && msg.sender !== currentUser.id) {
+            if (!currentUser.isAdmin && msg.sender != currentUser.id) {
                 alert('Вы можете удалять только свои сообщения');
                 return;
             }
@@ -3063,7 +3029,7 @@
             }
             if (!currentChat) return;
             const msg = messages[currentChat.id].find(m => m.id === messageId);
-            if (msg && msg.sender === currentUser.id) {
+            if (msg && msg.sender == currentUser.id) {
                 messageToEdit = msg;
                 document.getElementById('editMessageText').value = msg.text || '';
                 document.getElementById('editMessageModal').classList.add('active');
