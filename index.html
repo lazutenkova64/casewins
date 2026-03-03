@@ -2413,16 +2413,12 @@
                                 type: msg.sender_id == currentUser.id ? 'out' : 'in'
                             });
                             
+                            // Для своих сообщений устанавливаем статус "sent" (сохранено в БД)
                             if (msg.sender_id == currentUser.id) {
-                                let status = 'pending';
-                                if (msg.read) status = 'read';
-                                else if (msg.delivered) status = 'delivered';
-                                else if (msg.sent) status = 'sent';
-                                
                                 messageStatuses[msg.id] = {
-                                    status: status,
-                                    deliveredAt: msg.delivered_at ? new Date(msg.delivered_at).getTime() : null,
-                                    readAt: msg.read_at ? new Date(msg.read_at).getTime() : null
+                                    status: 'sent',
+                                    deliveredAt: null,
+                                    readAt: null
                                 };
                             }
                         }
@@ -2892,14 +2888,6 @@
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'delivered';
                     messageStatuses[messageId].deliveredAt = Date.now();
-                    
-                    supabaseClient
-                        .from('messages')
-                        .update({ delivered: true, delivered_at: new Date().toISOString() })
-                        .eq('id', messageId)
-                        .then(({ error }) => {
-                            if (error) console.error('Error updating delivery status:', error);
-                        });
                 }
                 saveMessagesDebounced();
                 
@@ -2914,14 +2902,6 @@
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'read';
                     messageStatuses[messageId].readAt = Date.now();
-                    
-                    supabaseClient
-                        .from('messages')
-                        .update({ read: true, read_at: new Date().toISOString() })
-                        .eq('id', messageId)
-                        .then(({ error }) => {
-                            if (error) console.error('Error updating read status:', error);
-                        });
                 }
                 saveMessagesDebounced();
                 
@@ -2995,6 +2975,7 @@
                     return;
                 }
                 
+                // Убираем поля delivered, read, sent, так как их нет в таблице
                 const { data, error } = await supabaseClient
                     .from('messages')
                     .insert([{
@@ -3009,10 +2990,7 @@
                         time: message.time,
                         timestamp: message.timestamp,
                         is_admin: message.isAdmin || false,
-                        edited: message.edited || false,
-                        delivered: false,
-                        read: false,
-                        sent: true
+                        edited: message.edited || false
                     }]);
                 
                 if (error) {
@@ -3099,10 +3077,7 @@
                             time: message.time,
                             timestamp: message.timestamp,
                             is_admin: message.isAdmin || false,
-                            edited: message.edited || false,
-                            delivered: false,
-                            read: false,
-                            sent: true
+                            edited: message.edited || false
                         }]);
                     
                     if (!error) {
@@ -3165,15 +3140,10 @@
                             });
                             
                             if (msg.sender_id == currentUser.id) {
-                                let status = 'pending';
-                                if (msg.read) status = 'read';
-                                else if (msg.delivered) status = 'delivered';
-                                else if (msg.sent) status = 'sent';
-                                
                                 messageStatuses[msg.id] = {
-                                    status: status,
-                                    deliveredAt: msg.delivered_at ? new Date(msg.delivered_at).getTime() : null,
-                                    readAt: msg.read_at ? new Date(msg.read_at).getTime() : null
+                                    status: 'sent',
+                                    deliveredAt: null,
+                                    readAt: null
                                 };
                             }
                         }
@@ -3205,13 +3175,7 @@
                         messageStatuses[msg.id].readAt = Date.now();
                     }
                     
-                    supabaseClient
-                        .from('messages')
-                        .update({ read: true, read_at: new Date().toISOString() })
-                        .eq('id', msg.id)
-                        .then(({ error }) => {
-                            if (error) console.error('Error updating read status:', error);
-                        });
+                    // Убрано обновление БД – колонки read нет
                     
                     const chatChannel = ably.channels.get(`chat-${chatId}`);
                     chatChannel.publish('read_receipt', { 
