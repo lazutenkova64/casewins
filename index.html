@@ -2404,6 +2404,7 @@
 
         async function loadUserData(user) {
             try {
+                // Пытаемся найти профиль по id
                 const { data, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -2411,7 +2412,7 @@
                     .single();
                 
                 if (error && error.code === 'PGRST116') {
-                    // Профиль не найден - создаем
+                    // Профиль не найден - создаем новый
                     const defaultUsername = user.email.split('@')[0];
                     const { data: newProfile, error: insertError } = await supabaseClient
                         .from('profiles')
@@ -2421,12 +2422,17 @@
                             avatar: '👤',
                             bio: '',
                             dnd: false,
+                            is_admin: defaultUsername === ADMIN_USERNAME,
+                            is_vip: VIP_USERNAMES.includes(defaultUsername),
                             created_at: new Date().toISOString()
                         }])
                         .select()
                         .single();
                     
-                    if (insertError) throw insertError;
+                    if (insertError) {
+                        console.error('Error creating profile:', insertError);
+                        throw insertError;
+                    }
                     
                     currentUser = {
                         id: newProfile.id,
@@ -2434,11 +2440,12 @@
                         email: user.email,
                         avatar: newProfile.avatar || '👤',
                         bio: newProfile.bio || '',
-                        isAdmin: newProfile.username === ADMIN_USERNAME,
-                        isVip: VIP_USERNAMES.includes(newProfile.username),
+                        isAdmin: newProfile.is_admin || false,
+                        isVip: newProfile.is_vip || false,
                         dnd: newProfile.dnd || false
                     };
                 } else if (error) {
+                    console.error('Error loading profile:', error);
                     throw error;
                 } else {
                     currentUser = {
@@ -2447,8 +2454,8 @@
                         email: user.email,
                         avatar: data.avatar || '👤',
                         bio: data.bio || '',
-                        isAdmin: data.username === ADMIN_USERNAME,
-                        isVip: VIP_USERNAMES.includes(data.username),
+                        isAdmin: data.is_admin || false,
+                        isVip: data.is_vip || false,
                         dnd: data.dnd || false
                     };
                 }
@@ -3159,7 +3166,7 @@
             }
             
             try {
-                // 1. Регистрация в Supabase Auth
+                // Регистрация в Supabase Auth
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password
@@ -3175,25 +3182,8 @@
                     return;
                 }
                 
-                // 2. Создаем запись в таблице profiles
-                const { error: insertError } = await supabaseClient
-                    .from('profiles')
-                    .insert([{
-                        id: data.user.id,
-                        username: username,
-                        avatar: '👤',
-                        bio: '',
-                        dnd: false,
-                        created_at: new Date().toISOString()
-                    }]);
-                
-                if (insertError) {
-                    console.error('Insert error:', insertError);
-                    alert('Ошибка при создании профиля');
-                    return;
-                }
-                
-                // 3. Остальное сделает onAuthStateChange после автоматического входа
+                // Профиль создастся автоматически в loadUserData после входа
+                // Не вставляем вручную
                 
             } catch (err) {
                 console.error('Registration error:', err);
@@ -4416,7 +4406,9 @@
                         username: currentUser.name,
                         bio: currentUser.bio,
                         dnd: currentUser.dnd,
-                        avatar: currentUser.avatar
+                        avatar: currentUser.avatar,
+                        is_admin: currentUser.isAdmin,
+                        is_vip: currentUser.isVip
                     })
                     .eq('id', currentUser.id);
                 
@@ -4814,8 +4806,14 @@
                     async (payload) => {
                         const callData = payload.new;
                         
-                        const caller = allUsers.find(u => u.id === callData.caller_id);
-                        if (!caller) return;
+                        // Загружаем информацию о звонящем из profiles
+                        const { data: caller, error } = await supabaseClient
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', callData.caller_id)
+                            .single();
+                        
+                        if (error || !caller) return;
                         
                         if (currentUser.dnd) return;
                         
