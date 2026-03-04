@@ -4585,12 +4585,23 @@
         }
 
         function checkUrlForChat() {
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
-                if (chat) setTimeout(() => joinChat(chat), 500);
-            }
-        }
+    let hash = window.location.hash.substring(1);
+
+    if (!hash) return;
+
+    // Убираем префикс favorite-
+    if (hash.startsWith('favorite-')) {
+        hash = hash.replace('favorite-', '');
+    }
+
+    const chat =
+        myChats.find(c => c.id === hash) ||
+        publicChats.find(c => c.id === hash);
+
+    if (chat) {
+        setTimeout(() => joinChat(chat), 500);
+    }
+}
 
         function openMedia(url) {
             const viewer = document.getElementById('mediaViewer');
@@ -4964,11 +4975,19 @@
 
         // ---------- Обработчики событий ----------
         window.addEventListener('popstate', function(event) {
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
-                if (chat) joinChat(chat);
-            } else {
+    let hash = window.location.hash.substring(1);
+
+    if (hash && hash.startsWith('favorite-')) {
+        hash = hash.replace('favorite-', '');
+    }
+
+    if (hash) {
+        const chat =
+            myChats.find(c => c.id === hash) ||
+            publicChats.find(c => c.id === hash);
+
+        if (chat) joinChat(chat);
+    } else {
                 currentChat = null;
                 renderMessages();
                 updateUrlWithChat(null);
