@@ -55,7 +55,6 @@
             --pattern-overlay: none;
         }
 
-        /* Тема 1: Классический темный */
         [data-theme="classic-dark"] {
             --bg-color: #0a0a0a;
             --bg-secondary: #141414;
@@ -69,7 +68,6 @@
             --pattern-overlay: none;
         }
 
-        /* Тема 2: Неоновый город */
         [data-theme="neon-city"] {
             --bg-color: #0b0e1a;
             --bg-secondary: #141a2a;
@@ -89,7 +87,6 @@
                                radial-gradient(circle at 80% 70%, rgba(255, 0, 255, 0.1) 0%, transparent 30%);
         }
 
-        /* Тема 3: Киберпанк */
         [data-theme="cyberpunk"] {
             --bg-color: #0f0c1a;
             --bg-secondary: #1a1530;
@@ -109,7 +106,6 @@
                                linear-gradient(135deg, rgba(255, 0, 102, 0.05) 0%, transparent 50%);
         }
 
-        /* Тема 4: Ледяная пещера */
         [data-theme="ice-cave"] {
             --bg-color: #0e1a1f;
             --bg-secondary: #162a33;
@@ -129,7 +125,6 @@
                                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 30%);
         }
 
-        /* Тема 5: Вулканическая */
         [data-theme="volcanic"] {
             --bg-color: #1a0f0a;
             --bg-secondary: #2a1a12;
@@ -149,7 +144,6 @@
                                radial-gradient(circle at 50% 30%, rgba(255, 107, 74, 0.1) 0%, transparent 40%);
         }
 
-        /* Тема 6: Мятная свежесть */
         [data-theme="mint-fresh"] {
             --bg-color: #0a1a14;
             --bg-secondary: #122a20;
@@ -168,7 +162,6 @@
             --pattern-overlay: repeating-linear-gradient(30deg, rgba(152, 255, 152, 0.05) 0px, rgba(152, 255, 152, 0.05) 3px, transparent 3px, transparent 12px);
         }
 
-        /* Тема 7: Фиолетовый туман */
         [data-theme="purple-haze"] {
             --bg-color: #140a1a;
             --bg-secondary: #22122a;
@@ -188,7 +181,6 @@
                                radial-gradient(circle at 70% 20%, rgba(155, 89, 182, 0.1) 0%, transparent 30%);
         }
 
-        /* Тема 8: Золотой век */
         [data-theme="golden-age"] {
             --bg-color: #1a1510;
             --bg-secondary: #2a221a;
@@ -209,7 +201,6 @@
             background-size: 40px 40px;
         }
 
-        /* Тема 9: Космическая бездна */
         [data-theme="cosmic-abyss"] {
             --bg-color: #0a0a14;
             --bg-secondary: #121224;
@@ -230,7 +221,6 @@
             background-size: 60px 60px;
         }
 
-        /* Тема 10: Морская глубина */
         [data-theme="ocean-deep"] {
             --bg-color: #0a141f;
             --bg-secondary: #122232;
@@ -1983,10 +1973,6 @@
                     <input type="password" class="modal-input" id="loginPassword" placeholder="Пароль">
                     <button class="toggle-password" onclick="togglePassword('loginPassword')">👁️</button>
                 </div>
-                <div class="remember-checkbox">
-                    <input type="checkbox" id="rememberMe" checked>
-                    <label for="rememberMe">Запомнить меня</label>
-                </div>
                 <button class="modal-btn" onclick="login()">Войти</button>
             </div>
 
@@ -2000,10 +1986,6 @@
                 <div class="password-input-container">
                     <input type="password" class="modal-input" id="registerConfirmPassword" placeholder="Подтвердите пароль">
                     <button class="toggle-password" onclick="togglePassword('registerConfirmPassword')">👁️</button>
-                </div>
-                <div class="remember-checkbox">
-                    <input type="checkbox" id="rememberMeRegister" checked>
-                    <label for="rememberMeRegister">Запомнить меня</label>
                 </div>
                 <button class="modal-btn" onclick="register()">Зарегистрироваться</button>
             </div>
@@ -2146,7 +2128,7 @@
             <button class="modal-btn" onclick="saveAvatar()">Сохранить</button>
         </div>
     </div>
-    <!-- Call Modal -->
+
     <div class="modal" id="callModal">
         <div class="modal-content" style="text-align: center;">
             <h2 id="callStatus">Входящий звонок...</h2>
@@ -2333,17 +2315,48 @@
                     preloadSounds();
 
                     // Подписка на изменения auth состояния
-                    supabaseClient.auth.onAuthStateChange((event, session) => {
+                    supabaseClient.auth.onAuthStateChange(async (event, session) => {
                         if (event === 'SIGNED_IN' && session) {
-                            loadUserData(session.user);
+                            await loadUserData(session.user);
+                            document.getElementById('loginModal').classList.remove('active');
+                            document.getElementById('appContainer').style.display = 'flex';
+                            
+                            await Promise.all([
+                                loadAllUsers(),
+                                loadPublicChats(),
+                                loadAllMessages(),
+                            ]);
+                            
+                            initAbly();
+                            startHeartbeat();
+                            startPresenceUpdates();
+                            startStatusUpdates();
+                            
+                            ensureFavoriteChat();
+                            
+                            checkUrlForChat();
+                            forceShowInput();
+                            
+                            listenForIncomingCalls();
+                            
+                            if (myChats.length === 1 && myChats[0].isFavorite) {
+                                joinChat(myChats[0]);
+                            } else if (!currentChat && myChats.length > 0) {
+                                joinChat(myChats[0]);
+                            }
+                            
+                            updateBackButtonVisibility();
+                            updateCreateChatButtonVisibility();
                         } else if (event === 'SIGNED_OUT') {
                             handleLogout();
                         }
                     });
 
-                    const hasSession = await checkSavedSession();
+                    // Проверяем текущую сессию
+                    const { data: { session } } = await supabaseClient.auth.getSession();
                     
-                    if (hasSession) {
+                    if (session) {
+                        await loadUserData(session.user);
                         document.getElementById('loginModal').classList.remove('active');
                         document.getElementById('appContainer').style.display = 'flex';
                         
@@ -2363,16 +2376,22 @@
                         checkUrlForChat();
                         forceShowInput();
                         
-                        // Подписываемся на звонки
                         listenForIncomingCalls();
+                        
+                        if (myChats.length === 1 && myChats[0].isFavorite) {
+                            joinChat(myChats[0]);
+                        } else if (!currentChat && myChats.length > 0) {
+                            joinChat(myChats[0]);
+                        }
+                        
+                        updateBackButtonVisibility();
+                        updateCreateChatButtonVisibility();
                     } else {
                         document.getElementById('loginModal').classList.add('active');
                         document.getElementById('appContainer').style.display = 'none';
                     }
                     
                     setupMobileHandlers();
-                    updateBackButtonVisibility();
-                    updateCreateChatButtonVisibility();
                     
                     window.addEventListener('beforeunload', handleBeforeUnload);
                     setInterval(forceShowInput, 1000);
@@ -2382,95 +2401,62 @@
                 }
             }
 
-            async function checkSavedSession() {
-                try {
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    
-                    if (session) {
-                        await loadUserData(session.user);
-                        return true;
-                    }
-                    
-                    // fallback для старого localStorage (на случай если что-то осталось)
-                    const savedUser = localStorage.getItem('currentUser');
-                    if (savedUser) {
-                        // Попытаемся восстановить через email (старый способ не поддерживается)
-                        localStorage.removeItem('currentUser'); // Удаляем legacy
-                    }
-                    
-                    return false;
-                } catch (err) {
-                    console.error('Error checking saved session:', err);
-                    return false;
-                }
-            }
-
             async function loadUserData(user) {
-                // user = { id: uuid, email, user_metadata? }
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-                
-                if (error) {
-                    console.error('Error loading user data:', error);
-                    return;
-                }
-                
-                if (!data) {
-                    // Создаем запись в таблице users если её нет (например при регистрации через админку)
-                    const { error: insertError } = await supabaseClient
-                        .from('users')
-                        .insert([{
-                            id: user.id,
-                            username: user.email.split('@')[0],
-                            email: user.email,
-                            avatar: '👤',
-                            bio: '',
-                            dnd: false,
-                            created_at: new Date().toISOString()
-                        }]);
-                    
-                    if (insertError) {
-                        console.error('Error creating user profile:', insertError);
-                        return;
-                    }
-                    
-                    // Загружаем свежесозданного
-                    const { data: newData } = await supabaseClient
-                        .from('users')
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('profiles')
                         .select('*')
                         .eq('id', user.id)
                         .single();
                     
-                    if (!newData) return;
+                    if (error && error.code === 'PGRST116') {
+                        // Профиль не найден - создаем
+                        const defaultUsername = user.email.split('@')[0];
+                        const { data: newProfile, error: insertError } = await supabaseClient
+                            .from('profiles')
+                            .insert([{
+                                id: user.id,
+                                username: defaultUsername,
+                                avatar: '👤',
+                                bio: '',
+                                dnd: false,
+                                created_at: new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
+                        
+                        if (insertError) throw insertError;
+                        
+                        currentUser = {
+                            id: newProfile.id,
+                            name: newProfile.username,
+                            email: user.email,
+                            avatar: newProfile.avatar || '👤',
+                            bio: newProfile.bio || '',
+                            isAdmin: newProfile.username === ADMIN_USERNAME,
+                            isVip: VIP_USERNAMES.includes(newProfile.username),
+                            dnd: newProfile.dnd || false
+                        };
+                    } else if (error) {
+                        throw error;
+                    } else {
+                        currentUser = {
+                            id: data.id,
+                            name: data.username,
+                            email: user.email,
+                            avatar: data.avatar || '👤',
+                            bio: data.bio || '',
+                            isAdmin: data.username === ADMIN_USERNAME,
+                            isVip: VIP_USERNAMES.includes(data.username),
+                            dnd: data.dnd || false
+                        };
+                    }
                     
-                    currentUser = {
-                        id: newData.id,
-                        name: newData.username,
-                        email: newData.email,
-                        avatar: newData.avatar || '👤',
-                        bio: newData.bio || '',
-                        isAdmin: newData.username === ADMIN_USERNAME,
-                        isVip: VIP_USERNAMES.includes(newData.username),
-                        dnd: newData.dnd || false
-                    };
-                } else {
-                    currentUser = {
-                        id: data.id,
-                        name: data.username,
-                        email: data.email,
-                        avatar: data.avatar || '👤',
-                        bio: data.bio || '',
-                        isAdmin: data.username === ADMIN_USERNAME,
-                        isVip: VIP_USERNAMES.includes(data.username),
-                        dnd: data.dnd || false
-                    };
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    updateProfileUI();
+                } catch (err) {
+                    console.error('Error loading user data:', err);
                 }
-                
-                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                updateProfileUI();
             }
 
             function ensureFavoriteChat() {
@@ -2555,7 +2541,7 @@
             async function loadAllUsers() {
                 try {
                     const { data, error } = await supabaseClient
-                        .from('users')
+                        .from('profiles')
                         .select('*')
                         .order('username');
                     
@@ -2620,7 +2606,7 @@
                 
                 ably = new Ably.Realtime({
                     key: ABLY_API_KEY,
-                    clientId: currentUser.id.toString(), // UUID в строку
+                    clientId: currentUser.id.toString(),
                     transports: ['web_socket'],
                     disconnectedRetryTimeout: 1000,
                     suspendedRetryTimeout: 2000,
@@ -3277,41 +3263,7 @@
                         return;
                     }
                     
-                    if (data.user) {
-                        await loadUserData(data.user);
-                        
-                        document.getElementById('loginModal').classList.remove('active');
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        updateProfileUI();
-                        
-                        await Promise.all([
-                            loadAllUsers(),
-                            loadPublicChats(),
-                            loadAllMessages(),
-                        ]);
-                        
-                        ensureFavoriteChat();
-                        initAbly();
-                        startHeartbeat();
-                        startPresenceUpdates();
-                        startStatusUpdates();
-                        checkUrlForChat();
-                        listenForIncomingCalls();
-                        
-                        if (myChats.length === 1 && myChats[0].isFavorite) {
-                            joinChat(myChats[0]);
-                        } else if (!currentChat) {
-                            joinChat(myChats[0]);
-                        }
-                        
-                        updateBackButtonVisibility();
-                        forceShowInput();
-                        updateCreateChatButtonVisibility();
-                        
-                        populateThemeGrid();
-                    }
-                    
+                    // Остальное сделает onAuthStateChange
                 } catch (err) {
                     console.error('Login error:', err);
                     alert('Ошибка при входе');
@@ -3363,13 +3315,12 @@
                         return;
                     }
                     
-                    // 2. Создаем запись в таблице users
+                    // 2. Создаем запись в таблице profiles
                     const { error: insertError } = await supabaseClient
-                        .from('users')
+                        .from('profiles')
                         .insert([{
                             id: data.user.id,
                             username: username,
-                            email: email,
                             avatar: '👤',
                             bio: '',
                             dnd: false,
@@ -3382,45 +3333,7 @@
                         return;
                     }
                     
-                    // 3. Загружаем данные пользователя
-                    await loadUserData(data.user);
-                    
-                    // 4. Создаем избранное
-                    const favChat = {
-                        id: `favorite-${currentUser.id}`,
-                        name: 'Избранное',
-                        avatar: '⭐',
-                        isPrivate: true,
-                        members: [currentUser.id],
-                        isSelf: true,
-                        isFavorite: true,
-                        pinned: true
-                    };
-                    myChats = [favChat];
-                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-                    
-                    messages[favChat.id] = [];
-                    
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    updateProfileUI();
-                    
-                    await loadAllUsers();
-                    await loadPublicChats();
-                    
-                    initAbly();
-                    startHeartbeat();
-                    startPresenceUpdates();
-                    startStatusUpdates();
-                    listenForIncomingCalls();
-                    
-                    joinChat(favChat);
-                    updateBackButtonVisibility();
-                    forceShowInput();
-                    updateCreateChatButtonVisibility();
-                    
-                    alert('Регистрация успешна!');
+                    // 3. Остальное сделает onAuthStateChange после автоматического входа
                     
                 } catch (err) {
                     console.error('Registration error:', err);
@@ -3500,7 +3413,9 @@
                 }
                 
                 await supabaseClient.auth.signOut();
-                
+            }
+
+            function handleLogout() {
                 // Очистка данных
                 currentUser = null;
                 currentChat = null;
@@ -3523,17 +3438,12 @@
                 document.getElementById('registerConfirmPassword').value = '';
             }
 
-            function handleLogout() {
-                // Дополнительная очистка если нужно
-                window.location.reload(); // Простой способ сбросить состояние
-            }
-
             async function updateUserLastSeen() {
                 if (!currentUser) return;
                 
                 try {
                     await supabaseClient
-                        .from('users')
+                        .from('profiles')
                         .update({ last_seen: new Date().toISOString() })
                         .eq('id', currentUser.id);
                 } catch (err) {
@@ -4451,7 +4361,7 @@
                 
                 if (newName && newName !== currentUser.name) {
                     const { data: existingUsers } = await supabaseClient
-                        .from('users')
+                        .from('profiles')
                         .select('username')
                         .eq('username', newName)
                         .neq('id', currentUser.id)
@@ -4470,7 +4380,7 @@
                 
                 try {
                     await supabaseClient
-                        .from('users')
+                        .from('profiles')
                         .update({
                             username: currentUser.name,
                             bio: currentUser.bio,
@@ -4478,8 +4388,6 @@
                             avatar: currentUser.avatar
                         })
                         .eq('id', currentUser.id);
-                    
-                    // Не сохраняем в localStorage, полагаемся на Supabase сессию
                     
                     if (ably) {
                         const presenceChannel = ably.channels.get('presence');
@@ -4532,7 +4440,7 @@
                     
                     try {
                         await supabaseClient
-                            .from('users')
+                            .from('profiles')
                             .update({ avatar: currentUser.avatar })
                             .eq('id', currentUser.id);
                         
