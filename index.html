@@ -7,7 +7,6 @@
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* [Стили полностью сохранены из исходного кода] */
         * {
             margin: 0;
             padding: 0;
@@ -1936,7 +1935,7 @@
                 height: 48px;
             }
         }
-        /* Call Modal Styles */
+
         #callControls, #activeCallControls {
             display: flex;
             gap: 20px;
@@ -2147,14 +2146,12 @@
     </div>
 
     <script>
-        // Глобальные переменные и константы
         const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         const ADMIN_USERNAME = "K1lame";
         const VIP_USERNAMES = ["K1lame", "VIP_User", "Premium"];
 
-        // Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
@@ -2162,7 +2159,6 @@
             }
         });
 
-        // Глобальные переменные состояния
         let ably;
         let currentUser = null;
         let myChats = [];
@@ -2206,7 +2202,6 @@
         let isInitialized = false;
         let currentTheme = localStorage.getItem('theme') || 'classic-dark';
 
-        // WebRTC Call variables
         let currentCall = null;
         let localStream = null;
         let remoteStream = null;
@@ -2243,7 +2238,6 @@
             { id: 'ocean-deep', name: 'Морская глубина', class: 'ocean-deep' }
         ];
 
-        // ---------- Функции темы ----------
         function applyTheme(themeId) {
             document.documentElement.setAttribute('data-theme', themeId);
             currentTheme = themeId;
@@ -2294,7 +2288,6 @@
             applyTheme(themeId);
         }
 
-        // Preload call sounds
         function preloadSounds() {
             callRingtone = new Audio();
             callRingtone.src = 'data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gR2VuZXJpYyBTb3VuZCBSaW5ndG9uZQBUZXN0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwP//8AAAA//8AACABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQZAADwAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -2304,7 +2297,63 @@
             callEndedSound.src = 'data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gR2VuZXJpYyBTb3VuZCBEaXNjb25uZWN0ZWQAVGVzdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwP//8AAAA//8AACABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQZAADwAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
         }
 
-        // ---------- Основные функции инициализации ----------
+        function getCleanChatId(hash) {
+            if (!hash) return null;
+            
+            let cleanId = hash;
+            
+            if (cleanId.startsWith('favorite-')) {
+                cleanId = cleanId.replace('favorite-', '');
+            }
+            
+            if (cleanId.startsWith('#')) {
+                cleanId = cleanId.substring(1);
+            }
+            
+            if (cleanId.startsWith('/')) {
+                cleanId = cleanId.substring(1);
+            }
+            
+            return cleanId;
+        }
+
+        function isValidUUID(uuid) {
+            if (!uuid) return false;
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            return uuidRegex.test(uuid);
+        }
+
+        function checkUrlForChat() {
+            try {
+                let hash = window.location.hash.substring(1);
+                
+                if (!hash) return;
+                
+                const cleanId = getCleanChatId(hash);
+                
+                if (!cleanId) return;
+                
+                let chat = null;
+                
+                if (isValidUUID(cleanId)) {
+                    chat = myChats.find(c => c.id === cleanId) || publicChats.find(c => c.id === cleanId);
+                } else {
+                    chat = myChats.find(c => c.id === hash);
+                    
+                    if (!chat && hash.startsWith('favorite-')) {
+                        const favId = hash;
+                        chat = myChats.find(c => c.id === favId);
+                    }
+                }
+                
+                if (chat) {
+                    setTimeout(() => joinChat(chat), 500);
+                }
+            } catch (err) {
+                console.error('Error in checkUrlForChat:', err);
+            }
+        }
+
         async function init() {
             if (isInitialized) return;
             isInitialized = true;
@@ -2315,7 +2364,6 @@
                 populateThemeGrid();
                 preloadSounds();
 
-                // Подписка на изменения auth состояния
                 supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     if (event === 'SIGNED_IN' && session) {
                         await loadUserData(session.user);
@@ -2353,7 +2401,6 @@
                     }
                 });
 
-                // Проверяем текущую сессию
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
                 if (session) {
@@ -2404,7 +2451,6 @@
 
         async function loadUserData(user) {
             try {
-                // Пытаемся найти профиль по id
                 const { data, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -2412,7 +2458,6 @@
                     .single();
                 
                 if (error && error.code === 'PGRST116') {
-                    // Профиль не найден - создаем новый
                     const defaultUsername = user.email.split('@')[0];
                     const { data: newProfile, error: insertError } = await supabaseClient
                         .from('profiles')
@@ -3077,7 +3122,6 @@
             document.getElementById('profileDNDCheckbox').checked = currentUser.dnd || false;
         }
 
-        // ---------- Глобальные функции для onclick ----------
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -3129,8 +3173,6 @@
                     alert('Ошибка входа: ' + error.message);
                     return;
                 }
-                
-                // Остальное сделает onAuthStateChange
             } catch (err) {
                 console.error('Login error:', err);
                 alert('Ошибка при входе');
@@ -3166,7 +3208,6 @@
             }
             
             try {
-                // Регистрация в Supabase Auth
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password
@@ -3176,15 +3217,6 @@
                     alert('Ошибка регистрации: ' + error.message);
                     return;
                 }
-                
-                if (!data.user) {
-                    alert('Не удалось создать пользователя');
-                    return;
-                }
-                
-                // Профиль создастся автоматически в loadUserData после входа
-                // Не вставляем вручную
-                
             } catch (err) {
                 console.error('Registration error:', err);
                 alert('Ошибка при регистрации: ' + err.message);
@@ -3266,7 +3298,6 @@
         }
 
         function handleLogout() {
-            // Очистка данных
             currentUser = null;
             currentChat = null;
             myChats = [];
@@ -3279,7 +3310,6 @@
             updateBackButtonVisibility();
             removeCallButton();
             
-            // Очистка полей
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
             document.getElementById('registerEmail').value = '';
@@ -3301,7 +3331,6 @@
             }
         }
 
-        // ---------- Функции для работы с сообщениями ----------
         async function saveMessageToDatabase(message) {
             try {
                 const { error } = await supabaseClient
@@ -4083,7 +4112,6 @@
             updateChatsList();
             updateChatStatus();
             
-            // Добавляем кнопку звонка если это приватный чат
             addCallButtonIfNeeded(chat);
             
             if (window.innerWidth <= 768) {
@@ -4359,7 +4387,6 @@
             }
         }
 
-        // ---------- Функции профиля ----------
         function openProfileModal() {
             document.getElementById('profileNameInput').value = currentUser.name;
             document.getElementById('profileBioInput').value = currentUser.bio || '';
@@ -4533,7 +4560,6 @@
             document.getElementById('userProfileModal').classList.remove('active');
         }
 
-        // ---------- Функции для вкладок ----------
         function switchTab(tab) {
             currentTab = tab;
             document.getElementById('tabChats').className = tab === 'chats' ? 'tab active' : 'tab';
@@ -4566,7 +4592,6 @@
             document.getElementById('createChatModal').classList.add('active');
         }
 
-        // ---------- Функции UI ----------
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
@@ -4583,25 +4608,6 @@
                 document.title = 'Telegram Web';
             }
         }
-
-        function checkUrlForChat() {
-    let hash = window.location.hash.substring(1);
-
-    if (!hash) return;
-
-    // Убираем префикс favorite-
-    if (hash.startsWith('favorite-')) {
-        hash = hash.replace('favorite-', '');
-    }
-
-    const chat =
-        myChats.find(c => c.id === hash) ||
-        publicChats.find(c => c.id === hash);
-
-    if (chat) {
-        setTimeout(() => joinChat(chat), 500);
-    }
-}
 
         function openMedia(url) {
             const viewer = document.getElementById('mediaViewer');
@@ -4691,7 +4697,6 @@
             }
         }
 
-        // ---------- Call functions ----------
         function addCallButtonIfNeeded(chat) {
             if (!chat || chat.isFavorite || chat.isSelf || !chat.isPrivate) return;
             
@@ -4817,7 +4822,6 @@
                     async (payload) => {
                         const callData = payload.new;
                         
-                        // Загружаем информацию о звонящем из profiles
                         const { data: caller, error } = await supabaseClient
                             .from('profiles')
                             .select('*')
@@ -4973,25 +4977,38 @@
             callModal.classList.remove('active');
         }
 
-        // ---------- Обработчики событий ----------
         window.addEventListener('popstate', function(event) {
-    let hash = window.location.hash.substring(1);
-
-    if (hash && hash.startsWith('favorite-')) {
-        hash = hash.replace('favorite-', '');
-    }
-
-    if (hash) {
-        const chat =
-            myChats.find(c => c.id === hash) ||
-            publicChats.find(c => c.id === hash);
-
-        if (chat) joinChat(chat);
-    } else {
-                currentChat = null;
-                renderMessages();
-                updateUrlWithChat(null);
-                removeCallButton();
+            try {
+                let hash = window.location.hash.substring(1);
+                
+                if (!hash) {
+                    currentChat = null;
+                    renderMessages();
+                    updateUrlWithChat(null);
+                    removeCallButton();
+                    return;
+                }
+                
+                const cleanId = getCleanChatId(hash);
+                
+                if (!cleanId) return;
+                
+                let chat = null;
+                
+                if (isValidUUID(cleanId)) {
+                    chat = myChats.find(c => c.id === cleanId) || publicChats.find(c => c.id === cleanId);
+                } else {
+                    chat = myChats.find(c => c.id === hash);
+                    
+                    if (!chat && hash.startsWith('favorite-')) {
+                        const favId = hash;
+                        chat = myChats.find(c => c.id === favId);
+                    }
+                }
+                
+                if (chat) joinChat(chat);
+            } catch (err) {
+                console.error('Error in popstate:', err);
             }
         });
 
@@ -5052,7 +5069,6 @@
             }, 3000);
         }
 
-        // Запуск при загрузке
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
