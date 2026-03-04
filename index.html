@@ -2035,7 +2035,6 @@
 
             <div class="message-input-container" id="messageInputContainer">
                 <button class="emoji-toggle-btn" onclick="toggleEmojiPicker()">😊</button>
-                <button class="mic-btn" id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()" onmouseleave="cancelRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" ontouchcancel="cancelRecording()">🎤</button>
                 <div class="input-wrapper">
                     <div class="emoji-picker" id="emojiPicker" style="display: none;"></div>
                     <textarea 
@@ -2047,6 +2046,7 @@
                         oninput="handleTextInput()"
                     ></textarea>
                 </div>
+                <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎤</button>
                 <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
             </div>
         </div>
@@ -2267,38 +2267,61 @@
 
             try {
                 applyTheme(currentTheme);
-                loadFromStorage();
-                populateEmojiPicker();
-                populateThemeGrid();
                 
-                const hasSession = await checkSavedSession();
+                // Проверяем сессию перед загрузкой приложения
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 
-                if (hasSession) {
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
+                if (session?.user) {
+                    // Загружаем данные пользователя из таблицы users
+                    const { data: userData } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
                     
-                    await Promise.all([
-                        loadAllUsers(),
-                        loadPublicChats(),
-                        loadAllMessages(),
-                        syncWithSupabase()
-                    ]);
-                    
-                    initAbly();
-                    startHeartbeat();
-                    startPresenceUpdates();
-                    startStatusUpdates();
-                    startPeriodicSync();
-                    
-                    ensureFavoriteChat();
-                    
-                    checkUrlForChat();
-                    forceShowInput();
-                    
-                    // Отправляем ожидающие сообщения
-                    sendPendingMessages();
-                    processMessageQueue();
+                    if (userData) {
+                        currentUser = {
+                            id: userData.id,
+                            name: userData.username,
+                            avatar: userData.avatar || '👤',
+                            bio: userData.bio || '',
+                            isAdmin: userData.username === ADMIN_USERNAME,
+                            isVip: VIP_USERNAMES.includes(userData.username),
+                            dnd: userData.dnd || false
+                        };
+                        
+                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                        
+                        document.getElementById('loginModal').classList.remove('active');
+                        document.getElementById('appContainer').style.display = 'flex';
+                        
+                        updateProfileUI();
+                        
+                        await Promise.all([
+                            loadAllUsers(),
+                            loadPublicChats(),
+                            loadAllMessages()
+                        ]);
+                        
+                        initAbly();
+                        startHeartbeat();
+                        startPresenceUpdates();
+                        startStatusUpdates();
+                        
+                        ensureFavoriteChat();
+                        
+                        checkUrlForChat();
+                        forceShowInput();
+                        
+                        sendPendingMessages();
+                        processMessageQueue();
+                    } else {
+                        // Нет данных в таблице users - показываем логин
+                        document.getElementById('loginModal').classList.add('active');
+                        document.getElementById('appContainer').style.display = 'none';
+                    }
                 } else {
+                    // Нет сессии - показываем логин
                     document.getElementById('loginModal').classList.add('active');
                     document.getElementById('appContainer').style.display = 'none';
                 }
@@ -2311,6 +2334,8 @@
                 
             } catch (err) {
                 console.error('Init error:', err);
+                document.getElementById('loginModal').classList.add('active');
+                document.getElementById('appContainer').style.display = 'none';
             }
         }
 
@@ -2327,7 +2352,7 @@
                     members: [currentUser.id],
                     isSelf: true,
                     isFavorite: true,
-                    pinned: true // Добавляем флаг для закрепления
+                    pinned: true
                 };
                 myChats.unshift(favChat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
@@ -2335,39 +2360,6 @@
                 if (!messages[favChatId]) {
                     messages[favChatId] = [];
                 }
-            }
-        }
-
-        function startPeriodicSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(async () => {
-                if (currentUser) {
-                    await syncWithSupabase();
-                    await loadAllMessages();
-                    if (currentChat) {
-                        renderMessages();
-                    }
-                    updateChatsList();
-                    processMessageQueue();
-                }
-            }, 3000);
-        }
-
-        async function syncWithSupabase() {
-            try {
-                const { data: chats, error: chatsError } = await supabaseClient
-                    .from('chats')
-                    .select('*');
-                
-                if (!chatsError && chats) {
-                    publicChats = chats.filter(c => c.type === 'public').map(chat => ({
-                        ...chat,
-                        members: typeof chat.members === 'string' ? JSON.parse(chat.members) : chat.members || []
-                    }));
-                    localStorage.setItem('publicChats', JSON.stringify(publicChats));
-                }
-            } catch (err) {
-                console.error('Sync error:', err);
             }
         }
 
@@ -2413,7 +2405,6 @@
                                 type: msg.sender_id == currentUser.id ? 'out' : 'in'
                             });
                             
-                            // Для своих сообщений устанавливаем статус "sent" (сохранено в БД)
                             if (msg.sender_id == currentUser.id) {
                                 messageStatuses[msg.id] = {
                                     status: 'sent',
@@ -2428,16 +2419,40 @@
                         messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     });
                     
-                    saveMessagesDebounced();
+                    // Обновляем счетчики непрочитанных
+                    updateUnreadCounts();
                 }
             } catch (err) {
                 console.error('Error loading all messages:', err);
             }
         }
 
+        function updateUnreadCounts() {
+            if (!currentUser || !currentChat) return;
+            
+            Object.keys(messages).forEach(chatId => {
+                if (chatId === currentChat.id) {
+                    // Текущий чат - все прочитано
+                    unreadCounts[chatId] = 0;
+                } else {
+                    // Подсчитываем непрочитанные
+                    let count = 0;
+                    messages[chatId]?.forEach(msg => {
+                        if (msg.sender !== currentUser.id && 
+                            (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
+                            count++;
+                        }
+                    });
+                    unreadCounts[chatId] = count;
+                }
+            });
+            
+            updateChatsList();
+        }
+
         function loadFromStorage() {
             try {
-                messages = JSON.parse(localStorage.getItem('messages')) || {};
+                // Убираем загрузку сообщений из localStorage
                 unreadCounts = JSON.parse(localStorage.getItem('unreadCounts')) || {};
                 messageStatuses = JSON.parse(localStorage.getItem('messageStatuses')) || {};
                 deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
@@ -2445,7 +2460,6 @@
                 messageQueue = JSON.parse(localStorage.getItem('messageQueue')) || {};
             } catch (e) {
                 console.error('Error loading from storage:', e);
-                messages = {};
                 unreadCounts = {};
                 messageStatuses = {};
                 deletedMessages = {};
@@ -2472,46 +2486,6 @@
                     .eq('id', currentUser.id);
             } catch (err) {
                 console.error('Error updating last_seen:', err);
-            }
-        }
-
-        async function checkSavedSession() {
-            const savedUser = localStorage.getItem('currentUser');
-            if (!savedUser) return false;
-
-            try {
-                const userData = JSON.parse(savedUser);
-                
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', userData.id)
-                    .single();
-                
-                if (error || !data) {
-                    localStorage.removeItem('currentUser');
-                    return false;
-                }
-                
-                currentUser = {
-                    id: data.id,
-                    name: data.username,
-                    avatar: data.avatar || '👤',
-                    bio: data.bio || '',
-                    isAdmin: data.username === ADMIN_USERNAME,
-                    isVip: VIP_USERNAMES.includes(data.username),
-                    dnd: data.dnd || false
-                };
-                
-                myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
-                
-                updateProfileUI();
-                
-                return true;
-            } catch (err) {
-                console.error('Error checking saved session:', err);
-                localStorage.removeItem('currentUser');
-                return false;
             }
         }
 
@@ -2671,7 +2645,6 @@
                             lastSeen: Date.now()
                         };
                         
-                        // При входе пользователя в сеть, отправляем ему накопленные сообщения
                         sendQueuedMessagesToUser(parseInt(member.clientId));
                         
                         if (currentTab === 'users' || currentTab === 'chats') {
@@ -2754,7 +2727,7 @@
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                     if (messages[chatId]) {
                         delete messages[chatId];
-                        saveMessagesDebounced();
+                        // Убираем сохранение в localStorage
                     }
                     if (currentChat && currentChat.id === chatId) {
                         currentChat = null;
@@ -2775,7 +2748,6 @@
                     }
                     if (messages[chatId]) {
                         messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
-                        saveMessagesDebounced();
                         if (currentChat && currentChat.id === chatId) renderMessages();
                         updateChatsList();
                     }
@@ -2865,16 +2837,12 @@
                         
                         if (currentChat?.id !== chat.id) {
                             unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         }
                     }
-                    
-                    saveMessagesDebounced();
                     
                     if (currentChat && currentChat.id === chat.id) {
                         renderMessages();
                         unreadCounts[chat.id] = 0;
-                        localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
                         markMessagesAsRead(chat.id);
                     }
                     
@@ -2889,7 +2857,6 @@
                     messageStatuses[messageId].status = 'delivered';
                     messageStatuses[messageId].deliveredAt = Date.now();
                 }
-                saveMessagesDebounced();
                 
                 if (currentChat && currentChat.id === chat.id) {
                     renderMessages();
@@ -2903,7 +2870,6 @@
                     messageStatuses[messageId].status = 'read';
                     messageStatuses[messageId].readAt = Date.now();
                 }
-                saveMessagesDebounced();
                 
                 if (currentChat && currentChat.id === chat.id) {
                     renderMessages();
@@ -2920,7 +2886,6 @@
                 }
                 if (messages[chat.id]) {
                     messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                    saveMessagesDebounced();
                     if (currentChat?.id === chat.id) renderMessages();
                     updateChatsList();
                 }
@@ -2942,7 +2907,6 @@
                     if (msgIndex !== -1) {
                         messages[chat.id][msgIndex].text = newText;
                         messages[chat.id][msgIndex].edited = true;
-                        saveMessagesDebounced();
                         if (currentChat?.id === chat.id) renderMessages();
                     }
                 }
@@ -2975,7 +2939,6 @@
                     return;
                 }
                 
-                // Убираем поля delivered, read, sent, так как их нет в таблице
                 const { data, error } = await supabaseClient
                     .from('messages')
                     .insert([{
@@ -3001,7 +2964,6 @@
                 } else {
                     console.log('✅ Сообщение сохранено в БД:', message.id);
                     
-                    // Если получатель не в сети, сохраняем в очередь
                     const chat = myChats.find(c => c.id === message.chatId);
                     if (chat && chat.members) {
                         const recipientId = chat.members.find(id => id !== currentUser.id);
@@ -3150,7 +3112,6 @@
                     });
                     
                     messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                    saveMessagesDebounced();
                     
                     if (currentChat && currentChat.id === chatId) {
                         renderMessages();
@@ -3175,8 +3136,6 @@
                         messageStatuses[msg.id].readAt = Date.now();
                     }
                     
-                    // Убрано обновление БД – колонки read нет
-                    
                     const chatChannel = ably.channels.get(`chat-${chatId}`);
                     chatChannel.publish('read_receipt', { 
                         messageId: msg.id, 
@@ -3185,7 +3144,6 @@
                     });
                 }
             });
-            saveMessagesDebounced();
         }
 
         function updateChatLastMessageTime(chatId, timestamp) {
@@ -3193,7 +3151,6 @@
             if (chat) {
                 chat.lastMessageTime = timestamp || Date.now();
                 myChats.sort((a, b) => {
-                    // Закрепленные чаты всегда сверху
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
                     return (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
@@ -3218,15 +3175,6 @@
                     });
                 }
             }, 30000);
-        }
-
-        function saveMessagesDebounced() {
-            if (saveMessagesTimeout) clearTimeout(saveMessagesTimeout);
-            saveMessagesTimeout = setTimeout(() => {
-                localStorage.setItem('messages', JSON.stringify(messages));
-                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
-                localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-            }, 500);
         }
 
         function updateProfileUI() {
@@ -3305,6 +3253,14 @@
             }
         }
 
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
         function startRecording() {
             const messageInput = document.getElementById('messageInput');
             
@@ -3312,7 +3268,6 @@
                 return;
             }
             
-            if (isRecording) return;
             if (!currentChat) {
                 alert('Сначала выберите чат');
                 return;
@@ -3328,7 +3283,24 @@
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(stream => {
                     mediaStream = stream;
-                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    // Определяем поддерживаемый MIME тип
+                    let mimeType = 'audio/webm';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                        mimeType = 'audio/ogg;codecs=opus';
+                    }
+                    
+                    const options = { mimeType: mimeType };
+                    
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        console.warn('MIME type not supported, using default');
+                        mediaRecorder = new MediaRecorder(stream);
+                    }
+                    
                     audioChunks = [];
 
                     mediaRecorder.ondataavailable = event => {
@@ -3375,26 +3347,6 @@
                 if (recordingTimeout) {
                     clearTimeout(recordingTimeout);
                     recordingTimeout = null;
-                }
-            }
-        }
-
-        function cancelRecording() {
-            if (!isRecording) return;
-            
-            if (mediaRecorder && isRecording) {
-                mediaRecorder.stop();
-                isRecording = false;
-                document.getElementById('micBtn').classList.remove('recording');
-                
-                if (recordingTimeout) {
-                    clearTimeout(recordingTimeout);
-                    recordingTimeout = null;
-                }
-                
-                if (mediaStream) {
-                    mediaStream.getTracks().forEach(track => track.stop());
-                    mediaStream = null;
                 }
             }
         }
@@ -3478,8 +3430,7 @@
                 await Promise.all([
                     loadAllUsers(),
                     loadPublicChats(),
-                    loadAllMessages(),
-                    syncWithSupabase()
+                    loadAllMessages()
                 ]);
                 
                 ensureFavoriteChat();
@@ -3487,7 +3438,6 @@
                 startHeartbeat();
                 startPresenceUpdates();
                 startStatusUpdates();
-                startPeriodicSync();
                 checkUrlForChat();
                 
                 if (myChats.length === 1 && myChats[0].isFavorite) {
@@ -3613,7 +3563,6 @@
                 startHeartbeat();
                 startPresenceUpdates();
                 startStatusUpdates();
-                startPeriodicSync();
                 
                 joinChat(favChat);
                 updateBackButtonVisibility();
@@ -3666,17 +3615,9 @@
                 clearInterval(statusUpdateInterval);
                 statusUpdateInterval = null;
             }
-            if (syncInterval) {
-                clearInterval(syncInterval);
-                syncInterval = null;
-            }
             if (reconnectTimeout) {
                 clearTimeout(reconnectTimeout);
                 reconnectTimeout = null;
-            }
-            if (saveMessagesTimeout) {
-                clearTimeout(saveMessagesTimeout);
-                saveMessagesTimeout = null;
             }
             if (recordingTimeout) {
                 clearTimeout(recordingTimeout);
@@ -3767,7 +3708,6 @@
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('message', message);
                 
-                // Проверяем онлайн статус получателя
                 const recipientId = currentChat.members?.find(id => id !== currentUser.id);
                 if (recipientId && (!onlineUsers[recipientId.toString()] || !onlineUsers[recipientId.toString()].online)) {
                     addToMessageQueue(recipientId, message);
@@ -3780,14 +3720,11 @@
             
             messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
             
-            saveMessagesDebounced();
-            
             updateChatLastMessageTime(currentChat.id, timestamp);
             
             setTimeout(() => {
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'delivered';
-                    saveMessagesDebounced();
                     if (currentChat && currentChat.id === currentChat.id) {
                         renderMessages();
                     }
@@ -3857,14 +3794,12 @@
                 messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
                 messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
-                saveMessagesDebounced();
 
                 updateChatLastMessageTime(currentChat.id, timestamp);
 
                 setTimeout(() => {
                     if (messageStatuses[messageId]) {
                         messageStatuses[messageId].status = 'delivered';
-                        saveMessagesDebounced();
                         renderMessages();
                     }
                 }, 1000);
@@ -3892,7 +3827,6 @@
                 } else {
                     activeAudio.play().catch(e => console.error('Play failed:', e));
                     updateAudioButton(messageId, true);
-                    startAudioProgressUpdate(messageId);
                 }
                 return;
             }
@@ -3901,29 +3835,31 @@
                 activeAudio.pause();
                 activeAudio.currentTime = 0;
                 updateAudioButton(activeAudioId, false);
-                stopAudioProgressUpdate();
             }
             
             if (!audioElements[messageId]) {
                 audioElements[messageId] = new Audio(audioSrc);
-                audioElements[messageId].addEventListener('timeupdate', () => updateAudioProgress(messageId));
-                audioElements[messageId].addEventListener('ended', () => {
+                
+                // Используем только ontimeupdate для обновления прогресса
+                audioElements[messageId].ontimeupdate = () => updateAudioProgress(messageId);
+                
+                audioElements[messageId].onended = () => {
                     updateAudioButton(messageId, false);
                     updateAudioProgress(messageId);
-                    stopAudioProgressUpdate();
-                });
-                audioElements[messageId].addEventListener('pause', () => {
+                };
+                
+                audioElements[messageId].onpause = () => {
                     updateAudioButton(messageId, false);
-                    stopAudioProgressUpdate();
-                });
-                audioElements[messageId].addEventListener('play', () => {
+                };
+                
+                audioElements[messageId].onplay = () => {
                     updateAudioButton(messageId, true);
-                    startAudioProgressUpdate(messageId);
-                });
-                audioElements[messageId].addEventListener('error', (e) => {
+                };
+                
+                audioElements[messageId].onerror = (e) => {
                     console.error('Audio error:', e);
                     alert('Ошибка воспроизведения аудио');
-                });
+                };
             }
             
             activeAudio = audioElements[messageId];
@@ -3934,21 +3870,6 @@
                 alert('Не удалось воспроизвести аудио');
             });
             updateAudioButton(messageId, true);
-            startAudioProgressUpdate(messageId);
-        }
-
-        function startAudioProgressUpdate(messageId) {
-            if (audioUpdateInterval) clearInterval(audioUpdateInterval);
-            audioUpdateInterval = setInterval(() => {
-                updateAudioProgress(messageId);
-            }, 100);
-        }
-
-        function stopAudioProgressUpdate() {
-            if (audioUpdateInterval) {
-                clearInterval(audioUpdateInterval);
-                audioUpdateInterval = null;
-            }
         }
 
         function updateAudioButton(messageId, isPlaying) {
@@ -4139,7 +4060,10 @@
                     return (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
                 });
             } else if (currentTab === 'public') {
-                items = publicChats;
+                // Стабильная сортировка публичных чатов по created_at (новые сверху)
+                items = [...publicChats].sort((a, b) => {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
             } else if (currentTab === 'users') {
                 const allUsersList = allUsers.map(user => {
                     const onlineUser = onlineUsers[user.id.toString()];
@@ -4190,7 +4114,10 @@
                 newHTML = fragment.join('');
             }
             
-            list.innerHTML = newHTML;
+            // Сравниваем с текущим HTML чтобы избежать лишних перерисовок
+            if (list.innerHTML !== newHTML) {
+                list.innerHTML = newHTML;
+            }
         }
 
         function renderUserItem(user) {
@@ -4304,7 +4231,6 @@
             messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
             unreadCounts[chat.id] = 0;
-            localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
             
             renderMessages();
             updateChatsList();
@@ -4375,7 +4301,6 @@
             
             if (messages[chatId]) {
                 delete messages[chatId];
-                saveMessagesDebounced();
             }
             if (ably) {
                 const adminChannel = ably.channels.get('admin-actions');
@@ -4489,7 +4414,6 @@
             }
             
             messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
-            saveMessagesDebounced();
             
             supabaseClient
                 .from('messages')
@@ -4549,7 +4473,6 @@
             if (msgIndex !== -1) {
                 messages[currentChat.id][msgIndex].text = newText;
                 messages[currentChat.id][msgIndex].edited = true;
-                saveMessagesDebounced();
                 
                 supabaseClient
                     .from('messages')
@@ -4997,11 +4920,7 @@
         document.addEventListener('DOMContentLoaded', init);
         
         // ===== CALL MODULE START =====
-        // Firebase initialization (using existing firebase config from the original code - but we need to add Firebase scripts)
-        // Since Firebase is not included in the original, we need to add it. Adding Firebase scripts right after Ably and Supabase.
-        // But to not modify HTML, we'll inject scripts dynamically.
         (function addFirebaseAndInitCalls() {
-            // Check if Firebase is already loaded
             if (typeof firebase === 'undefined') {
                 const script1 = document.createElement('script');
                 script1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
@@ -5010,7 +4929,6 @@
                 const script2 = document.createElement('script');
                 script2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
                 script2.onload = function() {
-                    // Firebase configuration
                     const firebaseConfig = {
                         apiKey: "AIzaSyB2Uz_0dU0z_0dU0z_0dU0z_0dU0z_0dU0",
                         authDomain: "telegram-web-clone.firebaseapp.com",
@@ -5020,18 +4938,15 @@
                         appId: "1:123456789012:web:abc123def456"
                     };
                     
-                    // Initialize Firebase
                     firebase.initializeApp(firebaseConfig);
                     const db = firebase.firestore();
                     
-                    // WebRTC Configuration
                     const rtcConfig = {
                         iceServers: [
                             { urls: "stun:stun.l.google.com:19302" }
                         ]
                     };
                     
-                    // Call state
                     let currentCall = null;
                     let localStream = null;
                     let remoteStream = null;
@@ -5041,7 +4956,6 @@
                     let callAcceptedSound = null;
                     let callEndedSound = null;
                     
-                    // Preload sounds (silently fail if not found)
                     function loadSound(url) {
                         return new Promise((resolve) => {
                             const audio = new Audio();
@@ -5057,7 +4971,6 @@
                         callEndedSound = await loadSound('/sounds/call-ended.mp3');
                     }
                     
-                    // Create call modal if not exists
                     function ensureCallModal() {
                         if (document.getElementById('callModal')) return;
                         
@@ -5083,21 +4996,17 @@
                         document.body.appendChild(modal);
                         callModal = modal;
                         
-                        // Add event listeners
                         document.getElementById('answerCallBtn')?.addEventListener('click', answerCall);
                         document.getElementById('rejectCallBtn')?.addEventListener('click', rejectCall);
                         document.getElementById('endCallBtn')?.addEventListener('click', endCall);
                     }
                     
-                    // Add call button to chat header
                     function addCallButtonToHeader() {
                         const chatActions = document.querySelector('.chat-actions');
                         if (!chatActions) return;
                         
-                        // Check if button already exists
                         if (document.getElementById('callBtn')) return;
                         
-                        // Only add if it's a private chat (not favorite, not public, not self)
                         if (!currentChat || currentChat.isFavorite || currentChat.isSelf || !currentChat.isPrivate) return;
                         
                         const callBtn = document.createElement('button');
@@ -5108,7 +5017,6 @@
                         chatActions.appendChild(callBtn);
                     }
                     
-                    // Start a call
                     async function startCall() {
                         if (!currentChat || !currentChat.members) return;
                         
@@ -5116,21 +5024,16 @@
                         if (!receiverId) return;
                         
                         try {
-                            // Get user media
                             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                             
-                            // Create peer connection
                             peerConnection = new RTCPeerConnection(rtcConfig);
                             
-                            // Add local stream
                             localStream.getTracks().forEach(track => {
                                 peerConnection.addTrack(track, localStream);
                             });
                             
-                            // Handle ICE candidates
                             peerConnection.onicecandidate = (event) => {
                                 if (event.candidate) {
-                                    // Send candidate via Firestore
                                     db.collection('calls').doc(currentCall.id).collection('candidates').add({
                                         candidate: event.candidate,
                                         sender: currentUser.id,
@@ -5139,18 +5042,14 @@
                                 }
                             };
                             
-                            // Handle remote stream
                             peerConnection.ontrack = (event) => {
                                 remoteStream = event.streams[0];
-                                // Play remote stream (we'll just show that call is connected)
                                 document.getElementById('callStatus').textContent = 'В разговоре...';
                             };
                             
-                            // Create offer
                             const offer = await peerConnection.createOffer();
                             await peerConnection.setLocalDescription(offer);
                             
-                            // Create call document in Firestore
                             const callRef = await db.collection('calls').add({
                                 callerId: currentUser.id,
                                 receiverId: receiverId,
@@ -5161,7 +5060,6 @@
                             
                             currentCall = { id: callRef.id, ...(await callRef.get()).data() };
                             
-                            // Show calling modal
                             ensureCallModal();
                             callModal.classList.add('active');
                             document.getElementById('callStatus').textContent = 'Звоним...';
@@ -5170,26 +5068,22 @@
                             document.getElementById('callControls').style.display = 'none';
                             document.getElementById('activeCallControls').style.display = 'flex';
                             
-                            // Listen for answer
                             const unsubscribe = db.collection('calls').doc(callRef.id)
                                 .onSnapshot(async (doc) => {
                                     const data = doc.data();
                                     if (!data) return;
                                     
                                     if (data.status === 'answered' && data.answer) {
-                                        // Play accepted sound if not dnd
                                         if (!currentUser.dnd && callAcceptedSound) {
                                             callAcceptedSound.play().catch(() => {});
                                         }
                                         
-                                        // Set remote description
                                         const answer = new RTCSessionDescription(data.answer);
                                         await peerConnection.setRemoteDescription(answer);
                                         
                                         document.getElementById('callStatus').textContent = 'В разговоре...';
                                         unsubscribe();
                                     } else if (data.status === 'rejected' || data.status === 'ended') {
-                                        // Play ended sound if not dnd
                                         if (!currentUser.dnd && callEndedSound) {
                                             callEndedSound.play().catch(() => {});
                                         }
@@ -5199,7 +5093,6 @@
                                     }
                                 });
                             
-                            // Listen for ICE candidates
                             db.collection('calls').doc(callRef.id).collection('candidates')
                                 .onSnapshot(snapshot => {
                                     snapshot.docChanges().forEach(change => {
@@ -5218,23 +5111,18 @@
                         }
                     }
                     
-                    // Answer incoming call
                     async function answerCall() {
                         if (!currentCall) return;
                         
                         try {
-                            // Get user media
                             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                             
-                            // Create peer connection
                             peerConnection = new RTCPeerConnection(rtcConfig);
                             
-                            // Add local stream
                             localStream.getTracks().forEach(track => {
                                 peerConnection.addTrack(track, localStream);
                             });
                             
-                            // Handle ICE candidates
                             peerConnection.onicecandidate = (event) => {
                                 if (event.candidate) {
                                     db.collection('calls').doc(currentCall.id).collection('candidates').add({
@@ -5245,26 +5133,21 @@
                                 }
                             };
                             
-                            // Handle remote stream
                             peerConnection.ontrack = (event) => {
                                 remoteStream = event.streams[0];
                                 document.getElementById('callStatus').textContent = 'В разговоре...';
                             };
                             
-                            // Set remote description (offer)
                             await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
                             
-                            // Create answer
                             const answer = await peerConnection.createAnswer();
                             await peerConnection.setLocalDescription(answer);
                             
-                            // Update call document
                             await db.collection('calls').doc(currentCall.id).update({
                                 answer: { type: answer.type, sdp: answer.sdp },
                                 status: 'answered'
                             });
                             
-                            // Update UI
                             document.getElementById('callControls').style.display = 'none';
                             document.getElementById('activeCallControls').style.display = 'flex';
                             
@@ -5273,7 +5156,6 @@
                         }
                     }
                     
-                    // Reject call
                     async function rejectCall() {
                         if (!currentCall) return;
                         
@@ -5284,7 +5166,6 @@
                         endCall();
                     }
                     
-                    // End call
                     function endCall() {
                         if (localStream) {
                             localStream.getTracks().forEach(track => track.stop());
@@ -5303,7 +5184,6 @@
                         currentCall = null;
                     }
                     
-                    // Listen for incoming calls
                     function listenForIncomingCalls() {
                         if (!currentUser) return;
                         
@@ -5315,17 +5195,14 @@
                                     if (change.type === 'added') {
                                         const callData = change.doc.data();
                                         
-                                        // Find caller info
                                         const caller = allUsers.find(u => u.id === callData.callerId);
                                         if (!caller) return;
                                         
-                                        // Don't ring if in DND mode
                                         if (!currentUser.dnd && callRingtone) {
                                             callRingtone.loop = true;
                                             callRingtone.play().catch(() => {});
                                         }
                                         
-                                        // Show incoming call modal
                                         ensureCallModal();
                                         callModal.classList.add('active');
                                         document.getElementById('callStatus').textContent = 'Входящий звонок...';
@@ -5336,7 +5213,6 @@
                                         
                                         currentCall = { id: change.doc.id, ...callData };
                                         
-                                        // Stop ringing if call is answered/rejected elsewhere
                                         const unsubscribe = db.collection('calls').doc(change.doc.id)
                                             .onSnapshot((doc) => {
                                                 const data = doc.data();
@@ -5353,21 +5229,18 @@
                             });
                     }
                     
-                    // Override joinChat to add call button
                     const originalJoinChat = joinChat;
                     joinChat = function(chat) {
                         originalJoinChat(chat);
                         setTimeout(addCallButtonToHeader, 100);
                     };
                     
-                    // Override createPrivateChat to ensure call button appears
                     const originalCreatePrivateChat = createPrivateChat;
                     createPrivateChat = function(user) {
                         originalCreatePrivateChat(user);
                         setTimeout(addCallButtonToHeader, 100);
                     };
                     
-                    // Initialize call module when user logs in
                     const originalInit = init;
                     init = async function() {
                         await originalInit();
