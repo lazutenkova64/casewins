@@ -2558,54 +2558,90 @@
         }
 
         async function initializeApp() {
-            try {
-                applyTheme(currentTheme);
-                populateEmojiPicker();
-                populateThemeGrid();
-                preloadSounds();
+    try {
+        applyTheme(currentTheme);
+        populateEmojiPicker();
+        populateThemeGrid();
+        preloadSounds();
 
-                supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                    if (event === 'SIGNED_IN' && session) {
-                        await loadUserData(session.user);
-                        document.getElementById('loginModal').classList.remove('active');
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        await Promise.all([
-                            loadAllUsers(),
-                            loadPublicChats(),
-                            loadAllMessages(),
-                        ]);
-                        
-                        initAbly();
-                        startHeartbeat();
-                        startPresenceUpdates();
-                        startStatusUpdates();
-                        
-                        ensureFavoriteChat();
-                        
-                        checkUrlForChat();
-                        forceShowInput();
-                        
-                        listenForIncomingCalls();
-                        
-                        if (myChats.length === 1 && myChats[0].isFavorite) {
-                            joinChat(myChats[0]);
-                        } else if (!currentChat && myChats.length > 0) {
-                            const nonFavoriteChat = myChats.find(c => !c.isFavorite);
-                            if (nonFavoriteChat) {
-                                joinChat(nonFavoriteChat);
-                            } else {
-                                joinChat(myChats[0]);
-                            }
-                        }
-                        
-                        updateBackButtonVisibility();
-                        updateCreateChatButtonVisibility();
-                    } else if (event === 'SIGNED_OUT') {
-                        handleLogout();
-                    }
-                });
+        // 🔥 1. Проверяем текущую сессию при загрузке страницы
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
 
+        if (error) {
+            console.error('Session error:', error);
+            return;
+        }
+
+        if (session) {
+            await handleSignedIn(session);
+        } else {
+            showLogin();
+        }
+
+        // 🔥 2. Подписка на изменения авторизации
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+
+            if (event === 'SIGNED_IN' && session) {
+                await handleSignedIn(session);
+            }
+
+            if (event === 'SIGNED_OUT') {
+                handleLogout();
+            }
+
+        });
+
+    } catch (err) {
+        console.error('Initialize error:', err);
+    }
+}
+
+async function handleSignedIn(session) {
+
+    await loadUserData(session.user);
+
+    document.getElementById('loginModal').classList.remove('active');
+    document.getElementById('appContainer').style.display = 'flex';
+
+    await Promise.all([
+        loadAllUsers(),
+        loadPublicChats(),
+        loadAllMessages(),
+    ]);
+
+    initAbly();
+    startHeartbeat();
+    startPresenceUpdates();
+    startStatusUpdates();
+
+    ensureFavoriteChat();
+
+    checkUrlForChat();
+    forceShowInput();
+
+    listenForIncomingCalls();
+
+    if (myChats.length === 1 && myChats[0].isFavorite) {
+        joinChat(myChats[0]);
+    } else if (!currentChat && myChats.length > 0) {
+        const nonFavoriteChat = myChats.find(c => !c.isFavorite);
+        if (nonFavoriteChat) {
+            joinChat(nonFavoriteChat);
+        } else {
+            joinChat(myChats[0]);
+        }
+    }
+
+    updateBackButtonVisibility();
+    updateCreateChatButtonVisibility();
+
+    isInitialized = true;
+}
+
+function showLogin() {
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('loginModal').classList.add('active');
+}
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
                 if (session) {
