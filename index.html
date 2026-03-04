@@ -2641,19 +2641,7 @@ async function handleSignedIn(session) {
 function showLogin() {
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('loginModal').classList.add('active');
-}
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session) {
-                    await loadUserData(session.user);
-                    document.getElementById('loginModal').classList.remove('active');
-                    document.getElementById('appContainer').style.display = 'flex';
-                    
-                    await Promise.all([
-                        loadAllUsers(),
-                        loadPublicChats(),
-                        loadAllMessages(),
-                    ]);
+}               
                     
                     initAbly();
                     startHeartbeat();
@@ -5151,7 +5139,30 @@ function showLogin() {
             }, 3000);
         }
 
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        initAbly();
+        startHeartbeat();
+        startPresenceUpdates();
+        startStatusUpdates();
+
+        ensureFavoriteChat();
+        checkUrlForChat();
+        forceShowInput();
+        listenForIncomingCalls();
+
+        if (myChats.length === 1 && myChats[0].isFavorite) {
+            joinChat(myChats[0]);
+        } else if (!currentChat && myChats.length > 0) {
+            const nonFavoriteChat = myChats.find(c => !c.isFavorite);
+            joinChat(nonFavoriteChat || myChats[0]);
+        }
+
+        updateBackButtonVisibility();
+        updateCreateChatButtonVisibility();
+    } else {
+        showLogin();
+    }
+
+});
     </script>
 </body>
 </html>
