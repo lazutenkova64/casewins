@@ -465,6 +465,14 @@
             box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
         }
 
+        .pin-icon {
+            font-size: 14px;
+            color: var(--accent-blue);
+            margin-left: 4px;
+            transform: rotate(45deg);
+            display: inline-block;
+        }
+
         .tabs {
             display: flex;
             padding: 8px 12px;
@@ -683,6 +691,28 @@
             justify-content: center;
             padding: 0 6px;
             box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+        }
+
+        .pin-chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            opacity: 0.5;
+        }
+
+        .pin-chat-btn:hover {
+            opacity: 1;
+            color: var(--accent-blue);
+        }
+
+        .pin-chat-btn.pinned {
+            color: var(--accent-blue);
+            opacity: 1;
         }
 
         .lock-icon {
@@ -1493,6 +1523,7 @@
             gap: 16px;
             min-width: 240px;
             padding: 8px 4px;
+            width: 100%;
         }
 
         .play-pause-btn {
@@ -1547,6 +1578,7 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            min-width: 0;
         }
 
         .audio-progress-bar {
@@ -2224,6 +2256,7 @@
         let activeMessageId = null;
         let messageStatuses = {};        
         let deletedMessages = {};         // храним удалённые messageId для каждого чата
+        let pinnedChats = [];              // закрепленные чаты (из localStorage)
 
         let lastMessageTime = 0;
         const MESSAGE_COOLDOWN = 500;
@@ -2412,6 +2445,48 @@
             });
         }
 
+        // ========== ЗАКРЕПЛЕНИЕ ЧАТОВ ==========
+        function loadPinnedChats() {
+            try {
+                const saved = localStorage.getItem(`pinnedChats_${currentUser?.id}`);
+                if (saved) {
+                    pinnedChats = JSON.parse(saved);
+                } else {
+                    pinnedChats = [];
+                }
+            } catch (e) {
+                console.error('Failed to load pinned chats', e);
+                pinnedChats = [];
+            }
+        }
+
+        function savePinnedChats() {
+            if (!currentUser) return;
+            try {
+                localStorage.setItem(`pinnedChats_${currentUser.id}`, JSON.stringify(pinnedChats));
+            } catch (e) {
+                console.error('Failed to save pinned chats', e);
+            }
+        }
+
+        function togglePinChat(chatId, event) {
+            event.stopPropagation();
+            if (!currentUser) return;
+            
+            const index = pinnedChats.indexOf(chatId);
+            if (index === -1) {
+                pinnedChats.push(chatId);
+            } else {
+                pinnedChats.splice(index, 1);
+            }
+            savePinnedChats();
+            updateChatsList();
+        }
+
+        function isChatPinned(chatId) {
+            return pinnedChats.includes(chatId);
+        }
+
         // ========== ПРОВЕРКА СУЩЕСТВОВАНИЯ ТАБЛИЦЫ calls ==========
         async function checkCallsTable() {
             try {
@@ -2489,6 +2564,7 @@
                         
                         // Загружаем чаты из localStorage (только метаданные)
                         myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                        loadPinnedChats(); // загружаем закрепленные чаты
                         
                         document.getElementById('loginModal').classList.remove('active');
                         document.getElementById('appContainer').style.display = 'flex';
@@ -2588,6 +2664,7 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    loadPinnedChats(); // загружаем закрепленные чаты
                     
                     document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('appContainer').style.display = 'flex';
@@ -2766,6 +2843,7 @@
             myChats = [];
             onlineUsers = {};
             allUsers = [];
+            pinnedChats = [];
             
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginModal').classList.add('active');
@@ -2981,7 +3059,7 @@
             // Отписываемся от всех предыдущих подписок, чтобы не дублировать
             chatChannel.unsubscribe();
             
-            // Функция для прикрепления с повторными попытками (увеличим число попыток и уменьшим задержку)
+            // Функция для прикрепления с повторными попытками
             function attachWithRetry(retries = 10, delay = 200) {
                 chatChannel.attach((err) => {
                     if (err) {
@@ -2997,7 +3075,7 @@
                 });
             }
             
-            attachWithRetry(10, 200); // 10 попыток с задержкой 200мс
+            attachWithRetry(10, 200);
 
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
@@ -3011,7 +3089,7 @@
                 if (!exists) {
                     const sender = allUsers.find(u => u.id === msg.sender_id) || { username: msg.sender_name || 'Неизвестно', avatar: '👤' };
                     
-                    messages[chatId].push({
+                    const newMsg = {
                         id: msg.id,
                         chatId: msg.chat_id,
                         sender: msg.sender_id,
@@ -3024,7 +3102,9 @@
                         isAdmin: sender.username === ADMIN_USERNAME,
                         edited: msg.edited || false,
                         type: msg.sender_id == currentUser.id ? 'out' : 'in'
-                    });
+                    };
+                    
+                    messages[chatId].push(newMsg);
                     messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     
                     if (msg.sender_id != currentUser.id) {
@@ -3035,6 +3115,14 @@
                         
                         if (currentChat?.id !== chatId) {
                             unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                        }
+                        
+                        // Показываем уведомление о новом сообщении
+                        if (Notification.permission === 'granted') {
+                            new Notification(`Новое сообщение от ${sender.username}`, {
+                                body: msg.text || 'Голосовое сообщение',
+                                icon: sender.avatar
+                            });
                         }
                     }
                     
@@ -3560,7 +3648,7 @@
                 updateChatsList();
                 forceShowInput();
 
-                // Для аудио нужно поле audio в таблице messages. Предположим, оно есть.
+                // Для аудио нужно поле audio в таблице messages
                 const dbMessage = {
                     chat_id: currentChat.id,
                     sender_id: currentUser.id,
@@ -3945,12 +4033,11 @@
                 key: ABLY_API_KEY,
                 clientId: currentUser.id.toString(),
                 transports: ['web_socket'],
-                disconnectedRetryTimeout: 2000, // увеличиваем до 2 секунд
-                suspendedRetryTimeout: 3000, // увеличиваем до 3 секунд
-                realtimeRequestTimeout: 20000, // увеличиваем таймаут до 20 секунд
+                disconnectedRetryTimeout: 2000,
+                suspendedRetryTimeout: 3000,
+                realtimeRequestTimeout: 20000,
                 echoMessages: false,
-                // Добавляем параметры для поддержания соединения
-                idleTimeout: 30000 // 30 секунд бездействия
+                idleTimeout: 30000
             });
 
             ably.connection.on('connected', () => {
@@ -4055,7 +4142,7 @@
                     addPrivateChatFromNotification(message.data);
                 });
 
-                // Подписываемся на все приватные чаты (последовательно, чтобы не перегружать)
+                // Подписываемся на все приватные чаты
                 subscribeToAllPrivateChats();
             });
 
@@ -4076,7 +4163,7 @@
             });
         }
 
-        // Подписка на все приватные чаты с задержкой между ними
+        // Подписка на все приватные чаты
         function subscribeToAllPrivateChats() {
             let index = 0;
             function subscribeNext() {
@@ -4086,7 +4173,7 @@
                     subscribeToChatChannel(chat.id);
                 }
                 index++;
-                setTimeout(subscribeNext, 200); // задержка 200 мс между подписками
+                setTimeout(subscribeNext, 200);
             }
             subscribeNext();
         }
@@ -4096,7 +4183,6 @@
             heartbeatInterval = setInterval(() => {
                 if (ably && ably.connection.state === 'connected' && currentUser) {
                     const presenceChannel = ably.channels.get('presence');
-                    // Проверяем состояние канала перед обновлением
                     if (presenceChannel.state === 'attached') {
                         presenceChannel.presence.update({ 
                             name: currentUser.name,
@@ -4108,7 +4194,7 @@
                         });
                     }
                 }
-            }, 25000); // уменьшаем интервал до 25 секунд
+            }, 25000);
         }
 
         function startPresenceUpdates() {
@@ -4127,7 +4213,7 @@
                         });
                     }
                 }
-            }, 25000); // уменьшаем интервал до 25 секунд
+            }, 25000);
         }
 
         function startStatusUpdates() {
@@ -4137,7 +4223,7 @@
                     updateChatsList();
                 }
                 updateChatStatus();
-            }, 3000); // увеличиваем до 3 секунд
+            }, 3000);
         }
 
         async function handleBeforeUnload() {
@@ -4157,6 +4243,18 @@
             
             if (currentTab === 'chats') {
                 items = [...myChats].sort((a, b) => {
+                    // Сначала проверяем закрепленные
+                    const aPinned = isChatPinned(a.id);
+                    const bPinned = isChatPinned(b.id);
+                    
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
+                    
+                    // Затем избранное (если есть специальный чат)
+                    if (a.name === 'Избранное') return -1;
+                    if (b.name === 'Избранное') return 1;
+                    
+                    // По дате создания (новые сверху)
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
             } else if (currentTab === 'public') {
@@ -4241,6 +4339,7 @@
         function renderChatItem(chat) {
             const lastMsg = messages[chat.id] && messages[chat.id].length > 0 ? messages[chat.id][messages[chat.id].length - 1] : null;
             const unread = unreadCounts[chat.id] || 0;
+            const isPinned = isChatPinned(chat.id);
             
             let lastMessageText = 'Нет сообщений';
             if (lastMsg) {
@@ -4262,9 +4361,11 @@
                     <div class="chat-details">
                         <div class="chat-name">
                             ${displayName}
+                            ${isPinned ? '<span class="pin-icon">📌</span>' : ''}
                             ${chat.is_public ? '<span class="lock-icon">🌐</span>' : '<span class="lock-icon">🔒</span>'}
                             ${currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public' ? 
                                 `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить</button>` : ''}
+                            <button class="pin-chat-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinChat('${chat.id}', event)">📌</button>
                         </div>
                         <div class="chat-last-message">${lastMessageText}</div>
                     </div>
@@ -4438,7 +4539,8 @@
                 };
                 
                 audioElements[messageId].onerror = (e) => {
-                    alert('Ошибка воспроизведения аудио');
+                    console.error('Audio playback error:', e);
+                    alert('Ошибка воспроизведения аудио. Убедитесь, что формат поддерживается вашим браузером.');
                 };
             }
             
@@ -4446,7 +4548,8 @@
             activeAudioId = messageId;
             
             activeAudio.play().catch(e => {
-                alert('Не удалось воспроизвести аудио');
+                console.error('Audio play error:', e);
+                alert('Не удалось воспроизвести аудио. Возможно, формат не поддерживается.');
             });
             updateAudioButton(messageId, true);
         }
@@ -4480,7 +4583,7 @@
                 currentTimeSpan.textContent = formatTime(audio.currentTime);
             }
             
-            if (durationSpan && !durationSpan.textContent) {
+            if (durationSpan && audio.duration && !isNaN(audio.duration)) {
                 durationSpan.textContent = formatTime(audio.duration);
             }
         }
@@ -4524,14 +4627,12 @@
                     .lt('created_at', fiveMinutesAgo);
             } catch (err) {
                 console.error('Error cleaning up old calls:', err);
-                // Если ошибка из-за отсутствия таблицы, обновляем флаг
                 if (err.code === 'PGRST116') {
                     callsTableExists = false;
                 }
             }
         }
 
-        // Функция для добавления ICE серверов (несколько STUN для надежности)
         function getIceServers() {
             return {
                 iceServers: [
@@ -4545,9 +4646,7 @@
         }
 
         async function startCall() {
-            // Проверяем наличие таблицы calls перед звонком
             if (!callsTableExists) {
-                // Попробуем проверить ещё раз
                 await checkCallsTable();
                 if (!callsTableExists) {
                     alert('Функция звонков недоступна, так как таблица calls не создана.');
@@ -4556,7 +4655,6 @@
             }
             if (!currentChat || currentChat.is_public) return;
             
-            // Определяем получателя
             const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
             const otherUser = allUsers.find(u => u.username === otherUserName);
             if (!otherUser) {
@@ -4566,17 +4664,15 @@
             const receiverId = otherUser.id;
             
             try {
-                // Получаем доступ к микрофону для звонящего
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 
                 peerConnection = new RTCPeerConnection(getIceServers());
                 
-                // Добавляем локальный поток в peer connection
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
                 
-                const callId = generateUUID(); // локальный идентификатор для Ably
+                const callId = generateUUID();
                 
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate && ably) {
@@ -4593,18 +4689,15 @@
                 peerConnection.ontrack = (event) => {
                     console.log('Received remote track');
                     const remoteStream = event.streams[0];
-                    // Создаём аудио элемент для воспроизведения удалённого потока
                     const audioElement = document.createElement('audio');
                     audioElement.srcObject = remoteStream;
                     audioElement.autoplay = true;
                     audioElement.controls = false;
                     audioElement.style.display = 'none';
                     document.body.appendChild(audioElement);
-                    // Важно: запускаем воспроизведение сразу
                     audioElement.play().catch(e => console.warn('Auto-play failed:', e));
                     
                     document.getElementById('callStatus').textContent = 'В разговоре';
-                    // Запускаем таймер, если ещё не запущен
                     if (!callTimerInterval) {
                         startCallTimer();
                     }
@@ -4613,7 +4706,6 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 
-                // Сохраняем в БД (только существующие поля)
                 const callRecord = {
                     caller_id: currentUser.id,
                     receiver_id: receiverId,
@@ -4628,7 +4720,7 @@
                 
                 if (error) throw error;
                 
-                const dbCallId = data[0].id; // реальный UUID из БД
+                const dbCallId = data[0].id;
                 
                 currentCall = {
                     id: callId,
@@ -4641,7 +4733,6 @@
                 
                 if (ably) {
                     const callsChannel = ably.channels.get('calls');
-                    // Убедимся, что канал прикреплён с повторными попытками
                     function attachAndPublish(retries = 5) {
                         callsChannel.attach((err) => {
                             if (!err) {
@@ -4716,7 +4807,6 @@
             callTimerInterval = setInterval(() => {
                 const elapsed = Date.now() - callStartTime;
                 if (elapsed >= CALL_DURATION_LIMIT) {
-                    // Превышен лимит 30 минут
                     alert('Длительность звонка превысила 30 минут. Звонок завершён.');
                     endCall();
                     return;
@@ -4729,9 +4819,7 @@
             if (!currentCall || !peerConnection) return;
             
             try {
-                // Получаем доступ к микрофону для ответившего
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                // Добавляем локальный поток в peer connection
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
@@ -4741,7 +4829,6 @@
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
                 
-                // Обновляем статус звонка в БД по dbId
                 if (currentCall.dbId) {
                     await supabaseClient
                         .from('calls')
@@ -4759,7 +4846,6 @@
                     });
                 }
                 
-                // Переключаем интерфейс на разговор
                 document.getElementById('incomingCallControls').style.display = 'none';
                 document.getElementById('outgoingCallControls').style.display = 'flex';
                 document.getElementById('muteCallBtn').onclick = toggleMute;
@@ -4790,7 +4876,6 @@
                     senderId: currentUser.id
                 });
                 
-                // Обновляем статус в БД
                 if (currentCall.dbId) {
                     await supabaseClient
                         .from('calls')
@@ -4846,29 +4931,20 @@
             
             callMuted = !enabled;
             
-            // Обновляем обе кнопки мьюта (и для входящего, и для исходящего режима)
             const muteBtn = document.getElementById('muteCallBtn');
             const incomingMuteBtn = document.getElementById('incomingMuteBtn');
             
-            if (muteBtn) {
-                if (callMuted) {
-                    muteBtn.textContent = '🔴';
-                    muteBtn.classList.add('muted');
-                } else {
-                    muteBtn.textContent = '🎤';
-                    muteBtn.classList.remove('muted');
+            [muteBtn, incomingMuteBtn].forEach(btn => {
+                if (btn) {
+                    if (callMuted) {
+                        btn.textContent = '🔴';
+                        btn.classList.add('muted');
+                    } else {
+                        btn.textContent = '🎤';
+                        btn.classList.remove('muted');
+                    }
                 }
-            }
-            
-            if (incomingMuteBtn) {
-                if (callMuted) {
-                    incomingMuteBtn.textContent = '🔴';
-                    incomingMuteBtn.classList.add('muted');
-                } else {
-                    incomingMuteBtn.textContent = '🎤';
-                    incomingMuteBtn.classList.remove('muted');
-                }
-            }
+            });
         }
 
         function listenForIncomingCalls() {
@@ -4880,7 +4956,6 @@
                 const { offer, callerId, callerName, callerAvatar, callId, dbCallId, targetId } = message.data;
                 if (targetId !== currentUser.id) return;
                 
-                // Создаём peerConnection сразу, чтобы начать ICE gathering
                 peerConnection = new RTCPeerConnection(getIceServers());
                 
                 peerConnection.onicecandidate = (event) => {
@@ -4906,7 +4981,6 @@
                     audioElement.play().catch(e => console.warn('Auto-play failed:', e));
                     
                     document.getElementById('callStatus').textContent = 'В разговоре';
-                    // Таймер запустится после ответа, но если уже разговор - запускаем
                     if (!callTimerInterval) {
                         startCallTimer();
                     }
@@ -5113,7 +5187,6 @@
         function openChatUserProfile() {
             if (!currentChat || currentChat.is_public) return;
             
-            // Определяем собеседника по имени чата
             const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
             const user = allUsers.find(u => u.username === otherUserName);
             if (!user) return;
@@ -5265,6 +5338,11 @@
             window.addEventListener('orientationchange', setVH);
             
             forceShowInput();
+            
+            // Запрашиваем разрешение на уведомления
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
         }
 
         function scrollToBottomOnMobile() {
@@ -5440,12 +5518,9 @@
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Показываем модалку входа сразу при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             populateEmojiPicker();
-            // Показываем модалку сразу
             document.getElementById('loginModal').classList.add('active');
-            // Запускаем инициализацию
             init();
         });
     </script>
@@ -5460,16 +5535,12 @@
     );
 
     -- Необходимые политики RLS для таблицы messages:
-    -- 1. Для вставки сообщений: разрешить аутентифицированным пользователям вставлять строки, где sender_id = auth.uid()
     CREATE POLICY "Users can insert their own messages" ON public.messages
         FOR INSERT WITH CHECK (auth.uid() = sender_id);
-    -- 2. Для чтения сообщений: разрешить чтение, если пользователь участвует в чате (упрощённо: любой аутентифицированный может читать)
     CREATE POLICY "Users can read messages" ON public.messages
         FOR SELECT USING (auth.role() = 'authenticated');
-    -- 3. Для обновления: только свои сообщения
     CREATE POLICY "Users can update own messages" ON public.messages
         FOR UPDATE USING (auth.uid() = sender_id);
-    -- 4. Для удаления: свои или админ
     CREATE POLICY "Users can delete own messages" ON public.messages
         FOR DELETE USING (auth.uid() = sender_id);
 
