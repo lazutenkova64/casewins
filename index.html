@@ -2223,6 +2223,9 @@
         let callModal = null;
         let callMuted = false;
 
+        // Флаг наличия таблицы calls
+        let callsTableExists = true; // по умолчанию считаем, что существует
+
         // Эмодзи
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', 
@@ -2356,6 +2359,25 @@
             });
         }
 
+        // ========== ПРОВЕРКА СУЩЕСТВОВАНИЯ ТАБЛИЦЫ calls ==========
+        async function checkCallsTable() {
+            try {
+                const { error } = await supabaseClient
+                    .from('calls')
+                    .select('id')
+                    .limit(1);
+                if (error && error.code === 'PGRST116') { // relation does not exist
+                    callsTableExists = false;
+                    console.warn('Таблица "calls" не найдена. Функция звонков будет недоступна. Создайте таблицу вручную: CREATE TABLE calls (id uuid primary key default gen_random_uuid(), caller_id uuid not null references profiles(id), receiver_id uuid not null references profiles(id), status text, created_at timestamptz default now());');
+                } else {
+                    callsTableExists = true;
+                }
+            } catch (err) {
+                callsTableExists = false;
+                console.warn('Не удалось проверить таблицу calls, звонки отключены.', err);
+            }
+        }
+
         // ========== АУТЕНТИФИКАЦИЯ ==========
         async function init() {
             if (isInitialized) return;
@@ -2367,6 +2389,7 @@
                 callModal = document.getElementById('callModal');
                 
                 await preloadSounds();
+                await checkCallsTable(); // проверяем таблицу calls
 
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
@@ -2875,6 +2898,112 @@
             }
         }
 
+        // ========== ПОДПИСКА НА КАНАЛ ABLY ДЛЯ ЧАТА ==========
+        function subscribeToChatChannel(chatId) {
+            if (!ably || !currentUser) return;
+            const chat = myChats.find(c => c.id === chatId) || publicChats.find(c => c.id === chatId);
+            if (!chat || chat.is_public) return; // публичные чаты не используют Ably для сообщений
+
+            const chatChannel = ably.channels.get(`chat-${chatId}`);
+            // Отписываемся от всех предыдущих подписок, чтобы не дублировать
+            chatChannel.unsubscribe();
+            chatChannel.subscribe('message', (message) => {
+                const msg = message.data;
+                if (!msg) return;
+                
+                if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) return;
+                
+                if (!messages[chatId]) messages[chatId] = [];
+                
+                const exists = messages[chatId].some(m => m.id === msg.id);
+                if (!exists) {
+                    const sender = allUsers.find(u => u.id === msg.sender_id) || { username: msg.sender_name || 'Неизвестно', avatar: '👤' };
+                    
+                    messages[chatId].push({
+                        id: msg.id,
+                        chatId: msg.chat_id,
+                        sender: msg.sender_id,
+                        senderName: sender.username,
+                        text: msg.text,
+                        audio: msg.audio,
+                        duration: msg.duration,
+                        time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                        timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
+                        isAdmin: sender.username === ADMIN_USERNAME,
+                        edited: msg.edited || false,
+                        type: msg.sender_id == currentUser.id ? 'out' : 'in'
+                    });
+                    messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    
+                    if (msg.sender_id != currentUser.id) {
+                        chatChannel.publish('delivery_receipt', { 
+                            messageId: msg.id, 
+                            receiver: currentUser.id
+                        });
+                        
+                        if (currentChat?.id !== chatId) {
+                            unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                        }
+                    }
+                    
+                    if (currentChat && currentChat.id === chatId) {
+                        renderMessages();
+                        unreadCounts[chatId] = 0;
+                    }
+                    
+                    updateChatsList();
+                }
+            });
+            
+            chatChannel.subscribe('delivery_receipt', (data) => {
+                const { messageId } = data.data;
+                if (messageStatuses[messageId]) {
+                    messageStatuses[messageId].status = 'delivered';
+                }
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
+                }
+            });
+            
+            chatChannel.subscribe('read_receipt', (data) => {
+                const { messageId } = data.data;
+                if (messageStatuses[messageId]) {
+                    messageStatuses[messageId].status = 'read';
+                }
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
+                }
+            });
+            
+            chatChannel.subscribe('delete', (data) => {
+                const { messageId } = data.data;
+                
+                if (!deletedMessages[chatId]) deletedMessages[chatId] = [];
+                if (!deletedMessages[chatId].includes(messageId)) {
+                    deletedMessages[chatId].push(messageId);
+                    localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+                }
+                if (messages[chatId]) {
+                    messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
+                    if (currentChat?.id === chatId) renderMessages();
+                    updateChatsList();
+                }
+            });
+            
+            chatChannel.subscribe('edit', (data) => {
+                const { messageId, newText } = data.data;
+                
+                if (messages[chatId]) {
+                    const msgIndex = messages[chatId].findIndex(m => m.id === messageId);
+                    if (msgIndex !== -1) {
+                        messages[chatId][msgIndex].text = newText;
+                        messages[chatId][msgIndex].edited = true;
+                        if (currentChat?.id === chatId) renderMessages();
+                    }
+                }
+            });
+        }
+
         // ========== ЧАТЫ ==========
         async function createPublicChat() {
             const name = document.getElementById('chatNameInput').value.trim();
@@ -2974,7 +3103,9 @@
                     myChats.push(privateChat);
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
                     
+                    // Подписываемся на канал Ably для этого чата
                     if (ably) {
+                        subscribeToChatChannel(privateChat.id);
                         const chatChannel = ably.channels.get(`chat-${privateChat.id}`);
                         chatChannel.publish('user_joined', { userId: currentUser.id, userName: currentUser.name });
                     }
@@ -2991,11 +3122,14 @@
         function joinChat(chat) {
             if (!chat) return;
             
-            // Паролей больше нет, сразу присоединяемся
-            
             if (!myChats.find(c => c.id === chat.id) && !chat.is_public) {
                 myChats.push(chat);
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+            }
+            
+            // Подписываемся на канал Ably, если ещё не подписаны
+            if (ably && !chat.is_public) {
+                subscribeToChatChannel(chat.id);
             }
             
             // Для приватных чатов определяем собеседника и устанавливаем аватар
@@ -3016,8 +3150,8 @@
             document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : 'Приватный чат';
             document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👥';
             
-            // Показываем кнопку звонка только для приватных чатов
-            document.getElementById('callBtn').style.display = chat.type === 'private' ? 'flex' : 'none';
+            // Показываем кнопку звонка только для приватных чатов и если таблица calls существует
+            document.getElementById('callBtn').style.display = (chat.type === 'private' && callsTableExists) ? 'flex' : 'none';
             
             loadChatHistory(chat.id);
             
@@ -3064,6 +3198,46 @@
                 } else {
                     statusElement.innerHTML = 'был(а) давно';
                 }
+            }
+        }
+
+        // ========== УДАЛЕНИЕ ЧАТА (для админа) ==========
+        async function deleteChat(chatId, event) {
+            event.stopPropagation();
+            if (!currentUser || !currentUser.isAdmin) return;
+            if (!confirm('Удалить этот чат навсегда?')) return;
+            
+            try {
+                // Удаляем все сообщения чата (если есть каскад, можно просто удалить чат)
+                await supabaseClient
+                    .from('messages')
+                    .delete()
+                    .eq('chat_id', chatId);
+                
+                // Удаляем сам чат
+                await supabaseClient
+                    .from('chats')
+                    .delete()
+                    .eq('id', chatId);
+                
+                // Убираем из локальных списков
+                myChats = myChats.filter(c => c.id !== chatId);
+                publicChats = publicChats.filter(c => c.id !== chatId);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                delete messages[chatId];
+                delete unreadCounts[chatId];
+                
+                if (currentChat && currentChat.id === chatId) {
+                    currentChat = null;
+                    renderMessages();
+                    updateUrlWithChat(null);
+                }
+                
+                updateChatsList();
+            } catch (err) {
+                console.error('Error deleting chat:', err);
+                alert('Не удалось удалить чат');
             }
         }
 
@@ -3290,7 +3464,7 @@
             Object.keys(messageQueue).forEach(userId => {
                 const userOnline = onlineUsers[userId] && onlineUsers[userId].online;
                 if (userOnline) {
-                    sendQueuedMessagesToUser(parseInt(userId));
+                    sendQueuedMessagesToUser(userId);
                 }
             });
         }
@@ -3671,105 +3845,10 @@
                     }
                 });
 
+                // Подписываемся на все приватные чаты
                 myChats.forEach(chat => {
                     if (!chat.is_public) {
-                        const chatChannel = ably.channels.get(`chat-${chat.id}`);
-                        chatChannel.subscribe('message', (message) => {
-                            const msg = message.data;
-                            if (!msg) return;
-                            
-                            if (deletedMessages[chat.id] && deletedMessages[chat.id].includes(msg.id)) return;
-                            
-                            if (!messages[chat.id]) messages[chat.id] = [];
-                            
-                            const exists = messages[chat.id].some(m => m.id === msg.id);
-                            if (!exists) {
-                                // Находим отправителя
-                                const sender = allUsers.find(u => u.id === msg.sender_id) || { username: msg.sender_name || 'Неизвестно', avatar: '👤' };
-                                
-                                messages[chat.id].push({
-                                    id: msg.id,
-                                    chatId: msg.chat_id,
-                                    sender: msg.sender_id,
-                                    senderName: sender.username,
-                                    text: msg.text,
-                                    audio: msg.audio,
-                                    duration: msg.duration,
-                                    time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-                                    timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
-                                    isAdmin: sender.username === ADMIN_USERNAME,
-                                    edited: msg.edited || false,
-                                    type: msg.sender_id == currentUser.id ? 'out' : 'in'
-                                });
-                                messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                                
-                                if (msg.sender_id != currentUser.id) {
-                                    chatChannel.publish('delivery_receipt', { 
-                                        messageId: msg.id, 
-                                        receiver: currentUser.id
-                                    });
-                                    
-                                    if (currentChat?.id !== chat.id) {
-                                        unreadCounts[chat.id] = (unreadCounts[chat.id] || 0) + 1;
-                                    }
-                                }
-                                
-                                if (currentChat && currentChat.id === chat.id) {
-                                    renderMessages();
-                                    unreadCounts[chat.id] = 0;
-                                }
-                                
-                                updateChatsList();
-                            }
-                        });
-                        
-                        chatChannel.subscribe('delivery_receipt', (data) => {
-                            const { messageId } = data.data;
-                            if (messageStatuses[messageId]) {
-                                messageStatuses[messageId].status = 'delivered';
-                            }
-                            if (currentChat && currentChat.id === chat.id) {
-                                renderMessages();
-                            }
-                        });
-                        
-                        chatChannel.subscribe('read_receipt', (data) => {
-                            const { messageId } = data.data;
-                            if (messageStatuses[messageId]) {
-                                messageStatuses[messageId].status = 'read';
-                            }
-                            if (currentChat && currentChat.id === chat.id) {
-                                renderMessages();
-                            }
-                        });
-                        
-                        chatChannel.subscribe('delete', (data) => {
-                            const { messageId } = data.data;
-                            
-                            if (!deletedMessages[chat.id]) deletedMessages[chat.id] = [];
-                            if (!deletedMessages[chat.id].includes(messageId)) {
-                                deletedMessages[chat.id].push(messageId);
-                                localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
-                            }
-                            if (messages[chat.id]) {
-                                messages[chat.id] = messages[chat.id].filter(m => m.id !== messageId);
-                                if (currentChat?.id === chat.id) renderMessages();
-                                updateChatsList();
-                            }
-                        });
-                        
-                        chatChannel.subscribe('edit', (data) => {
-                            const { messageId, newText } = data.data;
-                            
-                            if (messages[chat.id]) {
-                                const msgIndex = messages[chat.id].findIndex(m => m.id === messageId);
-                                if (msgIndex !== -1) {
-                                    messages[chat.id][msgIndex].text = newText;
-                                    messages[chat.id][msgIndex].edited = true;
-                                    if (currentChat?.id === chat.id) renderMessages();
-                                }
-                            }
-                        });
+                        subscribeToChatChannel(chat.id);
                     }
                 });
             });
@@ -3794,14 +3873,17 @@
             heartbeatInterval = setInterval(() => {
                 if (ably && ably.connection.state === 'connected' && currentUser) {
                     const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ 
-                        name: currentUser.name,
-                        avatar: currentUser.avatar || '👤',
-                        bio: currentUser.bio || '',
-                        isAdmin: currentUser.isAdmin || false,
-                        dnd: currentUser.dnd || false,
-                        lastSeen: Date.now()
-                    });
+                    // Проверяем состояние канала перед обновлением
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar || '👤',
+                            bio: currentUser.bio || '',
+                            isAdmin: currentUser.isAdmin || false,
+                            dnd: currentUser.dnd || false,
+                            lastSeen: Date.now()
+                        });
+                    }
                 }
             }, 30000);
         }
@@ -3811,14 +3893,16 @@
             presenceUpdateInterval = setInterval(() => {
                 if (ably && ably.connection.state === 'connected' && currentUser) {
                     const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ 
-                        name: currentUser.name,
-                        avatar: currentUser.avatar || '👤',
-                        bio: currentUser.bio || '',
-                        isAdmin: currentUser.isAdmin || false,
-                        dnd: currentUser.dnd || false,
-                        lastSeen: Date.now()
-                    });
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar || '👤',
+                            bio: currentUser.bio || '',
+                            isAdmin: currentUser.isAdmin || false,
+                            dnd: currentUser.dnd || false,
+                            lastSeen: Date.now()
+                        });
+                    }
                 }
             }, 30000);
         }
@@ -3957,7 +4041,7 @@
                             ${displayName}
                             ${chat.is_public ? '<span class="lock-icon">🌐</span>' : '<span class="lock-icon">🔒</span>'}
                             ${currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public' ? 
-                                `<button class="delete-chat-btn" onclick="event.stopPropagation(); deleteChat('${chat.id}', event)">Удалить</button>` : ''}
+                                `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить</button>` : ''}
                         </div>
                         <div class="chat-last-message">${lastMessageText}</div>
                     </div>
@@ -4208,6 +4292,7 @@
         }
 
         async function cleanupOldCalls() {
+            if (!callsTableExists) return;
             try {
                 const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
                 await supabaseClient
@@ -4220,6 +4305,10 @@
         }
 
         async function startCall() {
+            if (!callsTableExists) {
+                alert('Функция звонков недоступна, так как таблица calls не создана.');
+                return;
+            }
             if (!currentChat || currentChat.is_public) return;
             
             // Определяем получателя
@@ -4585,14 +4674,16 @@
                 
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.update({ 
-                        name: currentUser.name, 
-                        avatar: currentUser.avatar,
-                        bio: currentUser.bio,
-                        isAdmin: currentUser.isAdmin,
-                        dnd: dnd,
-                        lastSeen: Date.now()
-                    });
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name, 
+                            avatar: currentUser.avatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            dnd: dnd,
+                            lastSeen: Date.now()
+                        });
+                    }
                 }
                 
                 updateProfileUI();
@@ -4642,14 +4733,16 @@
                     
                     if (ably) {
                         const presenceChannel = ably.channels.get('presence');
-                        presenceChannel.presence.update({ 
-                            name: currentUser.name, 
-                            avatar: selectedAvatar,
-                            bio: currentUser.bio,
-                            isAdmin: currentUser.isAdmin,
-                            dnd: currentUser.dnd,
-                            lastSeen: Date.now()
-                        });
+                        if (presenceChannel.state === 'attached') {
+                            presenceChannel.presence.update({ 
+                                name: currentUser.name, 
+                                avatar: selectedAvatar,
+                                bio: currentUser.bio,
+                                isAdmin: currentUser.isAdmin,
+                                dnd: currentUser.dnd,
+                                lastSeen: Date.now()
+                            });
+                        }
                     }
                 } catch (err) {
                     console.error('Error saving avatar:', err);
@@ -5000,5 +5093,15 @@
             init();
         });
     </script>
+    <!-- Инструкция по созданию таблицы calls, если её нет -->
+    <!--
+    CREATE TABLE IF NOT EXISTS public.calls (
+        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        caller_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        receiver_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        status text,
+        created_at timestamp with time zone DEFAULT now()
+    );
+    -->
 </body>
 </html>
