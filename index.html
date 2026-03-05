@@ -2195,16 +2195,12 @@
 
     <script>
         const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9scXdnZmVzZWR6cm5wd2Z3cXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4Njg3NjksImV4cCI6MjA1NjQ0NDc2OX0.d1Xv7pC96a72KcSl8RLOiQn3RSSodNS6yCxH3RZ9Myw";
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         const ADMIN_USERNAME = "K1lame";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { 
-                persistSession: true, 
-                autoRefreshToken: true,
-                storage: localStorage
-            }
+            auth: { persistSession: true, autoRefreshToken: true }
         });
 
         let ably;
@@ -2254,7 +2250,6 @@
         let pendingMessages = {};
         let messageQueue = {};
 
-        // Call state
         let currentCall = null;
         let localStream = null;
         let peerConnection = null;
@@ -2339,6 +2334,23 @@
             applyTheme(themeId);
         }
 
+        function startPresenceUpdates() {
+            if (presenceUpdateInterval) clearInterval(presenceUpdateInterval);
+            presenceUpdateInterval = setInterval(() => {
+                if (ably && ably.connection.state === 'connected' && currentUser) {
+                    const presenceChannel = ably.channels.get('presence');
+                    presenceChannel.presence.update({ 
+                        name: currentUser.name,
+                        avatar: currentUser.avatar || '👤',
+                        bio: currentUser.bio || '',
+                        isAdmin: currentUser.isAdmin || false,
+                        dnd: currentUser.dnd || false,
+                        lastSeen: Date.now()
+                    });
+                }
+            }, 30000);
+        }
+
         async function init() {
             if (isInitialized) return;
             isInitialized = true;
@@ -2353,13 +2365,17 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
                 if (session?.user) {
-                    const { data: userData, error } = await supabaseClient
+                    const { data: userData, error: userError } = await supabaseClient
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single();
                     
-                    if (!error && userData) {
+                    if (userError) {
+                        console.warn('Не удалось загрузить профиль:', userError.message);
+                    }
+                    
+                    if (userData) {
                         currentUser = {
                             id: userData.id,
                             name: userData.username,
@@ -2370,14 +2386,7 @@
                             dnd: userData.dnd || false
                         };
                         
-                        const savedChats = localStorage.getItem(`myChats_${currentUser.id}`);
-                        myChats = savedChats ? JSON.parse(savedChats) : [];
-                        
-                        const savedDeleted = localStorage.getItem('deletedMessages');
-                        deletedMessages = savedDeleted ? JSON.parse(savedDeleted) : {};
-                        
-                        const savedStatuses = localStorage.getItem('messageStatuses');
-                        messageStatuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+                        myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                         
                         document.getElementById('loginModal').classList.remove('active');
                         document.getElementById('appContainer').style.display = 'flex';
@@ -2404,10 +2413,6 @@
                         processMessageQueue();
                         
                         listenForIncomingCalls();
-                        
-                        if (myChats.length === 1 && myChats[0].isFavorite) {
-                            joinChat(myChats[0]);
-                        }
                     } else {
                         document.getElementById('loginModal').classList.add('active');
                         document.getElementById('appContainer').style.display = 'none';
@@ -2545,7 +2550,6 @@
                 const presenceChannel = ably.channels.get('presence');
                 presenceChannel.presence.leave();
             }
-            localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
         }
 
         async function updateUserLastSeen() {
@@ -3030,18 +3034,20 @@
                     .maybeSingle();
                 
                 if (checkError) {
-                    console.error('Ошибка при проверке существования сообщения:', checkError);
+                    console.warn('Ошибка при проверке существования сообщения:', checkError);
                 }
                 
                 if (existing) {
                     return;
                 }
                 
+                const chatIdForDb = message.chatId.startsWith('favorite-') ? 'favorite' : message.chatId;
+                
                 const { data, error } = await supabaseClient
                     .from('messages')
                     .insert([{
                         id: message.id,
-                        chat_id: message.chatId,
+                        chat_id: chatIdForDb,
                         sender_id: message.sender,
                         sender_name: message.senderName,
                         text: message.text || null,
@@ -3123,11 +3129,13 @@
             
             for (const message of pending) {
                 try {
+                    const chatIdForDb = message.chatId.startsWith('favorite-') ? 'favorite' : message.chatId;
+                    
                     const { error } = await supabaseClient
                         .from('messages')
                         .insert([{
                             id: message.id,
-                            chat_id: message.chatId,
+                            chat_id: chatIdForDb,
                             sender_id: message.sender,
                             sender_name: message.senderName,
                             text: message.text || null,
@@ -3473,6 +3481,7 @@
 
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('rememberMe').checked;
             
             if (!email || !password) {
                 alert('Введите email и пароль');
@@ -3497,62 +3506,60 @@
                     .eq('id', authData.user.id)
                     .single();
                 
-                if (userError || !userData) {
-                    alert('Ошибка загрузки профиля');
-                    return;
+                if (userError) {
+                    console.warn('Ошибка загрузки профиля:', userError.message);
                 }
                 
-                currentUser = {
-                    id: userData.id,
-                    name: userData.username,
-                    avatar: userData.avatar || '👤',
-                    bio: userData.bio || '',
-                    isAdmin: userData.username === ADMIN_USERNAME,
-                    dnd: userData.dnd || false
-                };
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
-                const savedChats = localStorage.getItem(`myChats_${currentUser.id}`);
-                myChats = savedChats ? JSON.parse(savedChats) : [];
-                
-                const savedDeleted = localStorage.getItem('deletedMessages');
-                deletedMessages = savedDeleted ? JSON.parse(savedDeleted) : {};
-                
-                const savedStatuses = localStorage.getItem('messageStatuses');
-                messageStatuses = savedStatuses ? JSON.parse(savedStatuses) : {};
-                
-                document.getElementById('loginModal').classList.remove('active');
-                document.getElementById('appContainer').style.display = 'flex';
-                
-                updateProfileUI();
-                
-                await Promise.all([
-                    loadAllUsers(),
-                    loadPublicChats(),
-                    loadAllMessages()
-                ]);
-                
-                ensureFavoriteChat();
-                initAbly();
-                startHeartbeat();
-                startPresenceUpdates();
-                startStatusUpdates();
-                checkUrlForChat();
-                
-                if (myChats.length === 1 && myChats[0].isFavorite) {
-                    joinChat(myChats[0]);
-                } else if (myChats.length > 0 && !currentChat) {
-                    joinChat(myChats[0]);
+                if (userData) {
+                    currentUser = {
+                        id: userData.id,
+                        name: userData.username,
+                        avatar: userData.avatar || '👤',
+                        bio: userData.bio || '',
+                        isAdmin: userData.username === ADMIN_USERNAME,
+                        dnd: userData.dnd || false
+                    };
+                    
+                    if (remember) {
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
+                    
+                    myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
+                    
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    
+                    updateProfileUI();
+                    
+                    await Promise.all([
+                        loadAllUsers(),
+                        loadPublicChats(),
+                        loadAllMessages()
+                    ]);
+                    
+                    ensureFavoriteChat();
+                    initAbly();
+                    startHeartbeat();
+                    startPresenceUpdates();
+                    startStatusUpdates();
+                    checkUrlForChat();
+                    
+                    if (myChats.length === 1 && myChats[0].isFavorite) {
+                        joinChat(myChats[0]);
+                    } else if (!currentChat) {
+                        joinChat(myChats[0]);
+                    }
+                    
+                    updateBackButtonVisibility();
+                    forceShowInput();
+                    updateCreateChatButtonVisibility();
+                    
+                    populateThemeGrid();
+                    
+                    listenForIncomingCalls();
+                } else {
+                    alert('Ошибка: профиль пользователя не найден');
                 }
-                
-                updateBackButtonVisibility();
-                forceShowInput();
-                updateCreateChatButtonVisibility();
-                
-                populateThemeGrid();
-                
-                listenForIncomingCalls();
                 
             } catch (err) {
                 console.error('Login error:', err);
@@ -3573,6 +3580,7 @@
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            const remember = document.getElementById('rememberMeRegister').checked;
             
             if (!email || !password) {
                 alert('Заполните все поля');
@@ -3600,7 +3608,6 @@
                 const newUser = {
                     id: authData.user.id,
                     username: username,
-                    password: password,
                     avatar: '👤',
                     bio: '',
                     dnd: false,
@@ -3632,7 +3639,9 @@
                     dnd: data.dnd || false
                 };
                 
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                if (remember) {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
                 
                 const favChat = {
                     id: `favorite-${currentUser.id}`,
@@ -3752,7 +3761,6 @@
             }
             
             localStorage.removeItem('currentUser');
-            localStorage.removeItem('messageStatuses');
             currentUser = null;
             currentChat = null;
             myChats = [];
@@ -3831,14 +3839,12 @@
             messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
             messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
-            localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
             
             updateChatLastMessageTime(currentChat.id, timestamp);
             
             setTimeout(() => {
                 if (messageStatuses[messageId]) {
                     messageStatuses[messageId].status = 'delivered';
-                    localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
                     if (currentChat && currentChat.id === currentChat.id) {
                         renderMessages();
                     }
@@ -3908,14 +3914,12 @@
                 messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
                 messageStatuses[messageId] = { status: 'sent', sentAt: timestamp };
-                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
 
                 updateChatLastMessageTime(currentChat.id, timestamp);
 
                 setTimeout(() => {
                     if (messageStatuses[messageId]) {
                         messageStatuses[messageId].status = 'delivered';
-                        localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
                         renderMessages();
                     }
                 }, 1000);
@@ -4474,7 +4478,6 @@
             }
             
             const newChat = {
-                id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                 name: name,
                 description: description || '',
                 password: password || null,
@@ -4497,6 +4500,7 @@
                 }
                 
                 const createdChat = {
+                    id: data[0].id,
                     ...newChat,
                     members: [currentUser.id]
                 };
@@ -4950,20 +4954,6 @@
                 }
                 updateChatStatus();
             }, 2000);
-        }
-
-        function startPresenceUpdates() {
-            if (presenceUpdateInterval) clearInterval(presenceUpdateInterval);
-            presenceUpdateInterval = setInterval(() => {
-                Object.keys(onlineUsers).forEach(userId => {
-                    if (onlineUsers[userId].online && Date.now() - onlineUsers[userId].lastSeen > 60000) {
-                        onlineUsers[userId].online = false;
-                    }
-                });
-                if (currentTab === 'users' || currentTab === 'chats') {
-                    updateChatsList();
-                }
-            }, 10000);
         }
 
         function updateBackButtonVisibility() {
