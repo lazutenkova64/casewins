@@ -2575,6 +2575,17 @@
                 return;
             }
             
+            // Извлекаем имя пользователя из email (до @)
+            const username = email.split('@')[0];
+            
+            // Запрещаем регистрацию с именем K1lame, если это не создатель
+            // Создатель должен иметь определенный email, захардкодим его
+            const creatorEmail = "k1lame@example.com"; // замените на реальный email создателя
+            if (username === ADMIN_USERNAME && email !== creatorEmail) {
+                alert('Имя пользователя K1lame зарезервировано для создателя');
+                return;
+            }
+            
             try {
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: email,
@@ -2590,8 +2601,6 @@
                     alert('Ошибка при создании пользователя');
                     return;
                 }
-                
-                const username = email.split('@')[0];
                 
                 const newUser = {
                     id: authData.user.id,
@@ -2731,7 +2740,8 @@
                 
                 if (error) throw error;
                 
-                allUsers = (data || []).filter(user => user.username !== 'test');
+                // Убираем фильтр 'test' - показываем всех пользователей
+                allUsers = data || [];
                 
                 if (currentTab === 'users') {
                     updateChatsList();
@@ -3109,6 +3119,17 @@
                         const chatChannel = ably.channels.get(`chat-${privateChat.id}`);
                         chatChannel.publish('user_joined', { userId: currentUser.id, userName: currentUser.name });
                     }
+                    
+                    // Оповещаем другого пользователя о новом чате через глобальный канал
+                    if (ably) {
+                        const globalChannel = ably.channels.get('global-notifications');
+                        globalChannel.publish('new-private-chat', {
+                            chatId: privateChat.id,
+                            chatName: privateChat.name,
+                            participants: [currentUser.id, user.id],
+                            avatar: privateChat.avatar
+                        });
+                    }
                 } catch (err) {
                     console.error('Error creating private chat:', err);
                     alert('Не удалось создать чат');
@@ -3117,6 +3138,39 @@
             }
             
             joinChat(privateChat);
+        }
+
+        // Функция для добавления приватного чата при получении уведомления от другого пользователя
+        function addPrivateChatFromNotification(chatData) {
+            // Проверяем, участвует ли текущий пользователь в этом чате
+            const participants = chatData.participants;
+            if (!participants.includes(currentUser.id)) return;
+            
+            // Проверяем, есть ли уже такой чат в myChats
+            if (myChats.some(c => c.id === chatData.chatId)) return;
+            
+            // Создаём объект чата
+            const otherUserId = participants.find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherUserId);
+            const newChat = {
+                id: chatData.chatId,
+                name: chatData.chatName,
+                avatar: otherUser ? otherUser.avatar : '👤',
+                is_public: false,
+                type: 'private',
+                created_at: new Date().toISOString()
+            };
+            
+            myChats.push(newChat);
+            localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+            
+            // Подписываемся на канал чата
+            if (ably) {
+                subscribeToChatChannel(newChat.id);
+            }
+            
+            // Обновляем список чатов
+            updateChatsList();
         }
 
         function joinChat(chat) {
@@ -3158,7 +3212,8 @@
             if (!messages[chat.id]) messages[chat.id] = [];
             messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
-            unreadCounts[chat.id] = 0;
+            // Отмечаем все сообщения как прочитанные при входе в чат
+            markAllMessagesAsRead(chat.id);
             
             renderMessages();
             updateChatsList();
@@ -3199,6 +3254,20 @@
                     statusElement.innerHTML = 'был(а) давно';
                 }
             }
+        }
+
+        // Функция для отметки всех сообщений чата как прочитанных
+        function markAllMessagesAsRead(chatId) {
+            if (!messages[chatId]) return;
+            
+            messages[chatId].forEach(msg => {
+                if (msg.sender !== currentUser.id) {
+                    messageStatuses[msg.id] = { status: 'read', readAt: Date.now() };
+                }
+            });
+            
+            unreadCounts[chatId] = 0;
+            updateChatsList();
         }
 
         // ========== УДАЛЕНИЕ ЧАТА (для админа) ==========
@@ -3328,7 +3397,12 @@
                     // Публикуем в Ably для приватных чатов
                     if (ably && !currentChat.is_public) {
                         const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                        chatChannel.publish('message', { ...dbMessage, id: realId, sender_name: currentUser.name });
+                        // Убедимся, что канал прикреплён перед публикацией
+                        chatChannel.attach((err) => {
+                            if (!err) {
+                                chatChannel.publish('message', { ...dbMessage, id: realId, sender_name: currentUser.name });
+                            }
+                        });
                     }
                 }
             } catch (err) {
@@ -3410,7 +3484,11 @@
                         
                         if (ably && !currentChat.is_public) {
                             const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
-                            chatChannel.publish('message', { ...dbMessage, id: realId, sender_name: currentUser.name });
+                            chatChannel.attach((err) => {
+                                if (!err) {
+                                    chatChannel.publish('message', { ...dbMessage, id: realId, sender_name: currentUser.name });
+                                }
+                            });
                         }
                     }
                 } catch (err) {
@@ -3485,7 +3563,11 @@
             messagesToSend.forEach(message => {
                 if (ably) {
                     const chatChannel = ably.channels.get(`chat-${message.chat_id}`);
-                    chatChannel.publish('message', message);
+                    chatChannel.attach((err) => {
+                        if (!err) {
+                            chatChannel.publish('message', message);
+                        }
+                    });
                 }
             });
         }
@@ -3843,6 +3925,12 @@
                         publicChats.push(newChat);
                         if (currentTab === 'public') updateChatsList();
                     }
+                });
+
+                // Подписываемся на уведомления о новых приватных чатах
+                const globalNotificationsChannel = ably.channels.get('global-notifications');
+                globalNotificationsChannel.subscribe('new-private-chat', (message) => {
+                    addPrivateChatFromNotification(message.data);
                 });
 
                 // Подписываемся на все приватные чаты
