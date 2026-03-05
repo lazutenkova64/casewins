@@ -2194,13 +2194,18 @@
     </div>
 
     <script>
+        // Исправленная инициализация Supabase с правильным publishable ключом
         const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9scXdnZmVzZWR6cm5wd2Z3cXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4Njg3NjksImV4cCI6MjA1NjQ0NDc2OX0.d1Xv7pC96a72KcSl8RLOiQn3RSSodNS6yCxH3RZ9Myw";
+        const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
         const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
         const ADMIN_USERNAME = "K1lame";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: true, autoRefreshToken: true }
+            auth: { 
+                persistSession: true, 
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            }
         });
 
         let ably;
@@ -2362,7 +2367,12 @@
                 
                 await preloadSounds();
 
-                const { data: { session } } = await supabaseClient.auth.getSession();
+                // Проверяем существующую сессию
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (sessionError) {
+                    console.warn('Ошибка получения сессии:', sessionError.message);
+                }
                 
                 if (session?.user) {
                     const { data: userData, error: userError } = await supabaseClient
@@ -2382,7 +2392,6 @@
                             avatar: userData.avatar || '👤',
                             bio: userData.bio || '',
                             isAdmin: userData.username === ADMIN_USERNAME,
-                            isVip: false,
                             dnd: userData.dnd || false
                         };
                         
@@ -2413,7 +2422,11 @@
                         processMessageQueue();
                         
                         listenForIncomingCalls();
+                        
+                        populateThemeGrid();
                     } else {
+                        // Если профиль не найден, выходим из системы
+                        await supabaseClient.auth.signOut();
                         document.getElementById('loginModal').classList.add('active');
                         document.getElementById('appContainer').style.display = 'none';
                     }
@@ -3481,7 +3494,6 @@
 
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
-            const remember = document.getElementById('rememberMe').checked;
             
             if (!email || !password) {
                 alert('Введите email и пароль');
@@ -3520,9 +3532,7 @@
                         dnd: userData.dnd || false
                     };
                     
-                    if (remember) {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    }
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     
                     myChats = JSON.parse(localStorage.getItem(`myChats_${currentUser.id}`)) || [];
                     
@@ -3559,6 +3569,7 @@
                     listenForIncomingCalls();
                 } else {
                     alert('Ошибка: профиль пользователя не найден');
+                    await supabaseClient.auth.signOut();
                 }
                 
             } catch (err) {
@@ -3580,7 +3591,6 @@
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            const remember = document.getElementById('rememberMeRegister').checked;
             
             if (!email || !password) {
                 alert('Заполните все поля');
@@ -3599,7 +3609,12 @@
                 
                 if (authError) {
                     console.error('Auth error:', authError);
-                    alert('Ошибка при регистрации');
+                    alert('Ошибка при регистрации: ' + authError.message);
+                    return;
+                }
+                
+                if (!authData.user) {
+                    alert('Ошибка при создании пользователя');
                     return;
                 }
                 
@@ -3639,9 +3654,7 @@
                     dnd: data.dnd || false
                 };
                 
-                if (remember) {
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                }
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
                 const favChat = {
                     id: `favorite-${currentUser.id}`,
@@ -3675,6 +3688,8 @@
                 updateBackButtonVisibility();
                 forceShowInput();
                 updateCreateChatButtonVisibility();
+                
+                populateThemeGrid();
                 
                 alert('Регистрация успешна!');
                 
@@ -5066,6 +5081,7 @@
             this.style.height = (this.scrollHeight) + 'px';
         });
 
+        // Запуск инициализации после полной загрузки DOM
         document.addEventListener('DOMContentLoaded', init);
 
         async function preloadSounds() {
