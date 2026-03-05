@@ -2007,7 +2007,7 @@
             </div>
 
             <div id="loginForm">
-                <input type="text" class="modal-input" id="loginUsername" placeholder="Имя пользователя" autocomplete="off">
+                <input type="email" class="modal-input" id="loginEmail" placeholder="Email" autocomplete="off">
                 <div class="password-input-container">
                     <input type="password" class="modal-input" id="loginPassword" placeholder="Пароль">
                     <button class="toggle-password" onclick="togglePassword('loginPassword')">👁️</button>
@@ -2020,7 +2020,7 @@
             </div>
 
             <div id="registerForm" style="display: none;">
-                <input type="text" class="modal-input" id="registerUsername" placeholder="Имя пользователя" maxlength="20">
+                <input type="email" class="modal-input" id="registerEmail" placeholder="Email">
                 <div class="password-input-container">
                     <input type="password" class="modal-input" id="registerPassword" placeholder="Пароль">
                     <button class="toggle-password" onclick="togglePassword('registerPassword')">👁️</button>
@@ -3456,34 +3456,16 @@
             loginAttempts++;
             lastLoginAttemptTime = now;
 
-            const username = document.getElementById('loginUsername').value.trim();
+            const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             const remember = document.getElementById('rememberMe').checked;
             
-            if (!username || !password) {
-                alert('Введите имя и пароль');
+            if (!email || !password) {
+                alert('Введите email и пароль');
                 return;
             }
             
             try {
-                const { data: userData, error: userError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('username', username)
-                    .single();
-                
-                if (userError || !userData) {
-                    alert('Неверное имя пользователя или пароль');
-                    return;
-                }
-                
-                if (userData.password !== password) {
-                    alert('Неверное имя пользователя или пароль');
-                    return;
-                }
-                
-                const email = username + "@app.local";
-                
                 const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -3491,7 +3473,18 @@
                 
                 if (authError) {
                     console.error('Auth error:', authError);
-                    alert('Ошибка при входе в систему');
+                    alert('Неверный email или пароль');
+                    return;
+                }
+                
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authData.user.id)
+                    .single();
+                
+                if (userError || !userData) {
+                    alert('Ошибка загрузки профиля');
                     return;
                 }
                 
@@ -3558,12 +3551,12 @@
             loginAttempts++;
             lastLoginAttemptTime = now;
 
-            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
             const remember = document.getElementById('rememberMeRegister').checked;
             
-            if (!username || !password) {
+            if (!email || !password) {
                 alert('Заполните все поля');
                 return;
             }
@@ -3571,25 +3564,8 @@
                 alert('Пароли не совпадают');
                 return;
             }
-            if (password.length < 3) {
-                alert('Пароль должен быть минимум 3 символа');
-                return;
-            }
             
             try {
-                const { data: existingUser } = await supabaseClient
-                    .from('profiles')
-                    .select('username')
-                    .eq('username', username)
-                    .maybeSingle();
-                
-                if (existingUser) {
-                    alert('Пользователь с таким именем уже существует');
-                    return;
-                }
-                
-                const email = username + "@app.local";
-                
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password
@@ -3600,6 +3576,8 @@
                     alert('Ошибка при регистрации');
                     return;
                 }
+                
+                const username = email.split('@')[0];
                 
                 const newUser = {
                     id: authData.user.id,
@@ -3770,9 +3748,9 @@
             updateBackButtonVisibility();
             updateCreateChatButtonVisibility();
             
-            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
-            document.getElementById('registerUsername').value = '';
+            document.getElementById('registerEmail').value = '';
             document.getElementById('registerPassword').value = '';
             document.getElementById('registerConfirmPassword').value = '';
         }
