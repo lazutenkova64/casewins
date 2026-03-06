@@ -47,6 +47,7 @@ async function initSounds() {
     });
 }
 
+// Создание аудио элементов, если их нет в DOM
 function createAudioElements() {
     ringtoneAudio = new Audio('sounds/ringtone.mp3');
     ringtoneAudio.loop = true;
