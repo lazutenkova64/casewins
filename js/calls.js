@@ -47,7 +47,6 @@ async function initSounds() {
     });
 }
 
-// Создание аудио элементов, если их нет в DOM
 function createAudioElements() {
     ringtoneAudio = new Audio('sounds/ringtone.mp3');
     ringtoneAudio.loop = true;
@@ -239,6 +238,7 @@ async function startCall() {
         }
         
         showOutgoingCallModal();
+        playSound(ringtoneAudio);
         
     } catch (err) {
         console.error('Error starting call:', err);
@@ -581,3 +581,10 @@ window.handleIncomingCall = handleIncomingCall;
 window.handleCallAnswer = handleCallAnswer;
 window.handleIceCandidate = handleIceCandidate;
 window.handleCallEnd = handleCallEnd;
+
+// Инициализация звуков
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.initSounds) {
+        initSounds();
+    }
+});
