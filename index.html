@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Telegram Web</title>
+    <title>ТОК — messenger</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -1929,44 +1929,36 @@
             text-shadow: 0 0 10px rgba(0, 122, 255, 0.5);
         }
 
-        /* ========== НОВЫЕ СТИЛИ ДЛЯ ЮРИДИЧЕСКОГО СОГЛАШЕНИЯ (ДОБАВЛЕНЫ БЕЗ ИЗМЕНЕНИЙ СУЩЕСТВУЮЩИХ) ========== */
+        /* ========== ЮРИДИЧЕСКОЕ СОГЛАШЕНИЕ (минималистичное, только внизу) ========== */
         .legal-footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 4px 10px;
-            background-color: rgba(18, 18, 18, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            padding: 2px 8px;
+            background-color: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             border-top: 1px solid var(--border-light);
-            font-size: 11px;
-            color: var(--text-secondary);
+            font-size: 9px;
+            color: var(--text-hint);
             text-align: center;
             z-index: 10000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            line-height: 1.3;
-            transform: translateZ(0);
             pointer-events: auto;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s;
+            line-height: 1.2;
         }
-        .legal-footer button {
-            background: none;
-            border: none;
+        .legal-footer a {
             color: var(--accent-blue);
-            text-decoration: underline;
-            cursor: pointer;
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            transition: background-color 0.2s;
-            -webkit-tap-highlight-color: transparent;
+            text-decoration: none;
+            margin-left: 4px;
+            font-weight: 500;
         }
-        .legal-footer button:active {
-            background-color: rgba(255,255,255,0.1);
+        .legal-footer a:hover {
+            text-decoration: underline;
+        }
+        .legal-footer span {
+            opacity: 0.7;
         }
 
         .legal-modal {
@@ -1993,7 +1985,7 @@
             border-radius: 24px;
             padding: 28px 24px;
             width: 100%;
-            max-width: 520px;
+            max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
@@ -2039,15 +2031,8 @@
 
         @media (max-width: 480px) {
             .legal-footer {
-                font-size: 10px;
-                padding: 3px 6px;
-            }
-            .legal-footer button {
-                font-size: 10px;
-                padding: 3px 6px;
-            }
-            .legal-modal-content {
-                padding: 20px 16px;
+                font-size: 8px;
+                padding: 2px 4px;
             }
         }
 
@@ -2165,7 +2150,7 @@
 
     <div class="modal" id="loginModal">
         <div class="modal-content">
-            <h2>Telegram Web</h2>
+            <h2>ТОК — messenger</h2>
             
             <div class="auth-tabs">
                 <button class="auth-tab active" onclick="switchAuthMode('login')" id="loginTabBtn">Вход</button>
@@ -2183,6 +2168,7 @@
                     <label for="rememberMe">Запомнить меня</label>
                 </div>
                 <button class="modal-btn" onclick="login()">Войти</button>
+                <p style="text-align:center; font-size:11px; color:var(--text-hint); margin-top:10px;">Регистрируясь, вы принимаете <a href="#" onclick="openLegalModal();return false;">условия соглашения</a></p>
             </div>
 
             <div id="registerForm" style="display: none;">
@@ -2200,6 +2186,7 @@
                     <label for="rememberMeRegister">Запомнить меня</label>
                 </div>
                 <button class="modal-btn" onclick="register()">Зарегистрироваться</button>
+                <p style="text-align:center; font-size:11px; color:var(--text-hint); margin-top:10px;">Нажимая «Зарегистрироваться», вы принимаете <a href="#" onclick="openLegalModal();return false;">условия соглашения</a></p>
             </div>
         </div>
     </div>
@@ -2279,8 +2266,6 @@
         </div>
     </div>
 
-    <!-- Модалка ввода пароля УДАЛЕНА, так как в БД нет поля password -->
-
     <div class="modal" id="editMessageModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeEditMessageModal()">×</button>
@@ -2348,13 +2333,13 @@
         </div>
     </div>
 
-    <!-- ========== НОВЫЙ ФУТЕР С ЮРИДИЧЕСКИМ СОГЛАШЕНИЕМ (ДОБАВЛЕН БЕЗ УДАЛЕНИЙ) ========== -->
+    <!-- ========== МИНИМАЛЬНЫЙ ФУТЕР С ЮРИДИЧЕСКИМ СОГЛАШЕНИЕМ ========== -->
     <div class="legal-footer" id="legalFooter">
         <span>⚠️ Проект носит исключительно развлекательный характер</span>
-        <button onclick="openLegalModal()">Правовое соглашение</button>
+        <a href="#" onclick="openLegalModal();return false;">Правовое соглашение</a>
     </div>
 
-    <!-- Модальное окно с полным текстом соглашения -->
+    <!-- Модальное окно с полным текстом соглашения (без кнопки закрытия внутри) -->
     <div class="legal-modal" id="legalModal" onclick="if(event.target === this) closeLegalModal()">
         <div class="legal-modal-content">
             <h3>⚖️ Правовое уведомление (в соответствии с законодательством РФ)</h3>
@@ -2364,10 +2349,9 @@
             <p><strong>3. Отсутствие обработки персональных данных.</strong> Администрация не собирает, не хранит и не обрабатывает персональные данные пользователей в понимании ФЗ-152. Все данные (логин, аватар) используются только для локальной симуляции работы и видны только в рамках данного приложения.</p>
             <p><strong>4. Предупреждение о недопустимости противоправных действий.</strong> Запрещено использовать Проект для распространения экстремистских материалов, пропаганды насилия, наркотиков, призывов к свержению власти или иных действий, нарушающих законодательство РФ. При выявлении нарушений доступ к Проекту будет немедленно заблокирован, а информация передана компетентным органам.</p>
             <p><strong>5. Гарантии и ограничение ответственности.</strong> Проект предоставляется «как есть» (as is). Администрация не гарантирует бесперебойную работу, сохранность данных или соответствие ожиданиям пользователей. Используя Проект, вы подтверждаете, что осознаете его экспериментальный и несерьезный характер.</p>
+            <p><strong>6. Автоматическое принятие условий.</strong> Регистрируясь и используя Проект, вы безоговорочно принимаете все условия настоящего соглашения. Если вы не согласны с каким-либо пунктом, вы обязаны немедленно прекратить использование Проекта.</p>
             <p><em>Настоящий текст составлен для максимальной защиты создателя от возможных претензий и подчеркивает, что всё происходящее — лишь техническая демонстрация.</em></p>
-            <div class="legal-modal-close">
-                <button onclick="closeLegalModal()">Принимаю и закрываю</button>
-            </div>
+            <!-- Кнопка закрытия без надписи "принять" -->
         </div>
     </div>
 
@@ -2715,6 +2699,8 @@
                         const participants = chat.name.split('_');
                         return participants.includes(currentUser.name);
                     }
+                    // ADDED: для системного чата "Избранное"
+                    if (chat.type === 'favorite') return chat.name === `favorites_${currentUser.id}`;
                     return false;
                 });
                 
@@ -2722,10 +2708,15 @@
                 publicChats = (allChats || []).filter(chat => chat.is_public);
                 
                 // Обновляем myChats
-                myChats = userChats.map(chat => ({
-                    ...chat,
-                    avatar: chat.is_public ? '👥' : '👤'
-                }));
+                myChats = userChats.map(chat => {
+                    let avatar = '👥';
+                    if (chat.type === 'private') avatar = '👤';
+                    if (chat.type === 'favorite') avatar = '⭐';
+                    return {
+                        ...chat,
+                        avatar: avatar
+                    };
+                });
                 
                 // Сохраняем в localStorage для офлайн доступа
                 localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
@@ -2831,7 +2822,10 @@
                             loadUserChats(),
                             loadAllMessages()
                         ]);
-                        
+
+                        // ADDED: Создаём системный чат "Избранное", если его нет
+                        await ensureFavoriteChat();
+
                         loadPinnedChats();
                         
                         initAbly();
@@ -2884,6 +2878,52 @@
             }
         }
 
+        // ADDED: Функция для создания системного чата "Избранное"
+        async function ensureFavoriteChat() {
+            if (!currentUser) return;
+            const favoriteChatName = `favorites_${currentUser.id}`;
+            // Проверяем, есть ли уже такой чат
+            const existing = myChats.find(c => c.type === 'favorite' && c.name === favoriteChatName);
+            if (!existing) {
+                try {
+                    const newChat = {
+                        name: favoriteChatName,
+                        is_public: false,
+                        type: 'favorite',
+                        created_at: new Date().toISOString()
+                    };
+                    const { data, error } = await supabaseClient
+                        .from('chats')
+                        .insert([newChat])
+                        .select();
+                    if (!error) {
+                        const createdChat = {
+                            id: data[0].id,
+                            name: '⭐ Избранное',
+                            avatar: '⭐',
+                            is_public: false,
+                            type: 'favorite',
+                            created_at: data[0].created_at
+                        };
+                        myChats.unshift(createdChat); // помещаем в начало
+                        localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                        // Подписываемся на канал, если нужно
+                        if (ably) subscribeToChatChannel(createdChat.id);
+                    }
+                } catch (err) {
+                    console.error('Error creating favorite chat:', err);
+                }
+            } else {
+                // Если чат уже есть, но имя отображаемое может быть изменено
+                // Убедимся, что оно отображается как "⭐ Избранное"
+                const idx = myChats.findIndex(c => c.type === 'favorite' && c.name === favoriteChatName);
+                if (idx !== -1) {
+                    myChats[idx].name = '⭐ Избранное';
+                    myChats[idx].avatar = '⭐';
+                }
+            }
+        }
+
         async function login() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -2932,7 +2972,9 @@
                         loadUserChats(),
                         loadAllMessages()
                     ]);
-                    
+
+                    await ensureFavoriteChat();
+
                     loadPinnedChats();
                     
                     initAbly();
@@ -3490,6 +3532,7 @@
             }
         }
 
+        // FIX: Исправлено дублирование приватных чатов
         async function createPrivateChat(user) {
             // Сортируем имена для единообразия
             const participants = [currentUser.name, user.name].sort();
@@ -3497,6 +3540,24 @@
             
             // Проверяем, существует ли уже такой чат в БД
             let privateChat = myChats.find(c => c.name === chatName && c.type === 'private');
+            
+            // Также проверим в обратном порядке (хотя мы уже отсортировали)
+            if (!privateChat) {
+                // Дополнительно проверим в allChats (на случай, если чат есть, но ещё не загружен в myChats)
+                try {
+                    const { data: existingChats } = await supabaseClient
+                        .from('chats')
+                        .select('*')
+                        .eq('name', chatName)
+                        .eq('type', 'private')
+                        .limit(1);
+                    if (existingChats && existingChats.length > 0) {
+                        privateChat = existingChats[0];
+                    }
+                } catch (err) {
+                    console.error('Error checking existing private chat:', err);
+                }
+            }
             
             if (!privateChat) {
                 try {
@@ -3558,9 +3619,26 @@
             currentChat = chat;
             updateUrlWithChat(chat);
             
-            document.getElementById('currentChatName').innerHTML = chat.type === 'private' ? chat.name.split('_').find(n => n !== currentUser.name) || chat.name : chat.name;
-            document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : 'Приватный чат';
-            document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👥';
+            // Отображаем имя: для приватных показываем собеседника, для избранного — "Избранное"
+            let displayName = chat.name;
+            if (chat.type === 'private' && currentUser) {
+                const otherName = chat.name.split('_').find(n => n !== currentUser.name);
+                displayName = otherName || chat.name;
+            } else if (chat.type === 'favorite') {
+                displayName = '⭐ Избранное';
+            }
+            document.getElementById('currentChatName').innerHTML = displayName;
+            
+            // Статус: для приватных показываем онлайн/офлайн, для остальных — тип чата
+            if (chat.type === 'private') {
+                updateChatStatus(); // вызовем функцию, которая обновит статус
+            } else if (chat.type === 'favorite') {
+                document.getElementById('chatStatus').innerHTML = 'Заметки';
+            } else {
+                document.getElementById('chatStatus').innerHTML = 'Публичный чат';
+            }
+            
+            document.getElementById('chatHeaderAvatar').textContent = chat.avatar || (chat.type === 'favorite' ? '⭐' : '👥');
             
             document.getElementById('callBtn').style.display = (chat.type === 'private' && callsTableExists) ? 'flex' : 'none';
             
@@ -3573,7 +3651,7 @@
             
             renderMessages();
             updateChatsList();
-            updateChatStatus();
+            updateChatStatus(); // дополнительно обновим статус
             
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('active');
@@ -3586,7 +3664,7 @@
         }
 
         function updateChatStatus() {
-            if (!currentChat || currentChat.is_public) return;
+            if (!currentChat || currentChat.type !== 'private') return;
             
             const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
             const otherUser = allUsers.find(u => u.username === otherUserName);
@@ -3751,7 +3829,7 @@
                     delete messageStatuses[clientId];
                     saveMessageStatuses();
                     
-                    if (ably && !currentChat.is_public) {
+                    if (ably && !currentChat.is_public && currentChat.type !== 'favorite') {
                         const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                         chatChannel.publish('message', { 
                             ...dbMessage, 
@@ -3855,7 +3933,7 @@
                         delete messageStatuses[clientId];
                         saveMessageStatuses();
                         
-                        if (ably && !currentChat.is_public) {
+                        if (ably && !currentChat.is_public && currentChat.type !== 'favorite') {
                             const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                             chatChannel.publish('message', { 
                                 ...dbMessage, 
@@ -3987,7 +4065,7 @@
                     if (error) console.error('Error deleting message from DB:', error);
                 });
             
-            if (ably && !currentChat.is_public) {
+            if (ably && !currentChat.is_public && currentChat.type !== 'favorite') {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('delete', { messageId, senderId: currentUser.id });
             }
@@ -4036,7 +4114,7 @@
                         if (error) console.error('Error updating message in DB:', error);
                     });
                 
-                if (ably && !currentChat.is_public) {
+                if (ably && !currentChat.is_public && currentChat.type !== 'favorite') {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('edit', { 
                         messageId: messageToEdit.id, 
@@ -4150,7 +4228,7 @@
         }
 
         function markMessagesAsRead(chatId) {
-            if (!ably || !messages[chatId] || !currentChat || currentChat.is_public) return;
+            if (!ably || !messages[chatId] || !currentChat || currentChat.is_public || currentChat.type === 'favorite') return;
             
             let changed = false;
             messages[chatId].forEach(msg => {
@@ -4354,7 +4432,7 @@
                 });
 
                 myChats.forEach(chat => {
-                    if (!chat.is_public) {
+                    if (!chat.is_public && chat.type !== 'favorite') { // для избранного тоже можно подписаться, но это не обязательно
                         subscribeToChatChannel(chat.id);
                     }
                 });
@@ -4448,14 +4526,15 @@
             
             if (currentTab === 'chats') {
                 items = [...myChats].sort((a, b) => {
+                    // Избранное всегда первое
+                    if (a.type === 'favorite') return -1;
+                    if (b.type === 'favorite') return 1;
+                    
                     const aPinned = isChatPinned(a.id);
                     const bPinned = isChatPinned(b.id);
                     
                     if (aPinned && !bPinned) return -1;
                     if (!aPinned && bPinned) return 1;
-                    
-                    if (a.name === 'Избранное') return -1;
-                    if (b.name === 'Избранное') return 1;
                     
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
@@ -4554,6 +4633,8 @@
             if (chat.type === 'private' && currentUser) {
                 const otherName = chat.name.split('_').find(n => n !== currentUser.name);
                 displayName = otherName || chat.name;
+            } else if (chat.type === 'favorite') {
+                displayName = '⭐ Избранное';
             }
             
             return `
@@ -4563,10 +4644,10 @@
                         <div class="chat-name">
                             ${displayName}
                             ${isPinned ? '<span class="pin-icon">📌</span>' : ''}
-                            ${chat.is_public ? '<span class="lock-icon">🌐</span>' : '<span class="lock-icon">🔒</span>'}
-                            ${currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public' ? 
+                            ${chat.is_public ? '<span class="lock-icon">🌐</span>' : (chat.type === 'favorite' ? '<span class="lock-icon">⭐</span>' : '<span class="lock-icon">🔒</span>')}
+                            ${currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public' && chat.is_public ? 
                                 `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить</button>` : ''}
-                            <button class="pin-chat-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinChat('${chat.id}', event)">📌</button>
+                            ${chat.type !== 'favorite' ? `<button class="pin-chat-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinChat('${chat.id}', event)">📌</button>` : ''}
                         </div>
                         <div class="chat-last-message">${lastMessageText}</div>
                     </div>
@@ -4900,6 +4981,7 @@
                     }
                 };
                 
+                // FIX: Правильное воспроизведение удалённого потока
                 peerConnection.ontrack = (event) => {
                     console.log('Received remote track');
                     const remoteStream = event.streams[0];
@@ -4910,11 +4992,16 @@
                     audioElement.style.display = 'none';
                     document.body.appendChild(audioElement);
                     
-                    const playAudio = () => {
-                        audioElement.play().catch(e => console.warn('Play failed:', e));
-                        document.removeEventListener('click', playAudio);
-                    };
-                    document.addEventListener('click', playAudio, { once: true });
+                    // Пытаемся воспроизвести сразу (из-за политик автозапуска может не сработать)
+                    audioElement.play().catch(e => {
+                        console.warn('Auto-play failed, will try on user interaction', e);
+                        // Добавляем обработчик клика для воспроизведения
+                        const playOnClick = () => {
+                            audioElement.play().catch(console.warn);
+                            document.removeEventListener('click', playOnClick);
+                        };
+                        document.addEventListener('click', playOnClick, { once: true });
+                    });
                     
                     document.getElementById('callStatus').textContent = 'В разговоре';
                     if (!callTimerInterval) {
@@ -5209,11 +5296,14 @@
                     audioElement.style.display = 'none';
                     document.body.appendChild(audioElement);
                     
-                    const playAudio = () => {
-                        audioElement.play().catch(e => console.warn('Play failed:', e));
-                        document.removeEventListener('click', playAudio);
-                    };
-                    document.addEventListener('click', playAudio, { once: true });
+                    audioElement.play().catch(e => {
+                        console.warn('Auto-play failed, will try on user interaction', e);
+                        const playOnClick = () => {
+                            audioElement.play().catch(console.warn);
+                            document.removeEventListener('click', playOnClick);
+                        };
+                        document.addEventListener('click', playOnClick, { once: true });
+                    });
                     
                     document.getElementById('callStatus').textContent = 'В разговоре';
                     if (!callTimerInterval) {
@@ -5434,7 +5524,7 @@
         }
 
         function openChatUserProfile() {
-            if (!currentChat || currentChat.is_public) return;
+            if (!currentChat || currentChat.is_public || currentChat.type === 'favorite') return;
             
             const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
             const user = allUsers.find(u => u.username === otherUserName);
@@ -5499,7 +5589,7 @@
             if (tab === 'users') {
                 loadAllUsers();
             } else if (tab === 'public') {
-                loadPublicChats();
+                // loadPublicChats уже есть в allChats
             }
             
             updateChatsList();
@@ -5535,11 +5625,11 @@
             if (chat) {
                 const newUrl = `${window.location.pathname}#${chat.id}`;
                 window.history.replaceState({ chatId: chat.id }, chat.name, newUrl);
-                document.title = `${chat.type === 'private' ? chat.name.split('_').find(n => n !== currentUser?.name) || chat.name : chat.name} - Telegram Web`;
+                document.title = `${chat.type === 'private' ? chat.name.split('_').find(n => n !== currentUser?.name) || chat.name : (chat.type === 'favorite' ? 'Избранное' : chat.name)} - ТОК messenger`;
             } else {
                 const newUrl = window.location.pathname;
-                window.history.replaceState({}, 'Telegram Web', newUrl);
-                document.title = 'Telegram Web';
+                window.history.replaceState({}, 'ТОК messenger', newUrl);
+                document.title = 'ТОК — messenger';
             }
         }
 
@@ -5790,7 +5880,7 @@
          - id (uuid, primary key)
          - name (text)
          - is_public (boolean)
-         - type (text) - 'private' или 'public'
+         - type (text) - 'private' или 'public' или 'favorite'
          - created_at (timestamp)
          Индексы: type, created_at
 
