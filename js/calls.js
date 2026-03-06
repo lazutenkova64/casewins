@@ -2,9 +2,6 @@
 let currentCall = null;
 let localStream = null;
 let peerConnection = null;
-let callRingtone = null;
-let callAcceptedSound = null;
-let callEndedSound = null;
 let callMuted = false;
 let callTimerInterval = null;
 let callStartTime = null;
@@ -12,21 +9,83 @@ const CALL_DURATION_LIMIT = 30 * 60 * 1000; // 30 минут
 
 let callsTableExists = true;
 
+// Аудио элементы
+let ringtoneAudio = null;
+let acceptedAudio = null;
+let endedAudio = null;
+
 // Инициализация звуков
-async function preloadSounds() {
+async function initSounds() {
     return new Promise((resolve) => {
-        callRingtone = new Audio();
-        callRingtone.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-        callRingtone.loop = true;
+        ringtoneAudio = document.getElementById('ringtone');
+        acceptedAudio = document.getElementById('call-accepted');
+        endedAudio = document.getElementById('call-ended');
         
-        callAcceptedSound = new Audio();
-        callAcceptedSound.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+        // Проверяем, что элементы существуют
+        if (!ringtoneAudio || !acceptedAudio || !endedAudio) {
+            console.warn('Audio elements not found in DOM');
+            // Создаём элементы, если их нет
+            createAudioElements();
+        }
         
-        callEndedSound = new Audio();
-        callEndedSound.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+        // Загружаем звуки
+        const promises = [];
+        if (ringtoneAudio) {
+            ringtoneAudio.load();
+            promises.push(new Promise(resolve => {
+                ringtoneAudio.addEventListener('canplaythrough', resolve, { once: true });
+            }));
+        }
+        if (acceptedAudio) {
+            acceptedAudio.load();
+        }
+        if (endedAudio) {
+            endedAudio.load();
+        }
         
-        setTimeout(resolve, 100);
+        Promise.all(promises).then(resolve).catch(resolve);
     });
+}
+
+function createAudioElements() {
+    ringtoneAudio = new Audio('sounds/ringtone.mp3');
+    ringtoneAudio.loop = true;
+    ringtoneAudio.id = 'ringtone';
+    
+    acceptedAudio = new Audio('sounds/call-accepted.mp3');
+    acceptedAudio.id = 'call-accepted';
+    
+    endedAudio = new Audio('sounds/call-ended.mp3');
+    endedAudio.id = 'call-ended';
+    
+    document.body.appendChild(ringtoneAudio);
+    document.body.appendChild(acceptedAudio);
+    document.body.appendChild(endedAudio);
+}
+
+// Воспроизведение звука с обработкой ошибок
+function playSound(audio, fallback = true) {
+    if (!audio) return false;
+    
+    // Сбрасываем на начало
+    audio.currentTime = 0;
+    
+    // Пытаемся воспроизвести
+    const playPromise = audio.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.warn('Audio playback failed:', error);
+            if (fallback) {
+                // Fallback - просто вибрация на мобильных
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+            }
+        });
+        return true;
+    }
+    return false;
 }
 
 // Проверка таблицы calls
@@ -128,7 +187,6 @@ async function startCall() {
             audioElement.style.display = 'none';
             document.body.appendChild(audioElement);
             
-            // Важно: запускаем воспроизведение
             audioElement.play().catch(e => console.warn('Auto-play failed:', e));
             
             document.getElementById('callStatus').textContent = 'В разговоре';
@@ -187,9 +245,105 @@ async function startCall() {
     }
 }
 
+// Обработчик входящего звонка (вызывается из realtime.js)
+function handleIncomingCall(data) {
+    const { offer, callerId, callerName, callerAvatar, callId, dbCallId, timestamp } = data;
+    
+    currentCall = {
+        id: callId,
+        dbId: dbCallId,
+        callerId,
+        callerName,
+        callerAvatar,
+        offer,
+        timestamp
+    };
+    
+    // Создаём peer connection
+    peerConnection = new RTCPeerConnection(getIceServers());
+    
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate && window.ably) {
+            const userChannel = window.ably.channels.get(`user-${callerId}`);
+            userChannel.publish('ice-candidate', {
+                callId,
+                candidate: event.candidate,
+                senderId: currentUser.id,
+                timestamp: Date.now()
+            });
+        }
+    };
+    
+    peerConnection.ontrack = (event) => {
+        console.log('Received remote track (incoming)');
+        const remoteStream = event.streams[0];
+        const audioElement = document.createElement('audio');
+        audioElement.srcObject = remoteStream;
+        audioElement.autoplay = true;
+        audioElement.controls = false;
+        audioElement.style.display = 'none';
+        document.body.appendChild(audioElement);
+        
+        audioElement.play().catch(e => console.warn('Auto-play failed:', e));
+        
+        document.getElementById('callStatus').textContent = 'В разговоре';
+        if (!callTimerInterval) {
+            startCallTimer();
+        }
+    };
+    
+    showIncomingCallModal(callerName, callerAvatar, timestamp);
+    
+    // Воспроизводим звук звонка
+    if (!currentUser.dnd) {
+        playSound(ringtoneAudio);
+    }
+}
+
+// Обработчик ответа на звонок
+function handleCallAnswer(data) {
+    const { answer, callId } = data;
+    if (!currentCall || currentCall.id !== callId) return;
+    
+    try {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        document.getElementById('callStatus').textContent = 'В разговоре';
+        startCallTimer();
+        
+        // Останавливаем рингтон
+        if (ringtoneAudio) {
+            ringtoneAudio.pause();
+            ringtoneAudio.currentTime = 0;
+        }
+        
+        // Воспроизводим звук принятия
+        playSound(acceptedAudio);
+        
+    } catch (err) {
+        console.error('Error setting remote description:', err);
+    }
+}
+
+// Обработчик ICE candidate
+function handleIceCandidate(data) {
+    const { candidate, callId } = data;
+    if (!currentCall || currentCall.id !== callId) return;
+    
+    peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
+        console.error('Error adding ICE candidate:', err);
+    });
+}
+
+// Обработчик завершения звонка
+function handleCallEnd(data) {
+    const { callId } = data;
+    if (!currentCall || currentCall.id !== callId) return;
+    
+    endCall();
+}
+
 // Модальные окна звонка
 function showIncomingCallModal(callerName, callerAvatar, timestamp) {
-    // Игнорируем устаревшие звонки
     if (Date.now() - timestamp > 10000) {
         console.log('Ignoring old call', timestamp);
         return;
@@ -204,11 +358,6 @@ function showIncomingCallModal(callerName, callerAvatar, timestamp) {
     document.getElementById('callAvatar').textContent = callerAvatar || '👤';
     document.getElementById('incomingCallControls').style.display = 'flex';
     document.getElementById('outgoingCallControls').style.display = 'none';
-    
-    document.getElementById('answerCallBtn').onclick = answerCall;
-    document.getElementById('rejectCallBtn').onclick = rejectCall;
-    document.getElementById('incomingMuteBtn').onclick = toggleMute;
-    document.getElementById('incomingMuteBtn').classList.remove('muted');
     
     callModal.classList.add('active');
 }
@@ -298,14 +447,14 @@ async function answerCall() {
         document.getElementById('callStatus').textContent = 'В разговоре';
         startCallTimer();
         
-        if (callRingtone) {
-            callRingtone.pause();
-            callRingtone.currentTime = 0;
+        // Останавливаем рингтон
+        if (ringtoneAudio) {
+            ringtoneAudio.pause();
+            ringtoneAudio.currentTime = 0;
         }
         
-        if (callAcceptedSound) {
-            callAcceptedSound.play().catch(() => {});
-        }
+        // Воспроизводим звук принятия
+        playSound(acceptedAudio);
         
     } catch (err) {
         console.error('Error answering call:', err);
@@ -356,14 +505,14 @@ function endCall() {
         callModal.classList.remove('active');
     }
     
-    if (callRingtone) {
-        callRingtone.pause();
-        callRingtone.currentTime = 0;
+    // Останавливаем все звуки
+    if (ringtoneAudio) {
+        ringtoneAudio.pause();
+        ringtoneAudio.currentTime = 0;
     }
     
-    if (callEndedSound) {
-        callEndedSound.play().catch(() => {});
-    }
+    // Воспроизводим звук завершения
+    playSound(endedAudio);
     
     currentCall = null;
 }
@@ -398,115 +547,6 @@ function toggleMute() {
     });
 }
 
-// Слушаем входящие звонки
-function listenForIncomingCalls() {
-    if (!window.ably || !currentUser) return;
-    
-    const userChannel = window.ably.channels.get(`user-${currentUser.id}`);
-    
-    userChannel.subscribe('offer', async (message) => {
-        const { offer, callerId, callerName, callerAvatar, callId, dbCallId, timestamp } = message.data;
-        
-        if (Date.now() - timestamp > 10000) {
-            console.log('Ignoring old call offer', timestamp);
-            return;
-        }
-        
-        if (currentCall) {
-            userChannel.publish('end', { callId, timestamp: Date.now() });
-            return;
-        }
-        
-        peerConnection = new RTCPeerConnection(getIceServers());
-        
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate && window.ably) {
-                userChannel.publish('ice-candidate', {
-                    callId,
-                    candidate: event.candidate,
-                    senderId: currentUser.id,
-                    timestamp: Date.now()
-                });
-            }
-        };
-        
-        peerConnection.ontrack = (event) => {
-            console.log('Received remote track (incoming)');
-            const remoteStream = event.streams[0];
-            const audioElement = document.createElement('audio');
-            audioElement.srcObject = remoteStream;
-            audioElement.autoplay = true;
-            audioElement.controls = false;
-            audioElement.style.display = 'none';
-            document.body.appendChild(audioElement);
-            
-            audioElement.play().catch(e => console.warn('Auto-play failed:', e));
-            
-            document.getElementById('callStatus').textContent = 'В разговоре';
-            if (!callTimerInterval) {
-                startCallTimer();
-            }
-        };
-        
-        currentCall = {
-            id: callId,
-            dbId: dbCallId,
-            callerId,
-            callerName,
-            callerAvatar,
-            offer,
-            timestamp
-        };
-        
-        showIncomingCallModal(callerName, callerAvatar, timestamp);
-        
-        if (!currentUser.dnd && callRingtone) {
-            callRingtone.loop = true;
-            callRingtone.play().catch(() => {});
-        }
-    });
-
-    userChannel.subscribe('answer', async (message) => {
-        const { answer, callId, timestamp } = message.data;
-        if (!currentCall || currentCall.id !== callId) return;
-        
-        if (Date.now() - timestamp > 10000) {
-            console.log('Ignoring old answer');
-            return;
-        }
-        
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            document.getElementById('callStatus').textContent = 'В разговоре';
-            startCallTimer();
-            
-            if (callAcceptedSound) {
-                callAcceptedSound.play().catch(() => {});
-            }
-        } catch (err) {
-            console.error('Error setting remote description:', err);
-        }
-    });
-
-    userChannel.subscribe('ice-candidate', (message) => {
-        const { candidate, callId, timestamp } = message.data;
-        if (!currentCall || currentCall.id !== callId) return;
-        
-        if (Date.now() - timestamp > 10000) return;
-        
-        peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
-            console.error('Error adding ICE candidate:', err);
-        });
-    });
-
-    userChannel.subscribe('end', (message) => {
-        const { callId } = message.data;
-        if (!currentCall || currentCall.id !== callId) return;
-        
-        endCall();
-    });
-}
-
 function generateUUID() {
     return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -521,7 +561,8 @@ window.peerConnection = peerConnection;
 window.callMuted = callMuted;
 window.callsTableExists = callsTableExists;
 
-window.preloadSounds = preloadSounds;
+window.initSounds = initSounds;
+window.preloadSounds = initSounds; // для обратной совместимости
 window.checkCallsTable = checkCallsTable;
 window.cleanupOldCalls = cleanupOldCalls;
 window.startCall = startCall;
@@ -529,4 +570,13 @@ window.answerCall = answerCall;
 window.rejectCall = rejectCall;
 window.endCall = endCall;
 window.toggleMute = toggleMute;
-window.listenForIncomingCalls = listenForIncomingCalls;
+window.listenForIncomingCalls = function() {
+    // Функция-заглушка, реальная логика в realtime.js
+    console.log('listenForIncomingCalls called');
+};
+
+// Экспорт обработчиков для realtime.js
+window.handleIncomingCall = handleIncomingCall;
+window.handleCallAnswer = handleCallAnswer;
+window.handleIceCandidate = handleIceCandidate;
+window.handleCallEnd = handleCallEnd;
