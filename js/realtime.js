@@ -162,7 +162,12 @@ function setupPresenceHandlers(presenceChannel) {
 // Настройка канала пользователя для звонков
 function setupUserChannelHandlers(userChannel) {
     userChannel.subscribe('offer', async (message) => {
-        const { offer, callerId, callerName, callerAvatar, callId, dbCallId, timestamp } = message.data;
+    console.log("Incoming call received:", message.data);
+
+    if (window.handleIncomingCall) {
+        window.handleIncomingCall(message.data);
+    }
+});
         
         // Проверяем, не устарел ли звонок
         if (Date.now() - timestamp > 10000) {
