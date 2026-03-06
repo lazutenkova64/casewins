@@ -2128,7 +2128,7 @@
                 <div class="avatar" style="width: 80px; height: 80px; font-size: 42px; margin: 0 auto; cursor: pointer;" id="profileAvatarLarge" onclick="openAvatarModal()">👤</div>
                 <small style="color: var(--text-secondary); display: block; margin-top: 8px;">Нажмите для смены аватара</small>
             </div>
-            <input type="text" class="modal-input" id="profileNameInput" placeholder="Имя" maxlength="20">
+            <input type="text" class="modal-input" id="profileNameInput" placeholder="Имя (Username)" maxlength="20">
             <input type="text" class="modal-input" id="profileBioInput" placeholder="О себе">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--text-secondary);">
                 <input type="checkbox" id="profileDNDCheckbox">
@@ -2824,7 +2824,7 @@
                                 id: msg.id,
                                 chatId: msg.chat_id,
                                 sender: msg.sender_id,
-                                senderName: sender.username,
+                                senderName: safeGetUsername(sender), // Используем безопасную функцию
                                 text: msg.text,
                                 audio: msg.audio,          // если есть поле audio в БД
                                 duration: msg.duration,
@@ -2887,7 +2887,7 @@
                                 id: msg.id,
                                 chatId: msg.chat_id,
                                 sender: msg.sender_id,
-                                senderName: sender.username,
+                                senderName: safeGetUsername(sender),
                                 text: msg.text,
                                 audio: msg.audio,
                                 duration: msg.duration,
@@ -2957,7 +2957,7 @@
                         id: msg.id,
                         chatId: msg.chat_id,
                         sender: msg.sender_id,
-                        senderName: sender.username,
+                        senderName: safeGetUsername(sender),
                         text: msg.text,
                         audio: msg.audio,
                         duration: msg.duration,
@@ -3100,9 +3100,11 @@
         }
 
         async function createPrivateChat(user) {
-            // Имя приватного чата = конкатенация имён (сортировка, чтобы было одинаково)
-            const participants = [currentUser.name, user.name].sort();
-            const chatName = participants.join('_');
+            // Используем ID для генерации имени чата, чтобы избежать конфликтов при смене username
+            // Сортируем ID для единообразия
+            const participants = [currentUser.id, user.id].sort();
+            // Имя чата можно оставить как ID1_ID2, но для отображения будем использовать username
+            const chatName = `private_${participants[0]}_${participants[1]}`;
             
             // Проверяем, существует ли уже такой чат среди myChats или publicChats
             let privateChat = myChats.find(c => c.name === chatName && c.type === 'private');
@@ -3212,19 +3214,31 @@
             
             // Для приватных чатов определяем собеседника и устанавливаем аватар
             if (chat.type === 'private') {
-                const otherUserName = chat.name.split('_').find(name => name !== currentUser.name);
-                const otherUser = allUsers.find(u => u.username === otherUserName);
-                if (otherUser) {
-                    chat.avatar = otherUser.avatar || '👤';
+                // Извлекаем ID участников из имени чата (формат: private_ID1_ID2)
+                const match = chat.name.match(/private_([^_]+)_([^_]+)/);
+                if (match) {
+                    const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+                    const otherUser = allUsers.find(u => u.id === otherUserId);
+                    if (otherUser) {
+                        chat.avatar = otherUser.avatar || '👤';
+                        // Для отображения используем username другого пользователя
+                        chat.displayName = safeGetUsername(otherUser);
+                    } else {
+                        chat.avatar = '👤';
+                        chat.displayName = 'Пользователь';
+                    }
                 } else {
                     chat.avatar = '👤';
+                    chat.displayName = chat.name;
                 }
+            } else {
+                chat.displayName = chat.name;
             }
             
             currentChat = chat;
             updateUrlWithChat(chat);
             
-            document.getElementById('currentChatName').innerHTML = chat.type === 'private' ? chat.name.split('_').find(n => n !== currentUser.name) || chat.name : chat.name;
+            document.getElementById('currentChatName').innerHTML = chat.displayName || chat.name;
             document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : 'Приватный чат';
             document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👥';
             
@@ -3256,9 +3270,12 @@
         function updateChatStatus() {
             if (!currentChat || currentChat.is_public) return;
             
-            // Определяем собеседника по имени чата
-            const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
-            const otherUser = allUsers.find(u => u.username === otherUserName);
+            // Определяем собеседника по ID в имени чата
+            const match = currentChat.name.match(/private_([^_]+)_([^_]+)/);
+            if (!match) return;
+            
+            const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+            const otherUser = allUsers.find(u => u.id === otherUserId);
             if (!otherUser) return;
             
             const userOnline = onlineUsers[otherUser.id];
@@ -4063,7 +4080,7 @@
                     
                     return {
                         id: user.id,
-                        name: user.username,
+                        name: safeGetUsername(user),
                         avatar: user.avatar || '👤',
                         bio: user.bio || '',
                         online: onlineUser ? onlineUser.online : false,
@@ -4140,11 +4157,22 @@
             
             const timeText = lastMsg ? lastMsg.time : '';
             
-            // Для приватных чатов показываем имя собеседника
+            // Для приватных чатов показываем имя собеседника (используя username)
             let displayName = chat.name;
             if (chat.type === 'private' && currentUser) {
-                const otherName = chat.name.split('_').find(n => n !== currentUser.name);
-                displayName = otherName || chat.name;
+                // Извлекаем ID из имени чата (формат: private_ID1_ID2)
+                const match = chat.name.match(/private_([^_]+)_([^_]+)/);
+                if (match) {
+                    const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+                    const otherUser = allUsers.find(u => u.id === otherUserId);
+                    if (otherUser) {
+                        displayName = safeGetUsername(otherUser);
+                    } else {
+                        displayName = 'Пользователь';
+                    }
+                } else {
+                    displayName = chat.name;
+                }
             }
             
             return `
@@ -4434,9 +4462,12 @@
             }
             if (!currentChat || currentChat.is_public) return;
             
-            // Определяем получателя
-            const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
-            const otherUser = allUsers.find(u => u.username === otherUserName);
+            // Определяем получателя по ID в имени чата
+            const match = currentChat.name.match(/private_([^_]+)_([^_]+)/);
+            if (!match) return;
+            
+            const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+            const otherUser = allUsers.find(u => u.id === otherUserId);
             if (!otherUser) {
                 alert('Не удалось определить собеседника');
                 return;
@@ -4564,7 +4595,17 @@
             
             document.getElementById('callStatus').textContent = 'Соединение...';
             document.getElementById('callTimer').textContent = '';
-            document.getElementById('callerName').textContent = currentChat ? (currentChat.name.split('_').find(n => n !== currentUser.name) || currentChat.name) : '';
+            
+            // Получаем имя собеседника
+            const match = currentChat.name.match(/private_([^_]+)_([^_]+)/);
+            let displayName = currentChat.name;
+            if (match) {
+                const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+                const otherUser = allUsers.find(u => u.id === otherUserId);
+                displayName = otherUser ? safeGetUsername(otherUser) : 'Пользователь';
+            }
+            
+            document.getElementById('callerName').textContent = displayName;
             document.getElementById('callAvatar').textContent = currentChat?.avatar || '👤';
             document.getElementById('incomingCallControls').style.display = 'none';
             document.getElementById('outgoingCallControls').style.display = 'flex';
@@ -4831,7 +4872,13 @@
             const newBio = document.getElementById('profileBioInput').value.trim();
             const dnd = document.getElementById('profileDNDCheckbox').checked;
             
-            if (newName && newName !== currentUser.name) {
+            if (!newName) {
+                alert('Имя не может быть пустым');
+                return;
+            }
+            
+            // Проверяем, не занято ли новое имя другим пользователем
+            if (newName !== currentUser.name) {
                 const { data: existingUsers } = await supabaseClient
                     .from('profiles')
                     .select('username')
@@ -4843,26 +4890,30 @@
                     alert('Пользователь с таким именем уже существует');
                     return;
                 }
-                
-                currentUser.name = newName;
             }
             
-            currentUser.bio = newBio;
-            currentUser.dnd = dnd;
-            
+            // Сохраняем только в поле username, email НЕ ТРОГАЕМ
             try {
-                await supabaseClient
+                const { error } = await supabaseClient
                     .from('profiles')
                     .update({
-                        username: currentUser.name,
-                        bio: currentUser.bio,
-                        dnd: currentUser.dnd,
-                        avatar: currentUser.avatar
+                        username: newName,
+                        bio: newBio,
+                        dnd: dnd
+                        // avatar обновляется отдельно в saveAvatar
                     })
                     .eq('id', currentUser.id);
                 
+                if (error) throw error;
+                
+                // Обновляем локальные данные
+                currentUser.name = newName;
+                currentUser.bio = newBio;
+                currentUser.dnd = dnd;
+                
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
+                // Обновляем присутствие в Ably
                 if (ably) {
                     const presenceChannel = ably.channels.get('presence');
                     if (presenceChannel.state === 'attached') {
@@ -4880,7 +4931,14 @@
                 updateProfileUI();
                 closeProfileModal();
                 
+                // Перезагружаем список пользователей, чтобы обновить имена
                 await loadAllUsers();
+                updateChatsList();
+                
+                // Если открыт приватный чат, обновляем заголовок
+                if (currentChat && currentChat.type === 'private') {
+                    joinChat(currentChat); // переприсоединяемся для обновления отображаемого имени
+                }
                 
             } catch (err) {
                 console.error('Error updating profile:', err);
@@ -4951,9 +5009,12 @@
         function openChatUserProfile() {
             if (!currentChat || currentChat.is_public) return;
             
-            // Определяем собеседника по имени чата
-            const otherUserName = currentChat.name.split('_').find(name => name !== currentUser.name);
-            const user = allUsers.find(u => u.username === otherUserName);
+            // Определяем собеседника по ID в имени чата
+            const match = currentChat.name.match(/private_([^_]+)_([^_]+)/);
+            if (!match) return;
+            
+            const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+            const user = allUsers.find(u => u.id === otherUserId);
             if (!user) return;
             
             const onlineUser = onlineUsers[user.id];
@@ -4970,7 +5031,7 @@
             
             const content = `
                 <div class="user-profile-avatar">${user.avatar || '👤'}</div>
-                <div class="user-profile-name">${user.username}</div>
+                <div class="user-profile-name">${safeGetUsername(user)}</div>
                 <div class="user-profile-bio">${user.bio || 'Нет информации'}</div>
                 <div class="user-profile-status">
                     <span class="status-dot ${isOnline ? (dnd ? 'dnd' : 'online') : 'offline'}"></span>
@@ -5051,7 +5112,7 @@
             if (chat) {
                 const newUrl = `${window.location.pathname}#${chat.id}`;
                 window.history.replaceState({ chatId: chat.id }, chat.name, newUrl);
-                document.title = `${chat.type === 'private' ? chat.name.split('_').find(n => n !== currentUser?.name) || chat.name : chat.name} - Telegram Web`;
+                document.title = `${chat.displayName || chat.name} - Telegram Web`;
             } else {
                 const newUrl = window.location.pathname;
                 window.history.replaceState({}, 'Telegram Web', newUrl);
@@ -5277,6 +5338,256 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
+
+        // ========== НОВЫЕ ФУНКЦИИ ДЛЯ USERNAME ==========
+        /* ===========================   USERNAME SYSTEM PATCH   =========================== */
+        
+        /**
+         * Безопасно получает отображаемое имя пользователя.
+         * Если username отсутствует, использует email (до @) или часть email.
+         * @param {Object} user - объект пользователя из profiles
+         * @returns {string} - отображаемое имя
+         */
+        function safeGetUsername(user) {
+            if (!user) return 'Пользователь';
+            
+            // Если есть username, используем его
+            if (user.username && typeof user.username === 'string' && user.username.trim() !== '') {
+                return user.username;
+            }
+            
+            // Если нет username, но есть email, берём часть до @
+            if (user.email) {
+                return user.email.split('@')[0] || 'user';
+            }
+            
+            // Если ничего нет
+            return 'Пользователь';
+        }
+
+        /**
+         * Обновляет username в profiles, НЕ ТРОГАЯ email в auth.users.
+         * @param {string} newUsername - новое имя пользователя
+         * @returns {Promise<boolean>} - успех операции
+         */
+        async function updateUsername(newUsername) {
+            if (!currentUser) return false;
+            
+            // Валидация
+            if (!newUsername || newUsername.trim() === '') {
+                alert('Имя не может быть пустым');
+                return false;
+            }
+            
+            try {
+                // Проверяем уникальность в profiles
+                const { data: existing, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', newUsername)
+                    .neq('id', currentUser.id)
+                    .limit(1);
+                
+                if (checkError) throw checkError;
+                
+                if (existing && existing.length > 0) {
+                    alert('Это имя уже занято другим пользователем');
+                    return false;
+                }
+                
+                // Обновляем ТОЛЬКО username в profiles, НЕ трогаем auth.users
+                const { error: updateError } = await supabaseClient
+                    .from('profiles')
+                    .update({ username: newUsername })
+                    .eq('id', currentUser.id);
+                
+                if (updateError) throw updateError;
+                
+                // Обновляем локальные данные
+                currentUser.name = newUsername;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Обновляем присутствие в Ably
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            dnd: currentUser.dnd,
+                            lastSeen: Date.now()
+                        });
+                    }
+                }
+                
+                // Обновляем UI
+                updateProfileUI();
+                
+                // Если открыт приватный чат, обновляем заголовок
+                if (currentChat && currentChat.type === 'private') {
+                    // Определяем отображаемое имя для текущего чата
+                    const match = currentChat.name.match(/private_([^_]+)_([^_]+)/);
+                    if (match) {
+                        const otherUserId = match[1] === currentUser.id ? match[2] : match[1];
+                        const otherUser = allUsers.find(u => u.id === otherUserId);
+                        if (otherUser) {
+                            currentChat.displayName = safeGetUsername(otherUser);
+                        }
+                    }
+                    document.getElementById('currentChatName').innerHTML = currentChat.displayName || currentChat.name;
+                }
+                
+                // Перезагружаем список пользователей
+                await loadAllUsers();
+                updateChatsList();
+                
+                return true;
+                
+            } catch (err) {
+                console.error('Error updating username:', err);
+                alert('Ошибка при обновлении имени');
+                return false;
+            }
+        }
+
+        // Модифицируем saveProfile, чтобы использовать updateUsername для имени
+        // (но сохраняем совместимость с существующей функцией)
+        const originalSaveProfile = saveProfile;
+        saveProfile = async function() {
+            const newName = document.getElementById('profileNameInput').value.trim();
+            const newBio = document.getElementById('profileBioInput').value.trim();
+            const dnd = document.getElementById('profileDNDCheckbox').checked;
+            
+            if (!newName) {
+                alert('Имя не может быть пустым');
+                return;
+            }
+            
+            // Если имя изменилось, используем безопасное обновление
+            if (newName !== currentUser.name) {
+                const success = await updateUsername(newName);
+                if (!success) return;
+            }
+            
+            // Обновляем остальные поля (био, dnd)
+            try {
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        bio: newBio,
+                        dnd: dnd
+                    })
+                    .eq('id', currentUser.id);
+                
+                if (error) throw error;
+                
+                currentUser.bio = newBio;
+                currentUser.dnd = dnd;
+                
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Обновляем присутствие в Ably
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            dnd: dnd,
+                            lastSeen: Date.now()
+                        });
+                    }
+                }
+                
+                updateProfileUI();
+                closeProfileModal();
+                
+                await loadAllUsers();
+                updateChatsList();
+                
+                if (currentChat && currentChat.type === 'private') {
+                    joinChat(currentChat);
+                }
+                
+            } catch (err) {
+                console.error('Error updating profile bio/dnd:', err);
+                alert('Ошибка при сохранении профиля');
+            }
+        };
+
+        // Модифицируем register, чтобы корректно создавать пользователя
+        const originalRegister = register;
+        register = async function() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (!email || !password) {
+                alert('Заполните все поля');
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert('Пароли не совпадают');
+                return;
+            }
+            
+            // Извлекаем имя пользователя из email (до @)
+            const username = email.split('@')[0];
+            
+            // Запрещаем регистрацию с именем K1lame, если это не создатель
+            const creatorEmail = "k1lame@example.com"; // замените на реальный email создателя
+            if (username === ADMIN_USERNAME && email !== creatorEmail) {
+                alert('Имя пользователя K1lame зарезервировано для создателя');
+                return;
+            }
+            
+            try {
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (authError) {
+                    alert('Ошибка при регистрации: ' + authError.message);
+                    return;
+                }
+                
+                if (!authData.user) {
+                    alert('Ошибка при создании пользователя');
+                    return;
+                }
+                
+                // Создаём профиль с username (не трогаем email в profiles, он может отсутствовать)
+                const newUser = {
+                    id: authData.user.id,
+                    username: username,
+                    avatar: '👤',
+                    bio: '',
+                    dnd: false,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .insert([newUser]);
+                
+                if (error) {
+                    alert('Ошибка при регистрации: ' + error.message);
+                    return;
+                }
+                
+                alert('Регистрация успешна! Теперь вы можете войти.');
+                switchAuthMode('login');
+                
+            } catch (err) {
+                console.error('Registration error:', err);
+                alert('Ошибка при регистрации. Проверьте подключение к интернету и повторите попытку.');
+            }
+        };
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
