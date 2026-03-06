@@ -220,7 +220,6 @@ function setupUserChannelHandlers(userChannel) {
             window.handleCallEnd({ callId });
         }
     });
-}
 
 // Подписка на все чаты
 function subscribeToAllChats() {
