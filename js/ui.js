@@ -43,7 +43,7 @@ async function loadAllUsers() {
         window.allUsers = data || [];
         
         if (currentTab === 'users') {
-            window.updateChatsList?.();
+            if (typeof window.updateChatsList === 'function') window.updateChatsList();
         }
     } catch (err) {
         console.error('Error loading users:', err);
@@ -125,10 +125,10 @@ function switchTab(tab) {
     if (tab === 'users') {
         loadAllUsers();
     } else if (tab === 'public') {
-        window.loadPublicChats?.();
+        if (typeof window.loadPublicChats === 'function') window.loadPublicChats();
     }
     
-    window.updateChatsList?.();
+    if (typeof window.updateChatsList === 'function') window.updateChatsList();
     updateCreateChatButtonVisibility();
 }
 
@@ -142,7 +142,7 @@ function updateCreateChatButtonVisibility() {
 
 // Поиск
 function handleSearch() {
-    window.updateChatsList?.();
+    if (typeof window.updateChatsList === 'function') window.updateChatsList();
 }
 
 // Переключение режима авторизации
@@ -170,7 +170,7 @@ function updateUrlWithChat(chat) {
         const newUrl = `${window.location.pathname}#${chat.id}`;
         window.history.replaceState({ chatId: chat.id }, chat.name, newUrl);
         document.title = `${chat.type === 'private' && !chat.isFavorite ? 
-            chat.name.split('_').find(n => n !== currentUser?.name) || chat.name : chat.name} - Telegram Web`;
+            (chat.name.split('_').find(n => n !== currentUser?.name) || chat.name) : chat.name} - Telegram Web`;
     } else {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, 'Telegram Web', newUrl);
@@ -182,7 +182,9 @@ function checkUrlForChat() {
     const hash = window.location.hash.substring(1);
     if (hash) {
         const chat = window.myChats?.find(c => c.id === hash) || window.publicChats?.find(c => c.id === hash);
-        if (chat) setTimeout(() => window.joinChat?.(chat), 500);
+        if (chat) setTimeout(() => {
+            if (typeof window.joinChat === 'function') window.joinChat(chat);
+        }, 500);
     }
 }
 
@@ -321,7 +323,7 @@ function hideMessageActions() {
 function handleKeyPress(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        window.sendMessage?.();
+        if (typeof window.sendMessage === 'function') window.sendMessage();
     }
 }
 
