@@ -73,7 +73,7 @@ async function loadPublicChats() {
         }));
         
         if (currentTab === 'public') {
-            window.updateChatsList?.();
+            if (typeof window.updateChatsList === 'function') window.updateChatsList();
         }
     } catch (err) {
         console.error('Error loading public chats:', err);
@@ -119,7 +119,9 @@ async function createPrivateChat(user) {
             localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
             
             if (window.ably) {
-                window.subscribeToChatChannel?.(privateChat.id);
+                if (typeof window.subscribeToChatChannel === 'function') {
+                    window.subscribeToChatChannel(privateChat.id, false);
+                }
                 const chatChannel = window.ably.channels.get(`chat-${privateChat.id}`);
                 chatChannel.publish('user_joined', { 
                     userId: currentUser.id, 
@@ -156,7 +158,7 @@ async function createPublicChat() {
     
     // Проверка лимита для обычных пользователей
     if (!currentUser.isAdmin) {
-        const userPublicChats = publicChats.filter(chat => true).length;
+        const userPublicChats = publicChats.length;
         if (userPublicChats >= 10) {
             alert('Вы можете создать не более 10 публичных чатов');
             return;
@@ -215,11 +217,11 @@ function joinChat(chat) {
     if (!chat) return;
     
     currentChat = chat;
-    window.updateUrlWithChat?.(chat);
+    if (typeof window.updateUrlWithChat === 'function') window.updateUrlWithChat(chat);
     
     document.getElementById('currentChatName').innerHTML = 
         chat.type === 'private' && !chat.isFavorite 
-            ? chat.name.split('_').find(n => n !== currentUser?.name) || chat.name 
+            ? (chat.name.split('_').find(n => n !== currentUser?.name) || chat.name) 
             : chat.name;
     document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : 'Приватный чат';
     document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👥';
@@ -227,14 +229,17 @@ function joinChat(chat) {
     document.getElementById('callBtn').style.display = 
         (chat.type === 'private' && !chat.isFavorite && window.callsTableExists) ? 'flex' : 'none';
     
-    window.loadChatHistory?.(chat.id);
+    if (typeof window.loadChatHistory === 'function') window.loadChatHistory(chat.id);
     
-    if (!window.messages?.[chat.id]) window.messages = { ...window.messages, [chat.id]: [] };
-    window.messages[chat.id]?.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    if (!window.messages) window.messages = {};
+    if (!window.messages[chat.id]) window.messages[chat.id] = [];
+    if (window.messages[chat.id] && Array.isArray(window.messages[chat.id])) {
+        window.messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    }
     
     markAllMessagesAsRead(chat.id);
     
-    window.renderMessages?.();
+    if (typeof window.renderMessages === 'function') window.renderMessages();
     updateChatsList();
     updateChatStatus();
     
@@ -244,7 +249,7 @@ function joinChat(chat) {
     
     setTimeout(() => {
         document.getElementById('messageInput').focus();
-        window.forceShowInput?.();
+        if (typeof window.forceShowInput === 'function') window.forceShowInput();
     }, 100);
 }
 
@@ -265,7 +270,7 @@ function updateChatStatus() {
             : '<span class="online-indicator"></span> в сети';
     } else {
         const lastSeen = otherUser?.last_seen ? new Date(otherUser.last_seen).getTime() : null;
-        statusElement.innerHTML = lastSeen ? `был(а) ${window.formatLastSeen?.(lastSeen)}` : 'был(а) давно';
+        statusElement.innerHTML = lastSeen ? `был(а) ${typeof window.formatLastSeen === 'function' ? window.formatLastSeen(lastSeen) : 'давно'}` : 'был(а) давно';
     }
 }
 
@@ -277,7 +282,7 @@ function markAllMessagesAsRead(chatId) {
     window.messages[chatId].forEach(msg => {
         if (msg.sender !== currentUser?.id) {
             if (!window.messageStatuses?.[msg.id] || window.messageStatuses[msg.id].status !== 'read') {
-                window.messageStatuses = window.messageStatuses || {};
+                if (!window.messageStatuses) window.messageStatuses = {};
                 window.messageStatuses[msg.id] = { status: 'read', readAt: Date.now() };
                 changed = true;
             }
@@ -285,10 +290,10 @@ function markAllMessagesAsRead(chatId) {
     });
     
     if (changed) {
-        window.saveMessageStatuses?.();
+        if (typeof window.saveMessageStatuses === 'function') window.saveMessageStatuses();
     }
     
-    window.unreadCounts = window.unreadCounts || {};
+    if (!window.unreadCounts) window.unreadCounts = {};
     window.unreadCounts[chatId] = 0;
     updateChatsList();
 }
@@ -405,7 +410,7 @@ function updateChatsList() {
 
 function renderUserItem(user) {
     const statusClass = user.online ? (user.dnd ? 'dnd' : 'online') : 'offline';
-    const lastSeenText = !user.online && user.lastSeen ? window.formatLastSeen?.(user.lastSeen) : '';
+    const lastSeenText = !user.online && user.lastSeen ? (typeof window.formatLastSeen === 'function' ? window.formatLastSeen(user.lastSeen) : '') : '';
     
     return `
         <div class="chat-item" onclick="createPrivateChat({id: '${user.id}', name: '${user.name}', avatar: '${user.avatar}'})">
@@ -497,13 +502,13 @@ async function deleteChat(chatId, event) {
         publicChats = publicChats.filter(c => c.id !== chatId);
         localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
         
-        delete window.messages?.[chatId];
+        if (window.messages) delete window.messages[chatId];
         if (window.unreadCounts) delete window.unreadCounts[chatId];
         
         if (currentChat?.id === chatId) {
             currentChat = null;
-            window.renderMessages?.();
-            window.updateUrlWithChat?.(null);
+            if (typeof window.renderMessages === 'function') window.renderMessages();
+            if (typeof window.updateUrlWithChat === 'function') window.updateUrlWithChat(null);
         }
         
         updateChatsList();
