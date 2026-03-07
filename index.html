@@ -2521,6 +2521,7 @@
 
             // === REALTIME ПОДПИСКИ (SUPABASE) ===
             function initRealtimeSubscriptions() {
+                // Подписка на новые сообщения
                 supabase
                     .channel('messages-channel')
                     .on(
@@ -2540,6 +2541,7 @@
                     )
                     .subscribe();
 
+                // Подписка на новые публичные чаты
                 supabase
                     .channel('chats-channel')
                     .on(
@@ -2551,6 +2553,50 @@
                                 publicChats.push({ ...newChat, avatar: '👥' });
                                 if (currentTab === 'public') updateChatsList();
                             }
+                        }
+                    )
+                    .subscribe();
+
+                // Подписка на новые записи в chat_members для текущего пользователя
+                supabase
+                    .channel('chat-members-channel')
+                    .on(
+                        'postgres_changes',
+                        { event: 'INSERT', schema: 'public', table: 'chat_members', filter: `user_id=eq.${currentUser.id}` },
+                        async payload => {
+                            const newMembership = payload.new;
+                            const chatId = newMembership.chat_id;
+                            // Проверяем, есть ли уже этот чат в myChats
+                            if (myChats.some(c => c.id === chatId)) return;
+                            // Загружаем чат
+                            const { data: chatData, error } = await supabase
+                                .from('chats')
+                                .select('*')
+                                .eq('id', chatId)
+                                .single();
+                            if (error) return;
+                            if (chatData.type === 'private') {
+                                // Находим другого участника
+                                const { data: members } = await supabase
+                                    .from('chat_members')
+                                    .select('user_id')
+                                    .eq('chat_id', chatId);
+                                const otherId = members?.find(m => m.user_id !== currentUser.id)?.user_id;
+                                const otherUser = allUsers.find(u => u.id === otherId) || await (async () => {
+                                    const { data } = await supabase.from('profiles').select('*').eq('id', otherId).single();
+                                    return data;
+                                })();
+                                const chat = {
+                                    ...chatData,
+                                    avatar: otherUser?.avatar || '👤',
+                                    otherUserName: otherUser?.username || '???',
+                                    otherUserId: otherId
+                                };
+                                myChats.push(chat);
+                            } else {
+                                myChats.push({ ...chatData, avatar: chatData.is_public ? '👥' : '👤' });
+                            }
+                            updateChatsList();
                         }
                     )
                     .subscribe();
@@ -3174,33 +3220,32 @@
 
             // === СОЗДАНИЕ ПРИВАТНОГО ЧАТА (без дубликатов) ===
             async function createPrivateChat(user) {
-                // 1. Получить все чаты текущего пользователя
+                // 1. Проверить, существует ли чат между пользователями
                 try {
-                    const { data: myMemberships, error: myErr } = await supabase
+                    const { data: commonChats, error: commonError } = await supabase
                         .from('chat_members')
                         .select('chat_id')
                         .eq('user_id', currentUser.id);
-                    if (myErr) throw myErr;
-                    const myChatIds = myMemberships.map(m => m.chat_id);
-
+                    if (commonError) throw commonError;
+                    const myChatIds = commonChats.map(c => c.chat_id);
+                    
                     if (myChatIds.length > 0) {
-                        // 2. Найти среди этих чатов те, где есть второй пользователь
-                        const { data: commonMembers, error: commonErr } = await supabase
+                        const { data: otherMembers, error: otherError } = await supabase
                             .from('chat_members')
                             .select('chat_id')
                             .in('chat_id', myChatIds)
                             .eq('user_id', user.id);
-                        if (commonErr) throw commonErr;
-
-                        if (commonMembers && commonMembers.length > 0) {
-                            // Чат уже существует, открываем его
-                            const chatId = commonMembers[0].chat_id;
-                            const { data: chatData, error: chatErr } = await supabase
+                        if (otherError) throw otherError;
+                        
+                        if (otherMembers && otherMembers.length > 0) {
+                            // Чат уже существует
+                            const chatId = otherMembers[0].chat_id;
+                            const { data: chatData, error: chatError } = await supabase
                                 .from('chats')
                                 .select('*')
                                 .eq('id', chatId)
                                 .single();
-                            if (chatErr) throw chatErr;
+                            if (chatError) throw chatError;
                             const fullChat = {
                                 ...chatData,
                                 avatar: user.avatar,
@@ -3215,7 +3260,7 @@
                         }
                     }
 
-                    // 3. Если чат не найден, создаём новый
+                    // 2. Создаём новый приватный чат
                     const newChat = {
                         type: 'private',
                         is_public: false,
@@ -3229,7 +3274,7 @@
                     if (chatError) throw chatError;
                     const chatId = chatInsert[0].id;
 
-                    // 4. Добавляем участников
+                    // 3. Добавляем участников
                     const membersInsert = [
                         { chat_id: chatId, user_id: currentUser.id },
                         { chat_id: chatId, user_id: user.id }
@@ -3239,7 +3284,7 @@
                         .insert(membersInsert);
                     if (membersError) throw membersError;
 
-                    // 5. Открываем чат
+                    // 4. Открываем чат
                     const fullChat = {
                         ...chatInsert[0],
                         avatar: user.avatar,
