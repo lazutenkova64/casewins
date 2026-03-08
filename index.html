@@ -3377,16 +3377,16 @@
             const pairKey = ids.join('_');
             
             try {
-                // Проверяем, существует ли уже такой чат в БД
-                const { data: existingChat, error } = await supabaseClient
+                // Проверяем, существует ли уже такой чат в БД (используем maybeSingle для избежания ошибки дубликата)
+                const { data: existingChat, error: selectError } = await supabaseClient
                     .from('chats')
                     .select('*')
                     .eq('pair_key', pairKey)
                     .eq('type', 'private')
                     .maybeSingle();
                 
-                if (error) {
-                    console.error('Error checking existing chat:', error);
+                if (selectError) {
+                    console.error('Error checking existing chat:', selectError);
                     alert('Ошибка при проверке чата');
                     return;
                 }
@@ -3394,6 +3394,7 @@
                 let privateChat;
                 
                 if (existingChat) {
+                    // Чат уже существует
                     privateChat = {
                         id: existingChat.id,
                         name: existingChat.name,
@@ -3414,47 +3415,80 @@
                         }
                     }
                 } else {
-                    // Создаём новый чат
-                    const newChat = {
-                        name: '',
-                        is_public: false,
-                        type: 'private',
-                        pair_key: pairKey,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const { data, error: insertError } = await supabaseClient
-                        .from('chats')
-                        .insert([newChat])
-                        .select();
-                    
-                    if (insertError) throw insertError;
-                    
-                    privateChat = {
-                        id: data[0].id,
-                        name: '',
-                        pair_key: pairKey,
-                        avatar: user.avatar,
-                        is_public: false,
-                        type: 'private',
-                        created_at: data[0].created_at
-                    };
-                    
-                    myChats.push(privateChat);
-                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
-                    
-                    if (ably) {
-                        subscribeToChatChannel(privateChat.id);
+                    // Создаём новый чат с обработкой возможного дубликата (на всякий случай)
+                    try {
+                        const newChat = {
+                            name: '',
+                            is_public: false,
+                            type: 'private',
+                            pair_key: pairKey,
+                            created_at: new Date().toISOString()
+                        };
                         
-                        // Уведомляем другого пользователя о новом чате
-                        const userChannel = ably.channels.get(`user-${user.id}`);
-                        userChannel.publish('new-private-chat', {
-                            chatId: privateChat.id,
-                            pairKey: pairKey,
-                            participants: [currentUser.id, user.id],
-                            avatar: user.avatar,
-                            timestamp: Date.now()
-                        });
+                        const { data, error: insertError } = await supabaseClient
+                            .from('chats')
+                            .insert([newChat])
+                            .select();
+                        
+                        if (insertError) {
+                            // Если всё же произошла ошибка дубликата, пробуем получить существующий чат ещё раз
+                            if (insertError.code === '23505') { // код ошибки уникальности в PostgreSQL
+                                const { data: retryChat, error: retryError } = await supabaseClient
+                                    .from('chats')
+                                    .select('*')
+                                    .eq('pair_key', pairKey)
+                                    .eq('type', 'private')
+                                    .single();
+                                
+                                if (retryError) throw retryError;
+                                
+                                privateChat = {
+                                    id: retryChat.id,
+                                    name: retryChat.name,
+                                    pair_key: pairKey,
+                                    avatar: user.avatar,
+                                    is_public: false,
+                                    type: 'private',
+                                    created_at: retryChat.created_at
+                                };
+                            } else {
+                                throw insertError;
+                            }
+                        } else {
+                            privateChat = {
+                                id: data[0].id,
+                                name: data[0].name,
+                                pair_key: pairKey,
+                                avatar: user.avatar,
+                                is_public: false,
+                                type: 'private',
+                                created_at: data[0].created_at
+                            };
+                        }
+                    } catch (insertError) {
+                        console.error('Error creating chat:', insertError);
+                        alert('Не удалось создать чат: ' + (insertError.message || 'неизвестная ошибка'));
+                        return;
+                    }
+                    
+                    // Добавляем новый чат в myChats
+                    if (!myChats.some(c => c.id === privateChat.id)) {
+                        myChats.push(privateChat);
+                        localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                        
+                        if (ably) {
+                            subscribeToChatChannel(privateChat.id);
+                            
+                            // Уведомляем другого пользователя о новом чате
+                            const userChannel = ably.channels.get(`user-${user.id}`);
+                            userChannel.publish('new-private-chat', {
+                                chatId: privateChat.id,
+                                pairKey: pairKey,
+                                participants: [currentUser.id, user.id],
+                                avatar: user.avatar,
+                                timestamp: Date.now()
+                            });
+                        }
                     }
                 }
                 
@@ -5824,11 +5858,10 @@
          - SELECT: auth.uid() = caller_id OR auth.uid() = receiver_id
          - UPDATE: auth.uid() = caller_id OR auth.uid() = receiver_id
 
-    4. Важные изменения:
-       - Исправлена ошибка "Не удалось создать чат" при попытке открыть уже существующий чат
-       - Добавлено уведомление через Ably о новом приватном чате для второго пользователя
-       - Чат автоматически появляется в списке "Чаты" у второго пользователя в реальном времени
-       - Улучшена обработка ошибок и добавлены информативные сообщения
+    4. Исправление ошибки duplicate key:
+       - Использование maybeSingle() для безопасной проверки существования чата
+       - Добавлен повторный запрос при возникновении ошибки уникальности
+       - Правильная обработка всех возможных ошибок при создании чата
     -->
 </body>
 </html>
