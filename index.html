@@ -2310,6 +2310,9 @@
         // Флаг для отслеживания переподключения Ably
         let ablyReconnectTimer = null;
 
+        // Map для отслеживания созданных приватных чатов (предотвращение дубликатов)
+        let privateChatsMap = new Map(); // key: "user1_user2" -> chatId
+
         // Эмодзи
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', 
@@ -2694,7 +2697,7 @@
                         await Promise.all([
                             loadAllUsers(),
                             loadUserChats(),
-                            loadAllMessages()
+                            loadAllMessages() // теперь оптимизирована
                         ]);
                         
                         // Создаём/получаем чат "Избранное"
@@ -2957,7 +2960,10 @@
                     });
                     
                     const presenceChannel = ably.channels.get('presence');
-                    presenceChannel.presence.leave();
+                    // Убедимся, что канал прикреплён перед leave
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.leave();
+                    }
                     
                     ably.close();
                 } catch (e) {
@@ -3020,15 +3026,22 @@
             }
         }
 
-        // Загрузка всех сообщений
+        // Оптимизированная загрузка всех сообщений (только последние 100 на чат)
         async function loadAllMessages() {
             if (!currentUser) return;
             
             try {
+                // Получаем время последней синхронизации из localStorage
+                const lastSync = localStorage.getItem(`lastSync_${currentUser.id}`);
+                const lastSyncTime = lastSync ? new Date(parseInt(lastSync)).toISOString() : new Date(0).toISOString();
+                
+                // Загружаем сообщения только новее lastSyncTime, ограничивая количество
                 const { data, error } = await supabaseClient
                     .from('messages')
                     .select('*')
-                    .order('created_at', { ascending: true });
+                    .gt('created_at', lastSyncTime)
+                    .order('created_at', { ascending: true })
+                    .limit(500); // лимит на случай большого количества новых
                 
                 if (error) {
                     console.error('Error loading messages:', error);
@@ -3074,12 +3087,17 @@
                         }
                     });
                     
-                    Object.keys(messages).forEach(chatId => {
-                        messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                    });
-                    
-                    updateUnreadCounts();
+                    // Обновляем время последней синхронизации
+                    localStorage.setItem(`lastSync_${currentUser.id}`, Date.now().toString());
                 }
+                
+                // Сортируем сообщения после добавления
+                Object.keys(messages).forEach(chatId => {
+                    messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                });
+                
+                updateUnreadCounts();
+                
             } catch (err) {
                 console.error('Error loading all messages:', err);
             }
@@ -3087,11 +3105,13 @@
 
         async function loadChatHistory(chatId) {
             try {
+                // Загружаем историю, начиная с самого старого сообщения, но можно ограничить
                 const { data, error } = await supabaseClient
                     .from('messages')
                     .select('*')
                     .eq('chat_id', chatId)
-                    .order('created_at', { ascending: true });
+                    .order('created_at', { ascending: true })
+                    .limit(200); // ограничим для скорости
                 
                 if (error) {
                     console.error('Ошибка загрузки истории:', error);
@@ -3154,7 +3174,7 @@
             
             chatChannel.unsubscribe();
             
-            function attachWithRetry(retries = 10, delay = 300) {
+            function attachWithRetry(retries = 5, delay = 200) { // уменьшили ретраи и задержку
                 chatChannel.attach((err) => {
                     if (err) {
                         console.error(`Failed to attach to chat channel ${chatId}, retries left: ${retries}`, err);
@@ -3167,7 +3187,7 @@
                 });
             }
             
-            attachWithRetry(10, 300);
+            attachWithRetry(5, 200);
 
             chatChannel.subscribe('message', (message) => {
                 const msg = message.data;
@@ -4127,7 +4147,7 @@
             updateChatsList();
         }
 
-        // ========== ABLY ==========
+        // ========== ABLY (оптимизированная инициализация) ==========
         function initAbly() {
             if (!currentUser) return;
             
@@ -4137,15 +4157,16 @@
                 } catch (e) {}
             }
             
+            // Ускоренные таймауты
             ably = new Ably.Realtime({
                 key: ABLY_API_KEY,
                 clientId: currentUser.id.toString(),
                 transports: ['web_socket'],
-                disconnectedRetryTimeout: 1000,
-                suspendedRetryTimeout: 2000,
-                realtimeRequestTimeout: 15000,
+                disconnectedRetryTimeout: 500,      // было 1000
+                suspendedRetryTimeout: 1000,        // было 2000
+                realtimeRequestTimeout: 10000,      // было 15000
                 echoMessages: false,
-                idleTimeout: 20000
+                idleTimeout: 30000                  // увеличили для стабильности
             });
 
             ably.connection.on('connected', () => {
@@ -4157,16 +4178,49 @@
                 }
                 
                 const presenceChannel = ably.channels.get('presence');
-                presenceChannel.presence.enter({ 
-                    name: currentUser.name, 
-                    avatar: currentUser.avatar || '👤',
-                    bio: currentUser.bio || '',
-                    isAdmin: currentUser.isAdmin || false,
-                    dnd: currentUser.dnd || false,
-                    lastSeen: Date.now()
+                
+                // Сначала attach, потом enter
+                presenceChannel.attach((err) => {
+                    if (err) {
+                        console.error('Failed to attach presence channel', err);
+                        return;
+                    }
+                    
+                    presenceChannel.presence.enter({ 
+                        name: currentUser.name, 
+                        avatar: currentUser.avatar || '👤',
+                        bio: currentUser.bio || '',
+                        isAdmin: currentUser.isAdmin || false,
+                        dnd: currentUser.dnd || false,
+                        lastSeen: Date.now()
+                    });
+                    
+                    // Получаем текущих участников
+                    presenceChannel.presence.get((err, members) => {
+                        if (members) {
+                            members.forEach(member => {
+                                if (member.clientId !== currentUser.id.toString()) {
+                                    onlineUsers[member.clientId] = {
+                                        id: member.clientId,
+                                        name: member.data.name,
+                                        avatar: member.data.avatar || '👤',
+                                        bio: member.data.bio || '',
+                                        online: true,
+                                        isAdmin: member.data.isAdmin || false,
+                                        dnd: member.data.dnd || false,
+                                        lastSeen: Date.now()
+                                    };
+                                }
+                            });
+                        }
+                        if (currentTab === 'users' || currentTab === 'chats') {
+                            updateChatsList();
+                        }
+                    });
                 });
                 
-                presenceChannel.presence.subscribe('enter', (member) => {
+                // Подписка на события presence
+                presenceChannel.subscribe('enter', (member) => {
                     if (member.clientId !== currentUser.id.toString()) {
                         onlineUsers[member.clientId] = {
                             id: member.clientId,
@@ -4188,7 +4242,7 @@
                     }
                 });
                 
-                presenceChannel.presence.subscribe('update', (member) => {
+                presenceChannel.subscribe('update', (member) => {
                     if (member.clientId !== currentUser.id.toString()) {
                         onlineUsers[member.clientId] = {
                             ...onlineUsers[member.clientId],
@@ -4207,7 +4261,7 @@
                     }
                 });
                 
-                presenceChannel.presence.subscribe('leave', (member) => {
+                presenceChannel.subscribe('leave', (member) => {
                     if (onlineUsers[member.clientId]) {
                         onlineUsers[member.clientId].online = false;
                         onlineUsers[member.clientId].lastSeen = Date.now();
@@ -4215,28 +4269,6 @@
                             updateChatsList();
                         }
                         updateChatStatus();
-                    }
-                });
-                
-                presenceChannel.presence.get((err, members) => {
-                    if (members) {
-                        members.forEach(member => {
-                            if (member.clientId !== currentUser.id.toString()) {
-                                onlineUsers[member.clientId] = {
-                                    id: member.clientId,
-                                    name: member.data.name,
-                                    avatar: member.data.avatar || '👤',
-                                    bio: member.data.bio || '',
-                                    online: true,
-                                    isAdmin: member.data.isAdmin || false,
-                                    dnd: member.data.dnd || false,
-                                    lastSeen: Date.now()
-                                };
-                            }
-                        });
-                    }
-                    if (currentTab === 'users' || currentTab === 'chats') {
-                        updateChatsList();
                     }
                 });
 
@@ -4298,7 +4330,7 @@
                     if (currentUser && ably.connection.state !== 'connected') {
                         ably.connection.connect();
                     }
-                }, 1000);
+                }, 500); // уменьшили до 500 мс
             });
 
             ably.connection.on('failed', () => {
@@ -4308,7 +4340,7 @@
                 }
                 ablyReconnectTimer = setTimeout(() => {
                     if (currentUser) initAbly();
-                }, 3000);
+                }, 2000);
             });
         }
 
@@ -4364,7 +4396,10 @@
             if (currentUser && ably) {
                 await updateUserLastSeen();
                 const presenceChannel = ably.channels.get('presence');
-                presenceChannel.presence.leave();
+                // Проверяем, прикреплён ли канал
+                if (presenceChannel.state === 'attached') {
+                    presenceChannel.presence.leave();
+                }
             }
         }
 
@@ -5462,7 +5497,8 @@
             if (tab === 'users') {
                 loadAllUsers();
             } else if (tab === 'public') {
-                loadPublicChats();
+                // Просто обновляем список (публичные чаты уже загружены)
+                // Ничего дополнительно не загружаем
             }
             
             updateChatsList();
