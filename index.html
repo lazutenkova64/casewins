@@ -2310,9 +2310,6 @@
         // Флаг для отслеживания переподключения Ably
         let ablyReconnectTimer = null;
 
-        // Map для отслеживания созданных приватных чатов (предотвращение дубликатов)
-        let privateChatsMap = new Map(); // key: "user1_user2" -> chatId
-
         // Эмодзи
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', 
@@ -2499,13 +2496,13 @@
         async function ensureSavedMessagesChat() {
             if (!currentUser) return;
             
-            const savedChatName = `${currentUser.name}_${currentUser.name}`;
+            const pairKey = `${currentUser.id}_${currentUser.id}`;
             
             // Проверяем, есть ли уже такой чат в БД
             const { data: existingChat, error } = await supabaseClient
                 .from('chats')
                 .select('*')
-                .eq('name', savedChatName)
+                .eq('pair_key', pairKey)
                 .eq('type', 'private')
                 .maybeSingle();
             
@@ -2519,10 +2516,11 @@
                 if (!myChats.some(c => c.id === existingChat.id)) {
                     myChats.push({
                         id: existingChat.id,
-                        name: savedChatName,
-                        avatar: '⭐', // специальный аватар
+                        name: 'Избранное',
+                        avatar: '⭐',
                         is_public: false,
                         type: 'private',
+                        pair_key: pairKey,
                         created_at: existingChat.created_at
                     });
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
@@ -2535,9 +2533,10 @@
                 // Создаём новый чат
                 try {
                     const newChat = {
-                        name: savedChatName,
+                        name: 'Избранное',
                         is_public: false,
                         type: 'private',
+                        pair_key: pairKey,
                         created_at: new Date().toISOString()
                     };
                     
@@ -2550,10 +2549,11 @@
                     
                     myChats.push({
                         id: data[0].id,
-                        name: savedChatName,
+                        name: 'Избранное',
                         avatar: '⭐',
                         is_public: false,
                         type: 'private',
+                        pair_key: pairKey,
                         created_at: data[0].created_at
                     });
                     localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
@@ -2573,6 +2573,7 @@
             
             try {
                 // Загружаем все чаты, где пользователь является участником
+                // Для приватных чатов проверяем pair_key: содержит ли он id пользователя
                 const { data: allChats, error } = await supabaseClient
                     .from('chats')
                     .select('*')
@@ -2584,8 +2585,9 @@
                 const userChats = (allChats || []).filter(chat => {
                     if (chat.type === 'public') return true;
                     if (chat.type === 'private') {
-                        const participants = chat.name.split('_');
-                        return participants.includes(currentUser.name);
+                        // Проверяем, содержит ли pair_key id пользователя (разделитель '_')
+                        const ids = chat.pair_key ? chat.pair_key.split('_') : [];
+                        return ids.includes(currentUser.id);
                     }
                     return false;
                 });
@@ -2593,7 +2595,7 @@
                 // Обновляем publicChats
                 publicChats = (allChats || []).filter(chat => chat.is_public);
                 
-                // Обновляем myChats
+                // Обновляем myChats, добавляя avatar по умолчанию
                 myChats = userChats.map(chat => ({
                     ...chat,
                     avatar: chat.is_public ? '👥' : '👤'
@@ -3359,19 +3361,19 @@
         }
 
         async function createPrivateChat(user) {
-            // Сортируем имена для единообразия
-            const participants = [currentUser.name, user.name].sort();
-            const chatName = participants.join('_');
+            // Создаём pair_key как отсортированные ID через '_'
+            const ids = [currentUser.id, user.id].sort();
+            const pairKey = ids.join('_');
             
             // Проверяем, существует ли уже такой чат в БД
-            let privateChat = myChats.find(c => c.name === chatName && c.type === 'private');
+            let privateChat = myChats.find(c => c.pair_key === pairKey && c.type === 'private');
             
             if (!privateChat) {
                 // Ищем в БД
                 const { data: existingChat, error } = await supabaseClient
                     .from('chats')
                     .select('*')
-                    .eq('name', chatName)
+                    .eq('pair_key', pairKey)
                     .eq('type', 'private')
                     .maybeSingle();
                 
@@ -3382,7 +3384,8 @@
                 if (existingChat) {
                     privateChat = {
                         id: existingChat.id,
-                        name: existingChat.name,
+                        name: existingChat.name, // может быть пустым
+                        pair_key: pairKey,
                         avatar: user.avatar,
                         is_public: false,
                         type: 'private',
@@ -3397,9 +3400,10 @@
                     // Создаём новый
                     try {
                         const newChat = {
-                            name: chatName,
+                            name: '', // имя не храним, будем формировать на лету
                             is_public: false,
                             type: 'private',
+                            pair_key: pairKey,
                             created_at: new Date().toISOString()
                         };
                         
@@ -3412,7 +3416,8 @@
                         
                         privateChat = {
                             id: data[0].id,
-                            name: chatName,
+                            name: '',
+                            pair_key: pairKey,
                             avatar: user.avatar,
                             is_public: false,
                             type: 'private',
@@ -3431,7 +3436,7 @@
                             const userChannel = ably.channels.get(`user-${user.id}`);
                             userChannel.publish('new-private-chat', {
                                 chatId: privateChat.id,
-                                chatName: privateChat.name,
+                                pairKey: pairKey,
                                 participants: [currentUser.id, user.id],
                                 avatar: privateChat.avatar,
                                 timestamp: Date.now()
@@ -3458,14 +3463,19 @@
             let avatar = chat.avatar || '👥';
             
             if (chat.type === 'private' && currentUser) {
-                const participants = chat.name.split('_');
-                if (participants.length === 2) {
-                    if (participants[0] === participants[1] && participants[0] === currentUser.name) {
-                        // Это чат "Избранное"
-                        displayName = 'Избранное';
-                        avatar = '⭐';
+                if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                    // Это чат "Избранное"
+                    displayName = 'Избранное';
+                    avatar = '⭐';
+                } else {
+                    // Ищем собеседника
+                    const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                    const otherUser = allUsers.find(u => u.id === otherId);
+                    if (otherUser) {
+                        displayName = otherUser.username;
+                        avatar = otherUser.avatar || '👤';
                     } else {
-                        displayName = participants.find(n => n !== currentUser.name) || chat.name;
+                        displayName = 'Пользователь';
                     }
                 }
             }
@@ -3500,15 +3510,14 @@
         function updateChatStatus() {
             if (!currentChat || currentChat.is_public) return;
             
-            const participants = currentChat.name.split('_');
-            if (participants[0] === participants[1]) {
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
                 // Это чат "Избранное" — не показываем статус
                 document.getElementById('chatStatus').innerHTML = '';
                 return;
             }
             
-            const otherUserName = participants.find(name => name !== currentUser.name);
-            const otherUser = allUsers.find(u => u.username === otherUserName);
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
             if (!otherUser) return;
             
             const userOnline = onlineUsers[otherUser.id];
@@ -3670,7 +3679,7 @@
                     delete messageStatuses[clientId];
                     saveMessageStatuses();
                     
-                    if (ably && !currentChat.is_public && currentChat.name !== `${currentUser.name}_${currentUser.name}`) {
+                    if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
                         const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                         chatChannel.publish('message', { 
                             ...dbMessage, 
@@ -3679,8 +3688,8 @@
                         }, (err) => {
                             if (err) {
                                 console.error('Failed to publish message to Ably', err);
-                                const otherUserId = currentChat.name.split('_').find(name => name !== currentUser.name);
-                                const otherUser = allUsers.find(u => u.username === otherUserId);
+                                const otherUserId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+                                const otherUser = allUsers.find(u => u.id === otherUserId);
                                 if (otherUser) {
                                     addToMessageQueue(otherUser.id, { 
                                         ...dbMessage, 
@@ -3774,7 +3783,7 @@
                         delete messageStatuses[clientId];
                         saveMessageStatuses();
                         
-                        if (ably && !currentChat.is_public && currentChat.name !== `${currentUser.name}_${currentUser.name}`) {
+                        if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
                             const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                             chatChannel.publish('message', { 
                                 ...dbMessage, 
@@ -3783,8 +3792,8 @@
                             }, (err) => {
                                 if (err) {
                                     console.error('Failed to publish audio message to Ably', err);
-                                    const otherUserId = currentChat.name.split('_').find(name => name !== currentUser.name);
-                                    const otherUser = allUsers.find(u => u.username === otherUserId);
+                                    const otherUserId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+                                    const otherUser = allUsers.find(u => u.id === otherUserId);
                                     if (otherUser) {
                                         addToMessageQueue(otherUser.id, { 
                                             ...dbMessage, 
@@ -3906,7 +3915,7 @@
                     if (error) console.error('Error deleting message from DB:', error);
                 });
             
-            if (ably && !currentChat.is_public && currentChat.name !== `${currentUser.name}_${currentUser.name}`) {
+            if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
                 const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                 chatChannel.publish('delete', { messageId, senderId: currentUser.id });
             }
@@ -3955,7 +3964,7 @@
                         if (error) console.error('Error updating message in DB:', error);
                     });
                 
-                if (ably && !currentChat.is_public && currentChat.name !== `${currentUser.name}_${currentUser.name}`) {
+                if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
                     const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
                     chatChannel.publish('edit', { 
                         messageId: messageToEdit.id, 
@@ -4243,7 +4252,7 @@
                 // Подписываемся на персональный канал для уведомлений
                 const userChannel = ably.channels.get(`user-${currentUser.id}`);
                 userChannel.subscribe('new-private-chat', (message) => {
-                    const { chatId, chatName, participants, avatar, timestamp } = message.data;
+                    const { chatId, pairKey, participants, avatar, timestamp } = message.data;
                     
                     // Игнорируем старые сообщения (более 10 секунд)
                     if (Date.now() - timestamp > 10000) return;
@@ -4255,7 +4264,8 @@
                     const otherUser = allUsers.find(u => u.id === otherUserId);
                     const newChat = {
                         id: chatId,
-                        name: chatName,
+                        name: '',
+                        pair_key: pairKey,
                         avatar: otherUser ? otherUser.avatar : '👤',
                         is_public: false,
                         type: 'private',
@@ -4368,8 +4378,8 @@
             if (currentTab === 'chats') {
                 items = [...myChats].sort((a, b) => {
                     // Сначала избранное
-                    const aIsSaved = a.type === 'private' && a.name === `${currentUser.name}_${currentUser.name}`;
-                    const bIsSaved = b.type === 'private' && b.name === `${currentUser.name}_${currentUser.name}`;
+                    const aIsSaved = a.type === 'private' && a.pair_key === `${currentUser.id}_${currentUser.id}`;
+                    const bIsSaved = b.type === 'private' && b.pair_key === `${currentUser.id}_${currentUser.id}`;
                     if (aIsSaved && !bIsSaved) return -1;
                     if (!aIsSaved && bIsSaved) return 1;
                     
@@ -4378,9 +4388,6 @@
                     
                     if (aPinned && !bPinned) return -1;
                     if (!aPinned && bPinned) return 1;
-                    
-                    if (a.name === 'Избранное') return -1;
-                    if (b.name === 'Избранное') return 1;
                     
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
@@ -4479,14 +4486,19 @@
             let avatar = chat.avatar || '👥';
             
             if (chat.type === 'private' && currentUser) {
-                const participants = chat.name.split('_');
-                if (participants.length === 2) {
-                    if (participants[0] === participants[1] && participants[0] === currentUser.name) {
-                        // Это чат "Избранное"
-                        displayName = 'Избранное';
-                        avatar = '⭐';
+                if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                    // Это чат "Избранное"
+                    displayName = 'Избранное';
+                    avatar = '⭐';
+                } else {
+                    // Ищем собеседника
+                    const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                    const otherUser = allUsers.find(u => u.id === otherId);
+                    if (otherUser) {
+                        displayName = otherUser.username;
+                        avatar = otherUser.avatar || '👤';
                     } else {
-                        displayName = participants.find(n => n !== currentUser.name) || chat.name;
+                        displayName = 'Пользователь';
                     }
                 }
             }
@@ -4803,14 +4815,13 @@
             }
             if (!currentChat || currentChat.is_public) return;
             
-            const participants = currentChat.name.split('_');
-            if (participants[0] === participants[1]) {
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
                 alert('Нельзя звонить самому себе');
                 return;
             }
             
-            const otherUserName = participants.find(name => name !== currentUser.name);
-            const otherUser = allUsers.find(u => u.username === otherUserName);
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
             if (!otherUser) {
                 alert('Не удалось определить собеседника');
                 return;
@@ -4940,9 +4951,10 @@
         function showOutgoingCallModal() {
             if (!callModal) return;
             
-            const participants = currentChat.name.split('_');
-            let displayName = participants.find(n => n !== currentUser.name) || currentChat.name;
-            let avatar = currentChat.avatar || '👤';
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
+            let displayName = otherUser ? otherUser.username : 'Пользователь';
+            let avatar = otherUser ? (otherUser.avatar || '👤') : '👤';
             
             document.getElementById('callStatus').textContent = 'Соединение...';
             document.getElementById('callTimer').textContent = '';
@@ -5381,15 +5393,14 @@
         function openChatUserProfile() {
             if (!currentChat || currentChat.is_public) return;
             
-            const participants = currentChat.name.split('_');
-            if (participants[0] === participants[1]) {
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
                 // Это чат "Избранное" — показываем свой профиль
                 openProfileModal();
                 return;
             }
             
-            const otherUserName = participants.find(name => name !== currentUser.name);
-            const user = allUsers.find(u => u.username === otherUserName);
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const user = allUsers.find(u => u.id === otherId);
             if (!user) return;
             
             const onlineUser = onlineUsers[user.id];
@@ -5489,11 +5500,12 @@
                 window.history.replaceState({ chatId: chat.id }, chat.name, newUrl);
                 let title = chat.name;
                 if (chat.type === 'private' && currentUser) {
-                    const participants = chat.name.split('_');
-                    if (participants[0] === participants[1]) {
+                    if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
                         title = 'Избранное';
                     } else {
-                        title = participants.find(n => n !== currentUser.name) || chat.name;
+                        const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                        const otherUser = allUsers.find(u => u.id === otherId);
+                        title = otherUser ? otherUser.username : 'Приватный чат';
                     }
                 }
                 document.title = `${title} - Telegram Web`;
@@ -5682,7 +5694,7 @@
             const hash = window.location.hash.substring(1);
             if (hash) {
                 const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
-                if (chat) joinChat(chat);
+                if (chat) setTimeout(() => joinChat(chat), 500);
             } else {
                 currentChat = null;
                 renderMessages();
@@ -5747,8 +5759,9 @@
          - name (text)
          - is_public (boolean)
          - type (text) - 'private' или 'public'
+         - pair_key (text) - для приватных чатов хранит отсортированные ID через '_' (уникальный)
          - created_at (timestamp)
-         Индексы: type, created_at
+         Индексы: type, pair_key (unique for private)
 
        messages:
          - id (uuid, primary key)
@@ -5771,14 +5784,6 @@
          - created_at (timestamp)
          - ended_at (timestamp)
          Индексы: caller_id, receiver_id, status, created_at
-
-       chat_participants (для приватных чатов):
-         - chat_id (uuid, references chats)
-         - user_id (uuid, references profiles)
-         - joined_at (timestamp)
-         - left_at (timestamp)
-         Primary key: (chat_id, user_id)
-         Индексы: user_id
 
     2. Ably каналы:
        - chat:{chat_id} - для сообщений в чате
@@ -5808,8 +5813,7 @@
        - Все связи используют user_id (uuid)
        - При смене username обновляется только profiles.username
        - Сообщения хранят sender_id, при рендере подставляем актуальное имя из profiles
-       - Чат name для приватных чатов формируется как сортированная конкатенация username
-         (не меняется при смене username, чтобы избежать дублирования)
+       - Для приватных чатов используется pair_key (отсортированные ID)
 
     5. Защита от дубликатов:
        - Каждое сообщение имеет client_id на фронтенде
