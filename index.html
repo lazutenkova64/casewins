@@ -1317,12 +1317,6 @@
             background-color: var(--bg-hover);
         }
 
-        .modal-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
         .close-btn {
             background: none;
             border: none;
@@ -1888,25 +1882,6 @@
             font-family: monospace;
         }
 
-        .legal-footer {
-            padding: 12px;
-            text-align: center;
-            border-top: 1px solid var(--border-light);
-            font-size: 13px;
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-        }
-        .legal-footer a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .legal-footer a:hover {
-            color: var(--accent-blue);
-            text-decoration: underline;
-        }
-
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -1963,8 +1938,7 @@
             }
         }
 
-        @media (max-width: 320px) {
-            .chat-avatar {
+        @media (max-width: 320px) { ...chat-avatar {
                 width: 44px;
                 height: 44px;
                 font-size: 18px;
@@ -2047,32 +2021,8 @@
                     <input type="checkbox" id="rememberMeRegister" checked>
                     <label for="rememberMeRegister">Запомнить меня</label>
                 </div>
-                
-                <!-- NEW: Terms & Privacy agreement -->
-                <div class="remember-checkbox" style="margin-top: 10px;">
-                    <input type="checkbox" id="termsAgreement" onchange="updateRegisterButtonState()">
-                    <label for="termsAgreement">
-                        Я принимаю 
-                        <a href="#" onclick="openLegalModal('terms'); return false;">Условия использования</a> 
-                        и 
-                        <a href="#" onclick="openLegalModal('privacy'); return false;">Политику конфиденциальности</a>
-                    </label>
-                </div>
-
-                <button class="modal-btn" id="registerBtn" onclick="register()" disabled>Зарегистрироваться</button>
+                <button class="modal-btn" onclick="register()">Зарегистрироваться</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Legal modal for terms/privacy -->
-    <div class="modal" id="legalModal">
-        <div class="modal-content" style="max-width: 600px;">
-            <button class="close-btn" onclick="closeLegalModal()">×</button>
-            <h2 id="legalModalTitle">Условия использования</h2>
-            <div id="legalModalContent" style="max-height: 60vh; overflow-y: auto; padding: 10px; background: var(--bg-input); border-radius: 12px;">
-                <!-- content will be loaded here -->
-            </div>
-            <button class="modal-btn secondary" onclick="closeLegalModal()" style="margin-top: 15px;">Закрыть</button>
         </div>
     </div>
 
@@ -2101,11 +2051,6 @@
             
             <div style="padding: 12px; border-top: 1px solid var(--border-light);">
                 <button class="modal-btn secondary" style="width: 100%; margin-bottom: 0;" onclick="logout()">Выйти</button>
-            </div>
-            <!-- Footer legal links -->
-            <div class="legal-footer">
-                <a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a>
-                <a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a>
             </div>
         </div>
 
@@ -2224,6 +2169,12 @@
 
     <script>
         (function() {
+            // === СВЯЗИ ТАБЛИЦ SUPABASE ===
+            // messages.chat_id -> chats.id
+            // messages.sender_id -> profiles.id
+            // chat_members.user_id -> profiles.id
+            // chat_members.chat_id -> chats.id
+
             // === КОНФИГУРАЦИЯ ===
             const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
             const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
@@ -2235,8 +2186,8 @@
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' }
             ];
-            const CALL_TIMEOUT = 30000;
-            const MESSAGE_LIMIT = 50;
+            const CALL_TIMEOUT = 30000; // 30 секунд
+            const MESSAGE_LIMIT = 50;    // сколько сообщений загружать за раз
 
             // === SUPABASE КЛИЕНТ ===
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -2252,20 +2203,21 @@
             let allUsers = [];
             let onlineUsers = {};
             let currentChat = null;
-            let messages = {};
+            let messages = {};                // { chatId: [message] }
             let unreadCounts = {};
             let currentTab = 'chats';
             let messageToEdit = null;
             let activeMessageId = null;
             let messageStatuses = {};
-            let deletedMessages = JSON.parse(localStorage.getItem('deletedMessages')) || {};
-            let pendingMessages = JSON.parse(localStorage.getItem('pendingMessages')) || {};
-            let messageQueue = JSON.parse(localStorage.getItem('messageQueue')) || {};
+            let deletedMessages = {};
+            let pendingMessages = {};
+            let messageQueue = {};
             let isInitialized = false;
             let currentTheme = localStorage.getItem('theme') || 'classic-dark';
             let activeAudio = null;
             let activeAudioId = null;
             let audioElements = {};
+            let audioUpdateInterval = null;
             let mediaRecorder = null;
             let audioChunks = [];
             let isRecording = false;
@@ -2275,11 +2227,11 @@
             let sendBtnDisabled = false;
             const MESSAGE_COOLDOWN = 500;
 
-            // === ЗВОНКИ ===
-            let callState = 'idle';
+            // === ПЕРЕМЕННЫЕ ДЛЯ ЗВОНКОВ ===
+            let callState = 'idle'; // idle, calling, ringing, active, ended, missed, declined
             let localStream = null;
             let peerConnection = null;
-            let currentCall = null;
+            let currentCall = null; // { id, dbId, callerId, receiverId, callerName, callerAvatar, offer? }
             let callTimerInterval = null;
             let callStartTime = null;
             let callTimeoutId = null;
@@ -2417,6 +2369,7 @@
             // === ПОЛУЧЕНИЕ ИМЕНИ ДЛЯ ПРИВАТНОГО ЧАТА ===
             function getPrivateChatDisplayName(chat) {
                 if (!chat || chat.type !== 'private' || !currentUser) return chat?.name || '';
+                // Всегда показываем имя другого пользователя
                 return chat.otherUserName || '';
             }
 
@@ -2455,7 +2408,7 @@
                 } catch (err) {}
             }
 
-            // === ЗАГРУЗКА ЧАТОВ ПОЛЬЗОВАТЕЛЯ (с полной информацией о собеседнике) ===
+            // === ЗАГРУЗКА ЧАТОВ ПОЛЬЗОВАТЕЛЯ (из chat_members) ===
             async function loadMyChats() {
                 if (!currentUser) return;
                 try {
@@ -2479,7 +2432,7 @@
                         return;
                     }
 
-                    // Для каждого приватного чата находим другого участника и загружаем его профиль
+                    // Для каждого приватного чата находим другого участника
                     myChats = await Promise.all(chats.map(async (chat) => {
                         if (chat.type === 'private') {
                             const { data: members } = await supabase
@@ -2487,21 +2440,13 @@
                                 .select('user_id')
                                 .eq('chat_id', chat.id);
                             const otherId = members?.find(m => m.user_id !== currentUser.id)?.user_id;
-                            if (otherId) {
-                                const { data: profile } = await supabase
-                                    .from('profiles')
-                                    .select('*')
-                                    .eq('id', otherId)
-                                    .single();
-                                return {
-                                    ...chat,
-                                    otherUserId: otherId,
-                                    otherUserName: profile?.username || '???',
-                                    avatar: profile?.avatar || '👤'
-                                };
-                            } else {
-                                return { ...chat, otherUserId: null, otherUserName: '???', avatar: '👤' };
-                            }
+                            const otherUser = allUsers.find(u => u.id === otherId);
+                            return {
+                                ...chat,
+                                avatar: otherUser?.avatar || '👤',
+                                otherUserName: otherUser?.username || '???',
+                                otherUserId: otherId
+                            };
                         } else {
                             return { ...chat, avatar: chat.is_public ? '👥' : '👤' };
                         }
@@ -2511,9 +2456,10 @@
                 }
             }
 
-            // === ЗАГРУЗКА ИСТОРИИ КОНКРЕТНОГО ЧАТА ===
+            // === ЗАГРУЗКА ИСТОРИИ КОНКРЕТНОГО ЧАТА (с поддержкой отмены) ===
             let currentChatAbortController = null;
             async function loadChatHistory(chatId) {
+                // Отменяем предыдущий запрос, если он был
                 if (currentChatAbortController) {
                     currentChatAbortController.abort();
                 }
@@ -2527,13 +2473,14 @@
                         .eq('chat_id', chatId)
                         .order('created_at', { ascending: true })
                         .limit(MESSAGE_LIMIT)
-                        .abortSignal(signal);
+                        .abortSignal(signal); // поддержка отмены (если есть в версии supabase-js)
                     if (error) {
                         if (error.name === 'AbortError') return;
                         throw error;
                     }
                     if (data) {
                         if (!messages[chatId]) messages[chatId] = [];
+                        // Очищаем массив для этого чата перед загрузкой (чтобы не дублировать)
                         messages[chatId] = [];
                         data.forEach(msg => {
                             if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) return;
@@ -2565,6 +2512,7 @@
                         messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                         if (currentChat && currentChat.id === chatId) {
                             renderMessages();
+                            // Прокрутка вниз после загрузки истории
                             const container = document.getElementById('messagesContainer');
                             if (container) {
                                 setTimeout(() => container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }), 100);
@@ -2580,86 +2528,116 @@
                 }
             }
 
-            // === REALTIME ПОДПИСКИ ===
+            // === REALTIME ПОДПИСКИ (SUPABASE) ===
             function initRealtimeSubscriptions() {
+                // Подписка на новые сообщения
                 supabase
                     .channel('messages-channel')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => handleNewMessage(payload.new))
-                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => handleUpdateMessage(payload.new))
-                    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => handleDeleteMessage(payload.old))
+                    .on(
+                        'postgres_changes',
+                        { event: 'INSERT', schema: 'public', table: 'messages' },
+                        payload => handleNewMessage(payload.new)
+                    )
+                    .on(
+                        'postgres_changes',
+                        { event: 'UPDATE', schema: 'public', table: 'messages' },
+                        payload => handleUpdateMessage(payload.new)
+                    )
+                    .on(
+                        'postgres_changes',
+                        { event: 'DELETE', schema: 'public', table: 'messages' },
+                        payload => handleDeleteMessage(payload.old)
+                    )
                     .subscribe();
 
+                // Подписка на новые публичные чаты
                 supabase
                     .channel('chats-channel')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats', filter: 'is_public=eq.true' }, payload => {
-                        const newChat = payload.new;
-                        if (!publicChats.find(c => c.id === newChat.id)) {
-                            publicChats.push({ ...newChat, avatar: '👥' });
-                            if (currentTab === 'public') updateChatsList();
+                    .on(
+                        'postgres_changes',
+                        { event: 'INSERT', schema: 'public', table: 'chats', filter: 'is_public=eq.true' },
+                        payload => {
+                            const newChat = payload.new;
+                            if (!publicChats.find(c => c.id === newChat.id)) {
+                                publicChats.push({ ...newChat, avatar: '👥' });
+                                if (currentTab === 'public') updateChatsList();
+                            }
                         }
-                    })
+                    )
                     .subscribe();
 
+                // Подписка на новые записи в chat_members для текущего пользователя
                 supabase
                     .channel('chat-members-channel')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_members', filter: `user_id=eq.${currentUser.id}` }, async payload => {
-                        const newMembership = payload.new;
-                        const chatId = newMembership.chat_id;
-                        if (myChats.some(c => c.id === chatId)) return;
-                        const { data: chatData, error } = await supabase
-                            .from('chats')
-                            .select('*')
-                            .eq('id', chatId)
-                            .single();
-                        if (error) return;
-                        if (chatData.type === 'private') {
-                            const { data: members } = await supabase
-                                .from('chat_members')
-                                .select('user_id')
-                                .eq('chat_id', chatId);
-                            const otherId = members?.find(m => m.user_id !== currentUser.id)?.user_id;
-                            const { data: otherUser } = await supabase
-                                .from('profiles')
+                    .on(
+                        'postgres_changes',
+                        { event: 'INSERT', schema: 'public', table: 'chat_members', filter: `user_id=eq.${currentUser.id}` },
+                        async payload => {
+                            const newMembership = payload.new;
+                            const chatId = newMembership.chat_id;
+                            // Проверяем, есть ли уже этот чат в myChats
+                            if (myChats.some(c => c.id === chatId)) return;
+                            // Загружаем чат
+                            const { data: chatData, error } = await supabase
+                                .from('chats')
                                 .select('*')
-                                .eq('id', otherId)
+                                .eq('id', chatId)
                                 .single();
-                            const chat = {
-                                ...chatData,
-                                avatar: otherUser?.avatar || '👤',
-                                otherUserName: otherUser?.username || '???',
-                                otherUserId: otherId
-                            };
-                            myChats.push(chat);
-                        } else {
-                            myChats.push({ ...chatData, avatar: chatData.is_public ? '👥' : '👤' });
+                            if (error) return;
+                            if (chatData.type === 'private') {
+                                // Находим другого участника
+                                const { data: members } = await supabase
+                                    .from('chat_members')
+                                    .select('user_id')
+                                    .eq('chat_id', chatId);
+                                const otherId = members?.find(m => m.user_id !== currentUser.id)?.user_id;
+                                const otherUser = allUsers.find(u => u.id === otherId) || await (async () => {
+                                    const { data } = await supabase.from('profiles').select('*').eq('id', otherId).single();
+                                    return data;
+                                })();
+                                const chat = {
+                                    ...chatData,
+                                    avatar: otherUser?.avatar || '👤',
+                                    otherUserName: otherUser?.username || '???',
+                                    otherUserId: otherId
+                                };
+                                myChats.push(chat);
+                            } else {
+                                myChats.push({ ...chatData, avatar: chatData.is_public ? '👥' : '👤' });
+                            }
+                            updateChatsList();
                         }
-                        updateChatsList();
-                    })
+                    )
                     .subscribe();
 
                 supabase
                     .channel('profiles-channel')
-                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, payload => {
-                        const updated = payload.new;
-                        const idx = allUsers.findIndex(u => u.id === updated.id);
-                        if (idx !== -1) {
-                            allUsers[idx] = { ...allUsers[idx], ...updated };
-                        } else {
-                            allUsers.push(updated);
+                    .on(
+                        'postgres_changes',
+                        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+                        payload => {
+                            const updated = payload.new;
+                            const idx = allUsers.findIndex(u => u.id === updated.id);
+                            if (idx !== -1) {
+                                allUsers[idx] = { ...allUsers[idx], ...updated };
+                            } else {
+                                allUsers.push(updated);
+                            }
+                            if (currentTab === 'users' || currentTab === 'chats') updateChatsList();
+                            if (currentChat && currentChat.type === 'private') updateChatStatus();
                         }
-                        if (currentTab === 'users' || currentTab === 'chats') updateChatsList();
-                        if (currentChat && currentChat.type === 'private') updateChatStatus();
-                    })
+                    )
                     .subscribe();
             }
 
             async function handleNewMessage(msg) {
                 if (!currentUser) return;
                 const chatId = msg.chat_id;
+                // Игнорируем свои сообщения (они уже добавлены локально)
                 if (msg.sender_id === currentUser.id) return;
                 if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) return;
                 if (!messages[chatId]) messages[chatId] = [];
-                if (messages[chatId].some(m => m.id === msg.id)) return;
+                if (messages[chatId].some(m => m.id === msg.id)) return; // защита от дублей
 
                 let sender = allUsers.find(u => u.id === msg.sender_id);
                 if (!sender) {
@@ -2686,6 +2664,7 @@
                 messages[chatId].push(newMsg);
                 messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
+                // Отправляем подтверждение доставки
                 supabase
                     .from('messages')
                     .update({ delivered_at: new Date().toISOString() })
@@ -2695,6 +2674,7 @@
 
                 if (currentChat && currentChat.id === chatId) {
                     renderMessages();
+                    // Прокрутка вниз для нового сообщения
                     const container = document.getElementById('messagesContainer');
                     if (container) {
                         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
@@ -2745,7 +2725,7 @@
                 updateChatsList();
             }
 
-            // === ОТПРАВКА СООБЩЕНИЯ (исправленная) ===
+            // === ОТПРАВКА СООБЩЕНИЯ ===
             async function sendMessage() {
                 if (sendBtnDisabled) { alert('Слишком часто! Подождите секунду.'); return; }
                 const input = document.getElementById('messageInput');
@@ -2782,6 +2762,7 @@
                 input.value = '';
                 input.style.height = 'auto';
                 renderMessages();
+                // Прокрутка вниз после отправки
                 const container = document.getElementById('messagesContainer');
                 if (container) {
                     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
@@ -2812,7 +2793,7 @@
                 } catch (err) {
                     console.error('Ошибка сохранения сообщения:', err);
                     if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
-                    pendingMessages[currentUser.id].push({ dbMessage, tempId });
+                    pendingMessages[currentUser.id].push({ ...dbMessage, tempId });
                     localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
                 }
             }
@@ -2870,7 +2851,7 @@
                         delete messageStatuses[tempId];
                     } catch (err) {
                         if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
-                        pendingMessages[currentUser.id].push({ dbMessage, tempId });
+                        pendingMessages[currentUser.id].push({ ...dbMessage, tempId });
                         localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
                     }
                 };
@@ -2882,7 +2863,7 @@
                 const pending = pendingMessages[currentUser.id];
                 if (pending.length === 0) return;
                 for (const item of pending) {
-                    const { tempId, dbMessage } = item;
+                    const { tempId, ...dbMessage } = item;
                     try {
                         const { data, error } = await supabase.from('messages').insert([dbMessage]).select();
                         if (!error) {
@@ -2979,6 +2960,7 @@
                 } else if (!messages[currentChat.id] || messages[currentChat.id].length === 0) {
                     newMessages = '<div class="empty-state">Нет сообщений</div>';
                 } else {
+                    // Сообщения уже отсортированы при добавлении
                     const fragment = [];
                     messages[currentChat.id].forEach(msg => {
                         if (deletedMessages[currentChat.id] && deletedMessages[currentChat.id].includes(msg.id)) return;
@@ -3251,8 +3233,9 @@
                 }
             }
 
-            // === СОЗДАНИЕ ПРИВАТНОГО ЧАТА (без дубликатов, с полной загрузкой) ===
+            // === СОЗДАНИЕ ПРИВАТНОГО ЧАТА (без дубликатов) ===
             async function createPrivateChat(user) {
+                // 1. Проверить, существует ли чат между пользователями
                 try {
                     const { data: commonChats, error: commonError } = await supabase
                         .from('chat_members')
@@ -3270,6 +3253,7 @@
                         if (otherError) throw otherError;
                         
                         if (otherMembers && otherMembers.length > 0) {
+                            // Чат уже существует
                             const chatId = otherMembers[0].chat_id;
                             const { data: chatData, error: chatError } = await supabase
                                 .from('chats')
@@ -3291,6 +3275,7 @@
                         }
                     }
 
+                    // 2. Создаём новый приватный чат
                     const newChat = {
                         type: 'private',
                         is_public: false,
@@ -3304,6 +3289,7 @@
                     if (chatError) throw chatError;
                     const chatId = chatInsert[0].id;
 
+                    // 3. Добавляем участников
                     const membersInsert = [
                         { chat_id: chatId, user_id: currentUser.id },
                         { chat_id: chatId, user_id: user.id }
@@ -3313,6 +3299,7 @@
                         .insert(membersInsert);
                     if (membersError) throw membersError;
 
+                    // 4. Открываем чат
                     const fullChat = {
                         ...chatInsert[0],
                         avatar: user.avatar,
@@ -3332,6 +3319,7 @@
             async function joinChat(chat) {
                 if (!chat) return;
 
+                // Если это приватный чат и у нас нет информации о втором пользователе, загружаем
                 if (chat.type === 'private' && !chat.otherUserId) {
                     try {
                         const { data: members, error: memErr } = await supabase
@@ -3356,17 +3344,15 @@
                     } catch (err) {
                         console.error('Error loading other user in joinChat', err);
                     }
+                    // После загрузки обновляем заголовок
+                    if (chat.type === 'private') {
+                        document.getElementById('currentChatName').innerHTML = chat.otherUserName || '???';
+                        document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👤';
+                        updateChatStatus();
+                    }
                 }
 
-                if (chat.type === 'private') {
-                    document.getElementById('currentChatName').innerHTML = chat.otherUserName || '???';
-                    document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👤';
-                    updateChatStatus();
-                } else {
-                    document.getElementById('currentChatName').innerHTML = chat.name || 'Публичный чат';
-                    document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👥';
-                }
-
+                // Убедимся, что пользователь участник (если нет, добавим) — для приватных чатов это уже должно быть выполнено
                 const { data: membership } = await supabase
                     .from('chat_members')
                     .select('*')
@@ -3394,10 +3380,11 @@
                 document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : '';
                 document.getElementById('chatHeaderAvatar').textContent = chat.avatar || '👤';
                 document.getElementById('callBtn').style.display = (chat.type === 'private' && callsTableExists) ? 'flex' : 'none';
+                // Загружаем историю асинхронно (не блокируя UI)
                 loadChatHistory(chat.id);
                 if (!messages[chat.id]) messages[chat.id] = [];
                 markMessagesAsRead(chat.id);
-                renderMessages();
+                renderMessages(); // может отрисовать пусто, потом история догрузится
                 updateChatsList();
                 updateChatStatus();
                 if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
@@ -3550,7 +3537,7 @@
                 updateAudioProgress(messageId);
             }
 
-            // === ЗВОНКИ ===
+            // === ЗВОНКИ (WebRTC + Ably signaling) — без изменений ===
             async function preloadSounds() {
                 return new Promise(resolve => {
                     callRingtone = new Audio();
@@ -3855,6 +3842,7 @@
                 if (!list) return;
                 let items = [];
                 if (currentTab === 'chats') {
+                    // Показываем все чаты пользователя (из chat_members + chats), сортировка по последнему сообщению
                     items = [...myChats].sort((a, b) => {
                         const lastMsgA = messages[a.id] && messages[a.id].length ? messages[a.id][messages[a.id].length - 1] : null;
                         const lastMsgB = messages[b.id] && messages[b.id].length ? messages[b.id][messages[b.id].length - 1] : null;
@@ -3928,6 +3916,7 @@
                 if (chat.type === 'private' && currentUser) {
                     displayName = chat.otherUserName || '???';
                 }
+                // Иконка замка только для приватных (не публичных)
                 const lockIcon = !chat.is_public ? '<span class="lock-icon">🔒</span>' : '';
                 return `
                     <div class="chat-item ${currentChat?.id === chat.id ? 'active' : ''}" onclick="joinChat(${JSON.stringify(chat).replace(/"/g, '&quot;')})">
@@ -3974,12 +3963,7 @@
                 document.getElementById('profileDNDCheckbox').checked = currentUser.dnd || false;
             }
 
-            // === АУТЕНТИФИКАЦИЯ С ПРОВЕРКОЙ СОГЛАСИЯ ===
-            function updateRegisterButtonState() {
-                const agreed = document.getElementById('termsAgreement').checked;
-                document.getElementById('registerBtn').disabled = !agreed;
-            }
-
+            // === АУТЕНТИФИКАЦИЯ ===
             async function init() {
                 if (isInitialized) return;
                 isInitialized = true;
@@ -4008,6 +3992,7 @@
                             updateProfileUI();
                             await Promise.all([loadAllUsers(), loadPublicChats()]);
                             await loadMyChats();
+                            // Не загружаем все сообщения
                             initAbly();
                             initRealtimeSubscriptions();
                             startHeartbeat();
@@ -4067,6 +4052,7 @@
                         updateProfileUI();
                         await Promise.all([loadAllUsers(), loadPublicChats()]);
                         await loadMyChats();
+                        // Не загружаем все сообщения
                         initAbly();
                         initRealtimeSubscriptions();
                         startHeartbeat();
@@ -4089,10 +4075,8 @@
                 const email = document.getElementById('registerEmail').value.trim();
                 const password = document.getElementById('registerPassword').value;
                 const confirm = document.getElementById('registerConfirmPassword').value;
-                const agreed = document.getElementById('termsAgreement').checked;
                 if (!email || !password) { alert('Заполните все поля'); return; }
                 if (password !== confirm) { alert('Пароли не совпадают'); return; }
-                if (!agreed) { alert('Вы должны принять Условия использования и Политику конфиденциальности'); return; }
                 const username = email.split('@')[0];
                 const creatorEmail = "k1lame@example.com";
                 if (username === ADMIN_USERNAME && email !== creatorEmail) {
@@ -4129,6 +4113,7 @@
                 Object.values(audioElements).forEach(audio => { if (audio) { audio.pause(); audio.currentTime = 0; } });
                 audioElements = {};
                 activeAudio = null; activeAudioId = null;
+                if (audioUpdateInterval) { clearInterval(audioUpdateInterval); audioUpdateInterval = null; }
                 await updateUserLastSeen();
                 await supabase.auth.signOut();
                 if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
@@ -4154,8 +4139,6 @@
                 document.getElementById('registerEmail').value = '';
                 document.getElementById('registerPassword').value = '';
                 document.getElementById('registerConfirmPassword').value = '';
-                document.getElementById('termsAgreement').checked = false;
-                updateRegisterButtonState();
             }
 
             async function updateUserLastSeen() {
@@ -4281,24 +4264,6 @@
             }
             function closeUserProfileModal() { document.getElementById('userProfileModal').classList.remove('active'); }
 
-            // === LEGAL MODAL ===
-            function openLegalModal(type) {
-                const modal = document.getElementById('legalModal');
-                const title = document.getElementById('legalModalTitle');
-                const content = document.getElementById('legalModalContent');
-                if (type === 'terms') {
-                    title.textContent = 'Условия использования';
-                    content.innerHTML = '<h3>Пользовательское соглашение</h3><p>Здесь должны быть ваши условия использования. Это демо-версия, поэтому мы используем заглушку. В реальном проекте подгружайте содержимое из /legal/terms.html</p><p>1. Общие положения</p><p>2. Обязательства сторон</p><p>3. Ответственность</p><p>4. Прочее</p>';
-                } else {
-                    title.textContent = 'Политика конфиденциальности';
-                    content.innerHTML = '<h3>Политика конфиденциальности</h3><p>Здесь должна быть ваша политика конфиденциальности. Это демо-версия, поэтому мы используем заглушку. В реальном проекте подгружайте содержимое из /legal/privacy.html</p><p>1. Какие данные собираем</p><p>2. Как используем</p><p>3. Защита данных</p><p>4. Контакты</p>';
-                }
-                modal.classList.add('active');
-            }
-            function closeLegalModal() {
-                document.getElementById('legalModal').classList.remove('active');
-            }
-
             // === ВСПОМОГАТЕЛЬНЫЕ UI ===
             function switchAuthMode(mode) {
                 const loginForm = document.getElementById('loginForm');
@@ -4315,7 +4280,6 @@
                     registerForm.style.display = 'block';
                     loginTab.className = 'auth-tab';
                     registerTab.className = 'auth-tab active';
-                    updateRegisterButtonState();
                 }
             }
 
@@ -4531,7 +4495,6 @@
             document.addEventListener('DOMContentLoaded', () => {
                 populateEmojiPicker();
                 init();
-                updateRegisterButtonState();
             });
 
             // === ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ===
@@ -4579,9 +4542,6 @@
             window.rejectCall = rejectCall;
             window.endCall = endCall;
             window.toggleMute = toggleMute;
-            window.openLegalModal = openLegalModal;
-            window.closeLegalModal = closeLegalModal;
-            window.updateRegisterButtonState = updateRegisterButtonState;
         })();
     </script>
 </body>
