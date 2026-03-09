@@ -192,6 +192,7 @@ async function createPrivateChat(user) {
         
         if (error) {
             console.error('Error checking existing chat:', error);
+            throw error;
         }
         
         if (existingChat) {

@@ -167,6 +167,8 @@ async function sendMessage() {
         return;
     }
 
+    console.log('Отправка сообщения:', text);
+    
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     
@@ -645,6 +647,8 @@ function subscribeToChatChannel(chatId) {
     attachWithRetry(5, 200);
 
     chatChannel.subscribe('message', (message) => {
+        console.log('Получено сообщение:', message.data);
+        
         const msg = message.data;
         if (!msg) return;
         

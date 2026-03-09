@@ -75,6 +75,12 @@ async function init() {
                 if (myChats.length === 0) {
                     updateChatsList();
                 }
+                
+                // Подписка на изменения сообщений в реальном времени
+                supabaseClient
+                  .channel('messages')
+                  .on('INSERT', handleNewMessage)
+                  .subscribe();
             } else {
                 document.getElementById('loginModal').classList.add('active');
                 document.getElementById('appContainer').style.display = 'none';
