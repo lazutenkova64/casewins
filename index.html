@@ -2224,13 +2224,3651 @@
         </div>
     </div>
 
-    <script src="js/supabase.js"></script>
-    <script src="js/realtime.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/chats.js"></script>
-    <script src="js/messages.js"></script>
-    <script src="js/calls.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+        // ========== PRODUCTION-READY REALTIME MESSENGER ARCHITECTURE ==========
+        // (весь сохранённый комментарий остаётся без изменений)
+        // ...
+
+        // ========== ИНИЦИАЛИЗАЦИЯ SUPABASE ==========
+        const SUPABASE_URL = "https://olqwgfesedzrnpwfwqpa.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_nuCZ7nbXGaseOjl8VIsKpA_-o1MEZlY";
+        const ABLY_API_KEY = "pYHevw.VrFP9Q:8u3IGeMI56PtA4S6Z_VCVvvXpEXEmiIlfoAjfPb6BZg";
+        const ADMIN_USERNAME = "K1lame";
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { 
+                persistSession: true, 
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            }
+        });
+
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let ably;
+        let currentUser = null;
+        let myChats = [];              // чаты, в которых участвует пользователь (из БД)
+        let publicChats = [];           // все публичные чаты (из БД)
+        let allUsers = [];              // все пользователи (из БД)
+        let onlineUsers = {};            // онлайн-статусы из Ably presence
+        let currentChat = null;          // текущий открытый чат
+        let messages = {};               // сообщения по chatId (локальный кеш)
+        let unreadCounts = {};           
+        let currentTab = 'chats';
+        let messageToEdit = null;
+        let activeMessageId = null;
+        let messageStatuses = {};        
+        let deletedMessages = {};         // храним удалённые messageId для каждого чата
+        let pinnedChats = [];              // закрепленные чаты (из localStorage)
+
+        let lastMessageTime = 0;
+        const MESSAGE_COOLDOWN = 500;
+        let sendBtnDisabled = false;
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingTimeout;
+        let mediaStream = null;
+        let recordingStartTime = 0;
+        
+        let activeAudio = null;
+        let activeAudioId = null;
+        let audioElements = {};
+        let audioUpdateInterval = null;
+
+        let heartbeatInterval;
+        let presenceUpdateInterval;
+        let statusUpdateInterval;
+
+        let loginAttempts = 0;
+        let lastLoginAttemptTime = 0;
+
+        let isInitialized = false;
+        let currentTheme = localStorage.getItem('theme') || 'classic-dark';
+        let pendingMessages = {};          // неотправленные сообщения (офлайн)
+        let messageQueue = {};              // очередь сообщений для пользователей
+
+        // Состояние звонка
+        let currentCall = null;              // { id, dbId, callerId, receiverId, ... }
+        let localStream = null;
+        let peerConnection = null;
+        let callRingtone = null;
+        let callAcceptedSound = null;
+        let callEndedSound = null;
+        let callModal = null;
+        let callMuted = false;
+        let callTimerInterval = null;
+        let callStartTime = null;
+        const CALL_DURATION_LIMIT = 30 * 60 * 1000; // 30 минут
+
+        // Флаг наличия таблицы calls
+        let callsTableExists = true;
+
+        // Флаг инициализации для ускорения загрузки
+        let loadingComplete = false;
+
+        // Флаг для отслеживания переподключения Ably
+        let ablyReconnectTimer = null;
+
+        // Map для отслеживания созданных приватных чатов (предотвращение дубликатов)
+        let privateChatsMap = new Map(); // key: "user1_user2" -> chatId
+
+        // Эмодзи
+        const emojiList = [
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', 
+            '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
+            '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤',
+            '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫'
+        ];
+
+        const weirdEmojis = [
+            '👾', '🤖', '👽', '💀', '👻', '👹', '👺', '🤡', '💩', '🔥',
+            '🌀', '🌚', '🌝', '⭐', '🌟', '💫', '✨', '⚡', '☄️', '💥',
+            '🕳️', '👁️', '🧠', '👅', '👄', '🦷', '🦴', '👀', '👃', '👂'
+        ];
+
+        const themes = [
+            { id: 'classic-dark', name: 'Классический темный', class: 'classic-dark' },
+            { id: 'neon-city', name: 'Неоновый город', class: 'neon-city' },
+            { id: 'cyberpunk', name: 'Киберпанк', class: 'cyberpunk' },
+            { id: 'ice-cave', name: 'Ледяная пещера', class: 'ice-cave' },
+            { id: 'volcanic', name: 'Вулканическая', class: 'volcanic' },
+            { id: 'mint-fresh', name: 'Мятная свежесть', class: 'mint-fresh' },
+            { id: 'purple-haze', name: 'Фиолетовый туман', class: 'purple-haze' },
+            { id: 'golden-age', name: 'Золотой век', class: 'golden-age' },
+            { id: 'cosmic-abyss', name: 'Космическая бездна', class: 'cosmic-abyss' },
+            { id: 'ocean-deep', name: 'Морская глубина', class: 'ocean-deep' }
+        ];
+
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        function applyTheme(themeId) {
+            document.documentElement.setAttribute('data-theme', themeId);
+            currentTheme = themeId;
+            localStorage.setItem('theme', themeId);
+        }
+
+        function populateThemeGrid() {
+            const grid = document.getElementById('themeGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            themes.forEach(theme => {
+                const div = document.createElement('div');
+                div.className = `theme-option ${currentTheme === theme.id ? 'selected' : ''}`;
+                div.onclick = () => selectTheme(theme.id, div);
+                
+                const preview = document.createElement('div');
+                preview.className = `theme-preview ${theme.class}`;
+                
+                const message1 = document.createElement('div');
+                message1.className = 'preview-message';
+                message1.style.width = '70%';
+                message1.style.marginBottom = '4px';
+                
+                const message2 = document.createElement('div');
+                message2.className = 'preview-message';
+                message2.style.width = '40%';
+                message2.style.alignSelf = 'flex-end';
+                message2.style.marginLeft = 'auto';
+                
+                preview.appendChild(message1);
+                preview.appendChild(message2);
+                
+                const name = document.createElement('span');
+                name.className = 'theme-name';
+                name.textContent = theme.name;
+                
+                div.appendChild(preview);
+                div.appendChild(name);
+                grid.appendChild(div);
+            });
+        }
+
+        function selectTheme(themeId, element) {
+            document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            applyTheme(themeId);
+        }
+
+        function formatLastSeen(timestamp) {
+            if (!timestamp) return 'давно';
+            
+            const now = Date.now();
+            const diff = now - timestamp;
+            
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 30) return 'давно';
+            if (seconds < 60) return 'только что';
+            if (minutes < 60) {
+                if (minutes === 1) return '1 мин назад';
+                if (minutes >= 2 && minutes <= 4) return `${minutes} мин назад`;
+                return `${minutes} мин назад`;
+            }
+            if (hours < 24) {
+                if (hours === 1) return '1 час назад';
+                if (hours >= 2 && hours <= 4) return `${hours} часа назад`;
+                return `${hours} часов назад`;
+            }
+            if (days === 1) return 'вчера';
+            if (days < 7) {
+                if (days >= 2 && days <= 4) return `${days} дня назад`;
+                return `${days} дней назад`;
+            }
+            
+            const date = new Date(timestamp);
+            return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatCallTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Генерация UUID для локальных объектов (совместимость)
+        function generateUUID() {
+            return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // ========== ЗАКРЕПЛЕНИЕ ЧАТОВ ==========
+        function loadPinnedChats() {
+            try {
+                const saved = localStorage.getItem(`pinnedChats_${currentUser?.id}`);
+                if (saved) {
+                    pinnedChats = JSON.parse(saved);
+                } else {
+                    pinnedChats = [];
+                }
+            } catch (e) {
+                console.error('Failed to load pinned chats', e);
+                pinnedChats = [];
+            }
+        }
+
+        function savePinnedChats() {
+            if (!currentUser) return;
+            try {
+                localStorage.setItem(`pinnedChats_${currentUser.id}`, JSON.stringify(pinnedChats));
+            } catch (e) {
+                console.error('Failed to save pinned chats', e);
+            }
+        }
+
+        function togglePinChat(chatId, event) {
+            event.stopPropagation();
+            if (!currentUser) return;
+            
+            const index = pinnedChats.indexOf(chatId);
+            if (index === -1) {
+                pinnedChats.push(chatId);
+            } else {
+                pinnedChats.splice(index, 1);
+            }
+            savePinnedChats();
+            updateChatsList();
+        }
+
+        function isChatPinned(chatId) {
+            return pinnedChats.includes(chatId);
+        }
+
+        // ========== ЧАТ "ИЗБРАННОЕ" ==========
+        async function ensureSavedMessagesChat() {
+            if (!currentUser) return;
+            
+            const pairKey = `${currentUser.id}_${currentUser.id}`;
+            
+            // Проверяем, есть ли уже такой чат в БД
+            const { data: existingChat, error } = await supabaseClient
+                .from('chats')
+                .select('*')
+                .eq('pair_key', pairKey)
+                .eq('type', 'private')
+                .maybeSingle();
+            
+            if (error) {
+                console.error('Error checking saved messages chat:', error);
+                return;
+            }
+            
+            if (existingChat) {
+                // Если есть, но нет в myChats, добавим
+                if (!myChats.some(c => c.id === existingChat.id)) {
+                    myChats.push({
+                        id: existingChat.id,
+                        name: 'Избранное',
+                        avatar: '⭐',
+                        is_public: false,
+                        type: 'private',
+                        pair_key: pairKey,
+                        created_at: existingChat.created_at
+                    });
+                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                    
+                    if (ably) {
+                        subscribeToChatChannel(existingChat.id);
+                    }
+                }
+            } else {
+                // Создаём новый чат
+                try {
+                    const newChat = {
+                        name: 'Избранное',
+                        is_public: false,
+                        type: 'private',
+                        pair_key: pairKey,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const { data, error } = await supabaseClient
+                        .from('chats')
+                        .insert([newChat])
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    myChats.push({
+                        id: data[0].id,
+                        name: 'Избранное',
+                        avatar: '⭐',
+                        is_public: false,
+                        type: 'private',
+                        pair_key: pairKey,
+                        created_at: data[0].created_at
+                    });
+                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                    
+                    if (ably) {
+                        subscribeToChatChannel(data[0].id);
+                    }
+                } catch (err) {
+                    console.error('Error creating saved messages chat:', err);
+                }
+            }
+        }
+
+        // ========== ЗАГРУЗКА ЧАТОВ ИЗ БД ==========
+        async function loadUserChats() {
+            if (!currentUser) return [];
+            
+            try {
+                // Загружаем все чаты, где пользователь является участником
+                // Для приватных чатов проверяем pair_key: содержит ли он id пользователя
+                const { data: allChats, error } = await supabaseClient
+                    .from('chats')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                // Фильтруем чаты, где участвует текущий пользователь
+                const userChats = (allChats || []).filter(chat => {
+                    if (chat.type === 'public') return true;
+                    if (chat.type === 'private') {
+                        // Проверяем, содержит ли pair_key id пользователя (разделитель '_')
+                        const ids = chat.pair_key ? chat.pair_key.split('_') : [];
+                        return ids.includes(currentUser.id);
+                    }
+                    return false;
+                });
+                
+                // Обновляем publicChats
+                publicChats = (allChats || []).filter(chat => chat.is_public);
+                
+                // Обновляем myChats, добавляя avatar по умолчанию
+                myChats = userChats.map(chat => ({
+                    ...chat,
+                    avatar: chat.is_public ? '👥' : '👤'
+                }));
+                
+                // Сохраняем в localStorage для офлайн доступа
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                return myChats;
+            } catch (err) {
+                console.error('Error loading user chats:', err);
+                return [];
+            }
+        }
+
+        // ========== ПРОВЕРКА СУЩЕСТВОВАНИЯ ТАБЛИЦЫ calls ==========
+        async function checkCallsTable() {
+            try {
+                const { error } = await supabaseClient
+                    .from('calls')
+                    .select('id')
+                    .limit(1);
+                if (error && error.code === 'PGRST116') {
+                    callsTableExists = false;
+                    console.warn('Таблица "calls" не найдена. Функция звонков будет недоступна.');
+                } else {
+                    callsTableExists = true;
+                }
+            } catch (err) {
+                callsTableExists = false;
+                console.warn('Не удалось проверить таблицу calls, звонки отключены.', err);
+            }
+        }
+
+        // ========== ЗАГРУЗКА СТАТУСОВ ПРОЧТЕНИЯ ИЗ LOCALSTORAGE ==========
+        function loadMessageStatuses() {
+            try {
+                const saved = localStorage.getItem('messageStatuses');
+                if (saved) {
+                    messageStatuses = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Failed to load message statuses', e);
+            }
+        }
+
+        function saveMessageStatuses() {
+            try {
+                localStorage.setItem('messageStatuses', JSON.stringify(messageStatuses));
+            } catch (e) {
+                console.error('Failed to save message statuses', e);
+            }
+        }
+
+        // ========== АУТЕНТИФИКАЦИЯ ==========
+        async function init() {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            try {
+                applyTheme(currentTheme);
+                loadMessageStatuses();
+                
+                callModal = document.getElementById('callModal');
+                
+                await Promise.all([
+                    preloadSounds(),
+                    checkCallsTable()
+                ]);
+
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                
+                if (session?.user) {
+                    const { data: userData } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    
+                    if (userData) {
+                        currentUser = {
+                            id: userData.id,
+                            name: userData.username,
+                            avatar: userData.avatar || '👤',
+                            bio: userData.bio || '',
+                            isAdmin: userData.username === ADMIN_USERNAME,
+                            dnd: userData.dnd || false
+                        };
+                        
+                        document.getElementById('loginModal').classList.remove('active');
+                        document.getElementById('appContainer').style.display = 'flex';
+                        
+                        updateProfileUI();
+                        
+                        // Загружаем все данные параллельно
+                        await Promise.all([
+                            loadAllUsers(),
+                            loadUserChats(),
+                            loadAllMessages() // теперь оптимизирована
+                        ]);
+                        
+                        // Создаём/получаем чат "Избранное"
+                        await ensureSavedMessagesChat();
+                        
+                        loadPinnedChats();
+                        
+                        initAbly();
+                        startHeartbeat();
+                        startPresenceUpdates();
+                        startStatusUpdates();
+                        
+                        cleanupOldCalls();
+                        
+                        checkUrlForChat();
+                        forceShowInput();
+                        
+                        sendPendingMessages();
+                        processMessageQueue();
+                        
+                        listenForIncomingCalls();
+                        
+                        populateThemeGrid();
+                        
+                        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                            Notification.requestPermission();
+                        }
+                        
+                        if (myChats.length === 0) {
+                            updateChatsList();
+                        }
+                    } else {
+                        document.getElementById('loginModal').classList.add('active');
+                        document.getElementById('appContainer').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('loginModal').classList.add('active');
+                    document.getElementById('appContainer').style.display = 'none';
+                }
+                
+                setupMobileHandlers();
+                updateBackButtonVisibility();
+                updateCreateChatButtonVisibility();
+                
+                window.addEventListener('beforeunload', handleBeforeUnload);
+                setInterval(forceShowInput, 1000);
+                
+                loadingComplete = true;
+                
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('loginModal').classList.add('active');
+                document.getElementById('appContainer').style.display = 'none';
+                loadingComplete = true;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                alert('Введите email и пароль');
+                return;
+            }
+            
+            try {
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (authError) {
+                    alert('Неверный email или пароль');
+                    return;
+                }
+                
+                const { data: userData } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authData.user.id)
+                    .single();
+                
+                if (userData) {
+                    currentUser = {
+                        id: userData.id,
+                        name: userData.username,
+                        avatar: userData.avatar || '👤',
+                        bio: userData.bio || '',
+                        isAdmin: userData.username === ADMIN_USERNAME,
+                        dnd: userData.dnd || false
+                    };
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    document.getElementById('loginModal').classList.remove('active');
+                    document.getElementById('appContainer').style.display = 'flex';
+                    
+                    updateProfileUI();
+                    
+                    await Promise.all([
+                        loadAllUsers(),
+                        loadUserChats(),
+                        loadAllMessages()
+                    ]);
+                    
+                    await ensureSavedMessagesChat();
+                    
+                    loadPinnedChats();
+                    
+                    initAbly();
+                    startHeartbeat();
+                    startPresenceUpdates();
+                    startStatusUpdates();
+                    
+                    cleanupOldCalls();
+                    
+                    checkUrlForChat();
+                    forceShowInput();
+                    
+                    updateBackButtonVisibility();
+                    updateCreateChatButtonVisibility();
+                    
+                    populateThemeGrid();
+                    
+                    listenForIncomingCalls();
+                    
+                    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                        Notification.requestPermission();
+                    }
+                }
+                
+            } catch (err) {
+                console.error('Login error:', err);
+                alert('Ошибка при входе');
+            }
+        }
+
+        async function register() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (!email || !password) {
+                alert('Заполните все поля');
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert('Пароли не совпадают');
+                return;
+            }
+            
+            const username = email.split('@')[0];
+            
+            const creatorEmail = "k1lame@example.com";
+            if (username === ADMIN_USERNAME && email !== creatorEmail) {
+                alert('Имя пользователя K1lame зарезервировано для создателя');
+                return;
+            }
+            
+            try {
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (authError) {
+                    alert('Ошибка при регистрации: ' + authError.message);
+                    return;
+                }
+                
+                if (!authData.user) {
+                    alert('Ошибка при создании пользователя');
+                    return;
+                }
+                
+                const newUser = {
+                    id: authData.user.id,
+                    username: username,
+                    avatar: '👤',
+                    bio: '',
+                    dnd: false,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .insert([newUser]);
+                
+                if (error) {
+                    alert('Ошибка при регистрации: ' + error.message);
+                    return;
+                }
+                
+                alert('Регистрация успешна! Теперь вы можете войти.');
+                switchAuthMode('login');
+                
+            } catch (err) {
+                console.error('Registration error:', err);
+                alert('Ошибка при регистрации. Проверьте подключение к интернету и повторите попытку.');
+            }
+        }
+
+        async function logout() {
+            if (mediaRecorder && isRecording) {
+                stopRecording();
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            Object.values(audioElements).forEach(audio => {
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
+            audioElements = {};
+            activeAudio = null;
+            activeAudioId = null;
+            
+            if (audioUpdateInterval) {
+                clearInterval(audioUpdateInterval);
+                audioUpdateInterval = null;
+            }
+            
+            await updateUserLastSeen();
+            await supabaseClient.auth.signOut();
+            
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (presenceUpdateInterval) {
+                clearInterval(presenceUpdateInterval);
+                presenceUpdateInterval = null;
+            }
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+                statusUpdateInterval = null;
+            }
+            
+            if (ably) {
+                try {
+                    myChats.forEach(chat => {
+                        const channel = ably.channels.get(`chat-${chat.id}`);
+                        channel.unsubscribe();
+                    });
+                    
+                    const presenceChannel = ably.channels.get('presence');
+                    // Убедимся, что канал прикреплён перед leave
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.leave();
+                    }
+                    
+                    ably.close();
+                } catch (e) {
+                    console.error('Error closing Ably:', e);
+                }
+                ably = null;
+            }
+            
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+            currentChat = null;
+            myChats = [];
+            onlineUsers = {};
+            allUsers = [];
+            pinnedChats = [];
+            
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('loginModal').classList.add('active');
+            updateUrlWithChat(null);
+            updateBackButtonVisibility();
+            updateCreateChatButtonVisibility();
+            
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('registerConfirmPassword').value = '';
+        }
+
+        async function updateUserLastSeen() {
+            if (!currentUser) return;
+            
+            try {
+                await supabaseClient
+                    .from('profiles')
+                    .update({ last_seen: new Date().toISOString() })
+                    .eq('id', currentUser.id);
+            } catch (err) {
+                console.error('Error updating last_seen:', err);
+            }
+        }
+
+        // ========== ЗАГРУЗКА ДАННЫХ ==========
+        async function loadAllUsers() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .order('username');
+                
+                if (error) throw error;
+                
+                allUsers = data || [];
+                
+                if (currentTab === 'users') {
+                    updateChatsList();
+                }
+            } catch (err) {
+                console.error('Error loading users:', err);
+            }
+        }
+
+        // Оптимизированная загрузка всех сообщений (только последние 100 на чат)
+        async function loadAllMessages() {
+            if (!currentUser) return;
+            
+            try {
+                // Получаем время последней синхронизации из localStorage
+                const lastSync = localStorage.getItem(`lastSync_${currentUser.id}`);
+                const lastSyncTime = lastSync ? new Date(parseInt(lastSync)).toISOString() : new Date(0).toISOString();
+                
+                // Загружаем сообщения только новее lastSyncTime, ограничивая количество
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .select('*')
+                    .gt('created_at', lastSyncTime)
+                    .order('created_at', { ascending: true })
+                    .limit(500); // лимит на случай большого количества новых
+                
+                if (error) {
+                    console.error('Error loading messages:', error);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    data.forEach(msg => {
+                        const chatId = msg.chat_id;
+                        
+                        if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) {
+                            return;
+                        }
+                        
+                        if (!messages[chatId]) messages[chatId] = [];
+                        
+                        const exists = messages[chatId].some(m => m.id === msg.id);
+                        if (!exists) {
+                            const sender = allUsers.find(u => u.id === msg.sender_id) || { username: 'Неизвестно', avatar: '👤' };
+                            
+                            messages[chatId].push({
+                                id: msg.id,
+                                chatId: msg.chat_id,
+                                sender: msg.sender_id,
+                                senderName: sender.username,
+                                text: msg.text,
+                                audio: msg.audio,
+                                duration: msg.duration,
+                                time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                                timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
+                                isAdmin: sender.username === ADMIN_USERNAME,
+                                edited: msg.edited || false,
+                                type: msg.sender_id === currentUser.id ? 'out' : 'in'
+                            });
+                            
+                            if (msg.sender_id === currentUser.id && !messageStatuses[msg.id]) {
+                                messageStatuses[msg.id] = {
+                                    status: 'sent',
+                                    deliveredAt: null,
+                                    readAt: null
+                                };
+                            }
+                        }
+                    });
+                    
+                    // Обновляем время последней синхронизации
+                    localStorage.setItem(`lastSync_${currentUser.id}`, Date.now().toString());
+                }
+                
+                // Сортируем сообщения после добавления
+                Object.keys(messages).forEach(chatId => {
+                    messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                });
+                
+                updateUnreadCounts();
+                
+            } catch (err) {
+                console.error('Error loading all messages:', err);
+            }
+        }
+
+        async function loadChatHistory(chatId) {
+            try {
+                // Загружаем историю, начиная с самого старого сообщения, но можно ограничить
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .select('*')
+                    .eq('chat_id', chatId)
+                    .order('created_at', { ascending: true })
+                    .limit(200); // ограничим для скорости
+                
+                if (error) {
+                    console.error('Ошибка загрузки истории:', error);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    if (!messages[chatId]) messages[chatId] = [];
+                    
+                    data.forEach(msg => {
+                        if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) {
+                            return;
+                        }
+                        
+                        const existingMsg = messages[chatId].find(m => m.id === msg.id);
+                        if (!existingMsg) {
+                            const sender = allUsers.find(u => u.id === msg.sender_id) || { username: 'Неизвестно', avatar: '👤' };
+                            
+                            messages[chatId].push({
+                                id: msg.id,
+                                chatId: msg.chat_id,
+                                sender: msg.sender_id,
+                                senderName: sender.username,
+                                text: msg.text,
+                                audio: msg.audio,
+                                duration: msg.duration,
+                                time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                                timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
+                                isAdmin: sender.username === ADMIN_USERNAME,
+                                edited: msg.edited || false,
+                                type: msg.sender_id === currentUser.id ? 'out' : 'in'
+                            });
+                            
+                            if (msg.sender_id === currentUser.id && !messageStatuses[msg.id]) {
+                                messageStatuses[msg.id] = {
+                                    status: 'sent',
+                                    deliveredAt: null,
+                                    readAt: null
+                                };
+                            }
+                        }
+                    });
+                    
+                    messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    
+                    if (currentChat && currentChat.id === chatId) {
+                        renderMessages();
+                    }
+                }
+            } catch (err) {
+                console.error('Ошибка при загрузке истории:', err);
+            }
+        }
+
+        // ========== ПОДПИСКА НА КАНАЛ ABLY ДЛЯ ЧАТА ==========
+        function subscribeToChatChannel(chatId) {
+            if (!ably || !currentUser) return;
+            
+            const chatChannel = ably.channels.get(`chat-${chatId}`);
+            
+            chatChannel.unsubscribe();
+            
+            function attachWithRetry(retries = 5, delay = 200) { // уменьшили ретраи и задержку
+                chatChannel.attach((err) => {
+                    if (err) {
+                        console.error(`Failed to attach to chat channel ${chatId}, retries left: ${retries}`, err);
+                        if (retries > 0) {
+                            setTimeout(() => attachWithRetry(retries - 1, delay), delay);
+                        }
+                        return;
+                    }
+                    console.log(`Attached to chat-${chatId}`);
+                });
+            }
+            
+            attachWithRetry(5, 200);
+
+            chatChannel.subscribe('message', (message) => {
+                const msg = message.data;
+                if (!msg) return;
+                
+                // Игнорируем свои сообщения (они уже добавлены локально)
+                if (msg.sender_id === currentUser.id) return;
+                
+                // Проверяем timestamp - игнорируем очень старые сообщения (более 1 минуты)
+                const now = Date.now();
+                const msgTime = msg.created_at ? new Date(msg.created_at).getTime() : now;
+                if (now - msgTime > 60000) {
+                    console.log('Ignoring old message', msg);
+                    return;
+                }
+                
+                if (deletedMessages[chatId] && deletedMessages[chatId].includes(msg.id)) return;
+                
+                if (!messages[chatId]) messages[chatId] = [];
+                
+                const exists = messages[chatId].some(m => m.id === msg.id);
+                if (!exists) {
+                    const sender = allUsers.find(u => u.id === msg.sender_id) || { username: msg.sender_name || 'Неизвестно', avatar: '👤' };
+                    
+                    const newMsg = {
+                        id: msg.id,
+                        chatId: msg.chat_id,
+                        sender: msg.sender_id,
+                        senderName: sender.username,
+                        text: msg.text,
+                        audio: msg.audio,
+                        duration: msg.duration,
+                        time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                        timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
+                        isAdmin: sender.username === ADMIN_USERNAME,
+                        edited: msg.edited || false,
+                        type: 'in'
+                    };
+                    
+                    messages[chatId].push(newMsg);
+                    messages[chatId].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    
+                    chatChannel.publish('delivery_receipt', { 
+                        messageId: msg.id, 
+                        receiver: currentUser.id
+                    });
+                    
+                    if (currentChat?.id !== chatId) {
+                        unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                        
+                        if (Notification.permission === 'granted') {
+                            new Notification(`Новое сообщение от ${sender.username}`, {
+                                body: msg.text || 'Голосовое сообщение',
+                                icon: sender.avatar
+                            });
+                        }
+                    }
+                    
+                    if (currentChat && currentChat.id === chatId) {
+                        renderMessages();
+                        unreadCounts[chatId] = 0;
+                        markMessagesAsRead(chatId);
+                    }
+                    
+                    updateChatsList();
+                }
+            });
+            
+            chatChannel.subscribe('delivery_receipt', (data) => {
+                const { messageId } = data.data;
+                if (messageStatuses[messageId]) {
+                    messageStatuses[messageId].status = 'delivered';
+                    saveMessageStatuses();
+                }
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
+                }
+            });
+            
+            chatChannel.subscribe('read_receipt', (data) => {
+                const { messageId } = data.data;
+                if (messageStatuses[messageId]) {
+                    messageStatuses[messageId].status = 'read';
+                    saveMessageStatuses();
+                }
+                if (currentChat && currentChat.id === chatId) {
+                    renderMessages();
+                }
+            });
+            
+            chatChannel.subscribe('delete', (data) => {
+                const { messageId } = data.data;
+                
+                if (!deletedMessages[chatId]) deletedMessages[chatId] = [];
+                if (!deletedMessages[chatId].includes(messageId)) {
+                    deletedMessages[chatId].push(messageId);
+                    localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+                }
+                if (messages[chatId]) {
+                    messages[chatId] = messages[chatId].filter(m => m.id !== messageId);
+                    if (currentChat?.id === chatId) renderMessages();
+                    updateChatsList();
+                }
+            });
+            
+            chatChannel.subscribe('edit', (data) => {
+                const { messageId, newText } = data.data;
+                
+                if (messages[chatId]) {
+                    const msgIndex = messages[chatId].findIndex(m => m.id === messageId);
+                    if (msgIndex !== -1) {
+                        messages[chatId][msgIndex].text = newText;
+                        messages[chatId][msgIndex].edited = true;
+                        if (currentChat?.id === chatId) renderMessages();
+                    }
+                }
+            });
+        }
+
+        // ========== ЧАТЫ ==========
+        async function createPublicChat() {
+            const name = document.getElementById('chatNameInput').value.trim();
+            
+            if (!name) {
+                alert('Введите название чата');
+                return;
+            }
+            
+            // Проверяем лимит для не-админов
+            if (!currentUser.isAdmin) {
+                const userPublicChats = publicChats.filter(chat => {
+                    // В production нужно проверять по создателю чата
+                    // Сейчас просто считаем все публичные чаты
+                    return true;
+                }).length;
+                
+                if (userPublicChats >= 10) {
+                    alert('Вы можете создать не более 10 публичных чатов');
+                    return;
+                }
+            }
+            
+            try {
+                const newChat = {
+                    name: name,
+                    is_public: true,
+                    type: 'public',
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('chats')
+                    .insert([newChat])
+                    .select();
+                
+                if (error) {
+                    console.error('Ошибка Supabase:', error);
+                    throw error;
+                }
+                
+                const createdChat = {
+                    id: data[0].id,
+                    name: data[0].name,
+                    is_public: data[0].is_public,
+                    type: data[0].type,
+                    created_at: data[0].created_at,
+                    avatar: '👥'
+                };
+                
+                publicChats.push(createdChat);
+                
+                if (ably) {
+                    const globalChatsChannel = ably.channels.get('global-chats');
+                    globalChatsChannel.publish('new-chat', createdChat);
+                }
+                
+                if (!myChats.find(c => c.id === createdChat.id)) {
+                    myChats.push(createdChat);
+                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                }
+                
+                joinChat(createdChat);
+                closeCreateChatModal();
+                
+                document.getElementById('chatNameInput').value = '';
+                
+            } catch (err) {
+                console.error('Error creating chat:', err);
+                alert('Ошибка при создании чата: ' + err.message);
+            }
+        }
+
+        async function createPrivateChat(user) {
+            // Создаём pair_key как отсортированные ID через '_'
+            const ids = [currentUser.id, user.id].sort();
+            const pairKey = ids.join('_');
+            
+            // Проверяем, существует ли уже такой чат в БД
+            let privateChat = myChats.find(c => c.pair_key === pairKey && c.type === 'private');
+            
+            if (!privateChat) {
+                // Ищем в БД
+                const { data: existingChat, error } = await supabaseClient
+                    .from('chats')
+                    .select('*')
+                    .eq('pair_key', pairKey)
+                    .eq('type', 'private')
+                    .maybeSingle();
+                
+                if (error) {
+                    console.error('Error checking existing chat:', error);
+                }
+                
+                if (existingChat) {
+                    privateChat = {
+                        id: existingChat.id,
+                        name: existingChat.name, // может быть пустым
+                        pair_key: pairKey,
+                        avatar: user.avatar,
+                        is_public: false,
+                        type: 'private',
+                        created_at: existingChat.created_at
+                    };
+                    // Добавляем в myChats, если его там нет
+                    if (!myChats.some(c => c.id === privateChat.id)) {
+                        myChats.push(privateChat);
+                        localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                    }
+                } else {
+                    // Создаём новый
+                    try {
+                        const newChat = {
+                            name: '', // имя не храним, будем формировать на лету
+                            is_public: false,
+                            type: 'private',
+                            pair_key: pairKey,
+                            created_at: new Date().toISOString()
+                        };
+                        
+                        const { data, error } = await supabaseClient
+                            .from('chats')
+                            .insert([newChat])
+                            .select();
+                        
+                        if (error) throw error;
+                        
+                        privateChat = {
+                            id: data[0].id,
+                            name: '',
+                            pair_key: pairKey,
+                            avatar: user.avatar,
+                            is_public: false,
+                            type: 'private',
+                            created_at: data[0].created_at
+                        };
+                        
+                        myChats.push(privateChat);
+                        localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                        
+                        if (ably) {
+                            subscribeToChatChannel(privateChat.id);
+                            const chatChannel = ably.channels.get(`chat-${privateChat.id}`);
+                            chatChannel.publish('user_joined', { userId: currentUser.id, userName: currentUser.name });
+                            
+                            // Уведомляем другого пользователя
+                            const userChannel = ably.channels.get(`user-${user.id}`);
+                            userChannel.publish('new-private-chat', {
+                                chatId: privateChat.id,
+                                pairKey: pairKey,
+                                participants: [currentUser.id, user.id],
+                                avatar: privateChat.avatar,
+                                timestamp: Date.now()
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error creating private chat:', err);
+                        alert('Не удалось создать чат');
+                        return;
+                    }
+                }
+            }
+            
+            joinChat(privateChat);
+        }
+
+        function joinChat(chat) {
+            if (!chat) return;
+            
+            currentChat = chat;
+            updateUrlWithChat(chat);
+            
+            let displayName = chat.name;
+            let avatar = chat.avatar || '👥';
+            
+            if (chat.type === 'private' && currentUser) {
+                if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                    // Это чат "Избранное"
+                    displayName = 'Избранное';
+                    avatar = '⭐';
+                } else {
+                    // Ищем собеседника
+                    const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                    const otherUser = allUsers.find(u => u.id === otherId);
+                    if (otherUser) {
+                        displayName = otherUser.username;
+                        avatar = otherUser.avatar || '👤';
+                    } else {
+                        displayName = 'Пользователь';
+                    }
+                }
+            }
+            
+            document.getElementById('currentChatName').innerHTML = displayName;
+            document.getElementById('chatHeaderAvatar').textContent = avatar;
+            
+            document.getElementById('chatStatus').innerHTML = chat.is_public ? 'Публичный чат' : 'Приватный чат';
+            document.getElementById('callBtn').style.display = (chat.type === 'private' && callsTableExists && displayName !== 'Избранное') ? 'flex' : 'none';
+            
+            loadChatHistory(chat.id);
+            
+            if (!messages[chat.id]) messages[chat.id] = [];
+            messages[chat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            markAllMessagesAsRead(chat.id);
+            
+            renderMessages();
+            updateChatsList();
+            updateChatStatus();
+            
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+            
+            setTimeout(() => {
+                document.getElementById('messageInput').focus();
+                forceShowInput();
+            }, 100);
+        }
+
+        function updateChatStatus() {
+            if (!currentChat || currentChat.is_public) return;
+            
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                // Это чат "Избранное" — не показываем статус
+                document.getElementById('chatStatus').innerHTML = '';
+                return;
+            }
+            
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
+            if (!otherUser) return;
+            
+            const userOnline = onlineUsers[otherUser.id];
+            const statusElement = document.getElementById('chatStatus');
+            
+            if (userOnline && userOnline.online) {
+                if (userOnline.dnd) {
+                    statusElement.innerHTML = '<span class="dnd-indicator"></span> Не беспокоить';
+                } else {
+                    statusElement.innerHTML = '<span class="online-indicator"></span> в сети';
+                }
+            } else {
+                const lastSeen = otherUser?.last_seen ? new Date(otherUser.last_seen).getTime() : null;
+                if (lastSeen) {
+                    statusElement.innerHTML = `был(а) ${formatLastSeen(lastSeen)}`;
+                } else {
+                    statusElement.innerHTML = 'был(а) давно';
+                }
+            }
+        }
+
+        function markAllMessagesAsRead(chatId) {
+            if (!messages[chatId]) return;
+            
+            let changed = false;
+            messages[chatId].forEach(msg => {
+                if (msg.sender !== currentUser.id) {
+                    if (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read') {
+                        messageStatuses[msg.id] = { status: 'read', readAt: Date.now() };
+                        changed = true;
+                    }
+                }
+            });
+            
+            if (changed) {
+                saveMessageStatuses();
+            }
+            
+            unreadCounts[chatId] = 0;
+            updateChatsList();
+        }
+
+        // ========== УДАЛЕНИЕ ЧАТА (для админа) ==========
+        async function deleteChat(chatId, event) {
+            event.stopPropagation();
+            if (!currentUser || !currentUser.isAdmin) return;
+            if (!confirm('Удалить этот чат навсегда?')) return;
+            
+            try {
+                await supabaseClient
+                    .from('messages')
+                    .delete()
+                    .eq('chat_id', chatId);
+                
+                await supabaseClient
+                    .from('chats')
+                    .delete()
+                    .eq('id', chatId);
+                
+                myChats = myChats.filter(c => c.id !== chatId);
+                publicChats = publicChats.filter(c => c.id !== chatId);
+                localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                
+                delete messages[chatId];
+                delete unreadCounts[chatId];
+                
+                if (currentChat && currentChat.id === chatId) {
+                    currentChat = null;
+                    renderMessages();
+                    updateUrlWithChat(null);
+                }
+                
+                updateChatsList();
+            } catch (err) {
+                console.error('Error deleting chat:', err);
+                alert('Не удалось удалить чат');
+            }
+        }
+
+        // ========== СООБЩЕНИЯ ==========
+        async function sendMessage() {
+            if (sendBtnDisabled) {
+                alert('Слишком часто! Подождите секунду.');
+                return;
+            }
+
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!currentChat) {
+                alert('Сначала выберите чат');
+                return;
+            }
+            if (!text) return;
+            
+            disableSendButton();
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timestamp = now.getTime();
+            const clientId = generateUUID();
+            
+            const localMessage = {
+                id: clientId,
+                chatId: currentChat.id,
+                sender: currentUser.id,
+                senderName: currentUser.name,
+                text: text,
+                time: timeString,
+                timestamp: timestamp,
+                isAdmin: currentUser.isAdmin,
+                edited: false,
+                type: 'out'
+            };
+            
+            if (!messages[currentChat.id]) messages[currentChat.id] = [];
+            messages[currentChat.id].push(localMessage);
+            messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            messageStatuses[clientId] = { status: 'sent', sentAt: timestamp };
+            saveMessageStatuses();
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            renderMessages();
+            updateChatsList();
+            forceShowInput();
+            
+            const dbMessage = {
+                chat_id: currentChat.id,
+                sender_id: currentUser.id,
+                text: text,
+                created_at: now.toISOString()
+            };
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .insert([dbMessage])
+                    .select();
+                
+                if (error) {
+                    console.error('Ошибка сохранения сообщения:', error);
+                    if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
+                    pendingMessages[currentUser.id].push({ ...dbMessage, tempId: clientId });
+                    localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+                    
+                    if (error.code === '42501') {
+                        alert('Ошибка прав доступа к таблице messages. Убедитесь, что в Supabase настроены политики RLS.');
+                    }
+                } else {
+                    const realId = data[0].id;
+                    const msgIndex = messages[currentChat.id].findIndex(m => m.id === clientId);
+                    if (msgIndex !== -1) {
+                        messages[currentChat.id][msgIndex].id = realId;
+                    }
+                    messageStatuses[realId] = messageStatuses[clientId];
+                    delete messageStatuses[clientId];
+                    saveMessageStatuses();
+                    
+                    if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
+                        const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                        chatChannel.publish('message', { 
+                            ...dbMessage, 
+                            id: realId, 
+                            sender_name: currentUser.name 
+                        }, (err) => {
+                            if (err) {
+                                console.error('Failed to publish message to Ably', err);
+                                const otherUserId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+                                const otherUser = allUsers.find(u => u.id === otherUserId);
+                                if (otherUser) {
+                                    addToMessageQueue(otherUser.id, { 
+                                        ...dbMessage, 
+                                        id: realId, 
+                                        sender_name: currentUser.name 
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Ошибка при сохранении:', err);
+                if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
+                pendingMessages[currentUser.id].push({ ...dbMessage, tempId: clientId });
+                localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+            }
+        }
+
+        async function sendAudioMessage(audioBlob, duration) {
+            if (!currentChat) {
+                alert('Сначала выберите чат');
+                return;
+            }
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const clientId = generateUUID();
+            const timestamp = now.getTime();
+
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+                const base64Audio = reader.result;
+
+                const localMessage = {
+                    id: clientId,
+                    chatId: currentChat.id,
+                    sender: currentUser.id,
+                    senderName: currentUser.name,
+                    audio: base64Audio,
+                    duration: duration,
+                    time: timeString,
+                    timestamp: timestamp,
+                    isAdmin: currentUser.isAdmin,
+                    edited: false,
+                    type: 'out'
+                };
+
+                if (!messages[currentChat.id]) messages[currentChat.id] = [];
+                messages[currentChat.id].push(localMessage);
+                messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                
+                messageStatuses[clientId] = { status: 'sent', sentAt: timestamp };
+                saveMessageStatuses();
+                
+                renderMessages();
+                updateChatsList();
+                forceShowInput();
+
+                const dbMessage = {
+                    chat_id: currentChat.id,
+                    sender_id: currentUser.id,
+                    audio: base64Audio,
+                    duration: duration,
+                    created_at: now.toISOString()
+                };
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('messages')
+                        .insert([dbMessage])
+                        .select();
+                    
+                    if (error) {
+                        console.error('Ошибка сохранения аудио:', error);
+                        if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
+                        pendingMessages[currentUser.id].push({ ...dbMessage, tempId: clientId });
+                        localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+                        
+                        if (error.code === '42501') {
+                            alert('Ошибка прав доступа к таблице messages.');
+                        }
+                    } else {
+                        const realId = data[0].id;
+                        const msgIndex = messages[currentChat.id].findIndex(m => m.id === clientId);
+                        if (msgIndex !== -1) {
+                            messages[currentChat.id][msgIndex].id = realId;
+                        }
+                        messageStatuses[realId] = messageStatuses[clientId];
+                        delete messageStatuses[clientId];
+                        saveMessageStatuses();
+                        
+                        if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
+                            const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                            chatChannel.publish('message', { 
+                                ...dbMessage, 
+                                id: realId, 
+                                sender_name: currentUser.name 
+                            }, (err) => {
+                                if (err) {
+                                    console.error('Failed to publish audio message to Ably', err);
+                                    const otherUserId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+                                    const otherUser = allUsers.find(u => u.id === otherUserId);
+                                    if (otherUser) {
+                                        addToMessageQueue(otherUser.id, { 
+                                            ...dbMessage, 
+                                            id: realId, 
+                                            sender_name: currentUser.name 
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error('Ошибка при сохранении аудио:', err);
+                    if (!pendingMessages[currentUser.id]) pendingMessages[currentUser.id] = [];
+                    pendingMessages[currentUser.id].push({ ...dbMessage, tempId: clientId });
+                    localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+                }
+            };
+        }
+
+        async function sendPendingMessages() {
+            if (!currentUser || !pendingMessages[currentUser.id]) return;
+            
+            const pending = pendingMessages[currentUser.id];
+            if (pending.length === 0) return;
+            
+            for (const item of pending) {
+                const { tempId, ...dbMessage } = item;
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('messages')
+                        .insert([dbMessage])
+                        .select();
+                    
+                    if (!error) {
+                        const realId = data[0].id;
+                        for (const chatId in messages) {
+                            const msgIndex = messages[chatId].findIndex(m => m.id === tempId);
+                            if (msgIndex !== -1) {
+                                messages[chatId][msgIndex].id = realId;
+                                messageStatuses[realId] = messageStatuses[tempId];
+                                delete messageStatuses[tempId];
+                                saveMessageStatuses();
+                                break;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Ошибка при отправке ожидающего сообщения:', err);
+                }
+            }
+            
+            delete pendingMessages[currentUser.id];
+            localStorage.setItem('pendingMessages', JSON.stringify(pendingMessages));
+        }
+
+        function processMessageQueue() {
+            if (!ably || !currentUser) return;
+            
+            Object.keys(messageQueue).forEach(userId => {
+                const userOnline = onlineUsers[userId] && onlineUsers[userId].online;
+                if (userOnline) {
+                    sendQueuedMessagesToUser(userId);
+                }
+            });
+        }
+
+        function addToMessageQueue(userId, message) {
+            if (!messageQueue[userId]) messageQueue[userId] = [];
+            messageQueue[userId].push(message);
+            localStorage.setItem('messageQueue', JSON.stringify(messageQueue));
+        }
+
+        function sendQueuedMessagesToUser(userId) {
+            if (!messageQueue[userId] || messageQueue[userId].length === 0) return;
+            
+            const messagesToSend = [...messageQueue[userId]];
+            delete messageQueue[userId];
+            localStorage.setItem('messageQueue', JSON.stringify(messageQueue));
+            
+            messagesToSend.forEach(message => {
+                if (ably) {
+                    const chatChannel = ably.channels.get(`chat-${message.chat_id}`);
+                    chatChannel.publish('message', message);
+                }
+            });
+        }
+
+        function deleteMessage(messageId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            if (!currentChat) return;
+            
+            const msg = messages[currentChat.id]?.find(m => m.id === messageId);
+            if (!msg) return;
+            
+            if (!currentUser.isAdmin && msg.sender != currentUser.id) {
+                alert('Вы можете удалять только свои сообщения');
+                return;
+            }
+            
+            if (!confirm('Удалить сообщение?')) return;
+            
+            if (!deletedMessages[currentChat.id]) deletedMessages[currentChat.id] = [];
+            if (!deletedMessages[currentChat.id].includes(messageId)) {
+                deletedMessages[currentChat.id].push(messageId);
+                localStorage.setItem('deletedMessages', JSON.stringify(deletedMessages));
+            }
+            
+            messages[currentChat.id] = messages[currentChat.id].filter(m => m.id !== messageId);
+            
+            supabaseClient
+                .from('messages')
+                .delete()
+                .eq('id', messageId)
+                .then(({ error }) => {
+                    if (error) console.error('Error deleting message from DB:', error);
+                });
+            
+            if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
+                const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                chatChannel.publish('delete', { messageId, senderId: currentUser.id });
+            }
+            
+            hideMessageActions();
+            renderMessages();
+            updateChatsList();
+            forceShowInput();
+        }
+
+        function editMessage(messageId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            if (!currentChat) return;
+            
+            const msg = messages[currentChat.id]?.find(m => m.id === messageId);
+            if (!msg) return;
+            
+            if (msg.sender != currentUser.id) {
+                alert('Вы можете редактировать только свои сообщения');
+                return;
+            }
+            
+            messageToEdit = msg;
+            document.getElementById('editMessageText').value = msg.text || '';
+            document.getElementById('editMessageModal').classList.add('active');
+            hideMessageActions();
+        }
+
+        function saveEditedMessage() {
+            const newText = document.getElementById('editMessageText').value.trim();
+            if (!newText || !messageToEdit || !currentChat) return;
+            
+            const msgIndex = messages[currentChat.id].findIndex(m => m.id === messageToEdit.id);
+            if (msgIndex !== -1) {
+                messages[currentChat.id][msgIndex].text = newText;
+                messages[currentChat.id][msgIndex].edited = true;
+                
+                supabaseClient
+                    .from('messages')
+                    .update({ text: newText, edited: true })
+                    .eq('id', messageToEdit.id)
+                    .then(({ error }) => {
+                        if (error) console.error('Error updating message in DB:', error);
+                    });
+                
+                if (ably && !currentChat.is_public && currentChat.pair_key !== `${currentUser.id}_${currentUser.id}`) {
+                    const chatChannel = ably.channels.get(`chat-${currentChat.id}`);
+                    chatChannel.publish('edit', { 
+                        messageId: messageToEdit.id, 
+                        newText, 
+                        editor: currentUser.id
+                    });
+                }
+                
+                renderMessages();
+                closeEditMessageModal();
+            }
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+            
+            const oldScrollHeight = container.scrollHeight;
+            const oldScrollTop = container.scrollTop;
+            const isAtBottom = oldScrollHeight - oldScrollTop - container.clientHeight < 50;
+            
+            let newMessages = '';
+            
+            if (!currentChat) {
+                newMessages = '<div class="empty-state">👈 Выберите чат</div>';
+            } else if (!messages[currentChat.id] || messages[currentChat.id].length === 0) {
+                newMessages = '<div class="empty-state">Нет сообщений</div>';
+            } else {
+                messages[currentChat.id].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                
+                const fragment = [];
+                
+                messages[currentChat.id].forEach(msg => {
+                    if (deletedMessages[currentChat.id] && deletedMessages[currentChat.id].includes(msg.id)) {
+                        return;
+                    }
+                    
+                    const status = messageStatuses[msg.id] || { status: msg.sender == currentUser.id ? 'sent' : 'delivered' };
+                    
+                    let content = '';
+                    let statusHtml = '';
+                    
+                    if (msg.type === 'out') {
+                        statusHtml = `<span class="message-status"><span class="status-icon ${status.status}">${status.status === 'read' ? '✓✓' : '✓'}</span></span>`;
+                    }
+                    
+                    if (msg.text) {
+                        content = `<div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size: 10px; opacity: 0.7;">(ред.)</span>' : ''}</div>`;
+                    } else if (msg.audio) {
+                        const messageId = msg.id;
+                        const duration = msg.duration || 0;
+                        
+                        content = `
+                            <div class="message-bubble audio-message">
+                                <div class="audio-player">
+                                    <button class="play-pause-btn" data-message-id="${messageId}" onclick="toggleAudio('${messageId}', '${msg.audio}')">▶️</button>
+                                    <div class="audio-progress-container">
+                                        <div class="audio-progress-bar" onclick="seekAudio('${messageId}', event)">
+                                            <div class="audio-progress-fill" data-message-id="${messageId}" style="width: 0%"></div>
+                                        </div>
+                                        <div class="audio-time-container">
+                                            <span class="audio-current-time" data-message-id="${messageId}">0:00</span>
+                                            <span class="audio-duration" data-message-id="${messageId}">${formatTime(duration)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    const canDelete = currentUser.isAdmin || msg.sender == currentUser.id;
+                    const canEdit = msg.sender == currentUser.id;
+                    
+                    let actions = '';
+                    if (canDelete || canEdit) {
+                        actions = `
+                            <div class="message-actions" data-message-id="${msg.id}">
+                                ${canEdit ? `<button class="message-action-btn" onclick="editMessage('${msg.id}', event)">✏️</button>` : ''}
+                                ${canDelete ? `<button class="message-action-btn delete" onclick="deleteMessage('${msg.id}', event)">🗑️</button>` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    fragment.push(`
+                        <div class="message ${msg.type}" data-id="${msg.id}" onclick="showMessageActions('${msg.id}', event)">
+                            ${actions}
+                            ${msg.type === 'in' ? `<div class="message-sender">${escapeHtml(msg.senderName)}</div>` : ''}
+                            ${content}
+                            <div class="message-footer">
+                                <span class="message-time">${msg.time}</span>
+                                ${statusHtml}
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                newMessages = fragment.join('');
+            }
+            
+            container.innerHTML = newMessages;
+            
+            if (isAtBottom) {
+                container.scrollTo({
+                    top: container.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+            
+            markMessagesAsRead(currentChat?.id);
+            updateUnreadCounts();
+        }
+
+        function markMessagesAsRead(chatId) {
+            if (!ably || !messages[chatId] || !currentChat || currentChat.is_public) return;
+            
+            let changed = false;
+            messages[chatId].forEach(msg => {
+                if (msg.sender != currentUser.id && 
+                    (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
+                    
+                    if (!messageStatuses[msg.id]) {
+                        messageStatuses[msg.id] = { status: 'read', readAt: Date.now() };
+                    } else {
+                        messageStatuses[msg.id].status = 'read';
+                        messageStatuses[msg.id].readAt = Date.now();
+                    }
+                    changed = true;
+                    
+                    const chatChannel = ably.channels.get(`chat-${chatId}`);
+                    chatChannel.publish('read_receipt', { 
+                        messageId: msg.id, 
+                        reader: currentUser.id
+                    });
+                }
+            });
+            
+            if (changed) {
+                saveMessageStatuses();
+            }
+        }
+
+        function updateUnreadCounts() {
+            if (!currentUser) return;
+            
+            Object.keys(messages).forEach(chatId => {
+                if (currentChat && chatId === currentChat.id) {
+                    unreadCounts[chatId] = 0;
+                } else {
+                    let count = 0;
+                    messages[chatId]?.forEach(msg => {
+                        if (msg.sender !== currentUser.id && 
+                            (!messageStatuses[msg.id] || messageStatuses[msg.id].status !== 'read')) {
+                            count++;
+                        }
+                    });
+                    unreadCounts[chatId] = count;
+                }
+            });
+            
+            updateChatsList();
+        }
+
+        // ========== ABLY (оптимизированная инициализация) ==========
+        function initAbly() {
+            if (!currentUser) return;
+            
+            if (ably) {
+                try {
+                    ably.close();
+                } catch (e) {}
+            }
+            
+            // Ускоренные таймауты
+            ably = new Ably.Realtime({
+                key: ABLY_API_KEY,
+                clientId: currentUser.id.toString(),
+                transports: ['web_socket'],
+                disconnectedRetryTimeout: 500,      // было 1000
+                suspendedRetryTimeout: 1000,        // было 2000
+                realtimeRequestTimeout: 10000,      // было 15000
+                echoMessages: false,
+                idleTimeout: 30000                  // увеличили для стабильности
+            });
+
+            ably.connection.on('connected', () => {
+                console.log('Connected to Ably');
+                
+                if (ablyReconnectTimer) {
+                    clearTimeout(ablyReconnectTimer);
+                    ablyReconnectTimer = null;
+                }
+                
+                const presenceChannel = ably.channels.get('presence');
+                
+                // Сначала attach, потом enter
+                presenceChannel.attach((err) => {
+                    if (err) {
+                        console.error('Failed to attach presence channel', err);
+                        return;
+                    }
+                    
+                    presenceChannel.presence.enter({ 
+                        name: currentUser.name, 
+                        avatar: currentUser.avatar || '👤',
+                        bio: currentUser.bio || '',
+                        isAdmin: currentUser.isAdmin || false,
+                        dnd: currentUser.dnd || false,
+                        lastSeen: Date.now()
+                    });
+                    
+                    // Получаем текущих участников
+                    presenceChannel.presence.get((err, members) => {
+                        if (members) {
+                            members.forEach(member => {
+                                if (member.clientId !== currentUser.id.toString()) {
+                                    onlineUsers[member.clientId] = {
+                                        id: member.clientId,
+                                        name: member.data.name,
+                                        avatar: member.data.avatar || '👤',
+                                        bio: member.data.bio || '',
+                                        online: true,
+                                        isAdmin: member.data.isAdmin || false,
+                                        dnd: member.data.dnd || false,
+                                        lastSeen: Date.now()
+                                    };
+                                }
+                            });
+                        }
+                        if (currentTab === 'users' || currentTab === 'chats') {
+                            updateChatsList();
+                        }
+                    });
+                });
+                
+                // Подписка на события presence
+                presenceChannel.subscribe('enter', (member) => {
+                    if (member.clientId !== currentUser.id.toString()) {
+                        onlineUsers[member.clientId] = {
+                            id: member.clientId,
+                            name: member.data.name,
+                            avatar: member.data.avatar || '👤',
+                            bio: member.data.bio || '',
+                            online: true,
+                            isAdmin: member.data.isAdmin || false,
+                            dnd: member.data.dnd || false,
+                            lastSeen: Date.now()
+                        };
+                        
+                        sendQueuedMessagesToUser(member.clientId);
+                        
+                        if (currentTab === 'users' || currentTab === 'chats') {
+                            updateChatsList();
+                        }
+                        updateChatStatus();
+                    }
+                });
+                
+                presenceChannel.subscribe('update', (member) => {
+                    if (member.clientId !== currentUser.id.toString()) {
+                        onlineUsers[member.clientId] = {
+                            ...onlineUsers[member.clientId],
+                            name: member.data.name,
+                            avatar: member.data.avatar,
+                            bio: member.data.bio,
+                            isAdmin: member.data.isAdmin,
+                            online: true,
+                            dnd: member.data.dnd,
+                            lastSeen: Date.now()
+                        };
+                        if (currentTab === 'users' || currentTab === 'chats') {
+                            updateChatsList();
+                        }
+                        updateChatStatus();
+                    }
+                });
+                
+                presenceChannel.subscribe('leave', (member) => {
+                    if (onlineUsers[member.clientId]) {
+                        onlineUsers[member.clientId].online = false;
+                        onlineUsers[member.clientId].lastSeen = Date.now();
+                        if (currentTab === 'users' || currentTab === 'chats') {
+                            updateChatsList();
+                        }
+                        updateChatStatus();
+                    }
+                });
+
+                const globalChatsChannel = ably.channels.get('global-chats');
+                globalChatsChannel.subscribe('new-chat', (message) => {
+                    const newChat = message.data;
+                    if (!publicChats.find(c => c.id === newChat.id)) {
+                        publicChats.push(newChat);
+                        if (currentTab === 'public') updateChatsList();
+                    }
+                });
+
+                // Подписываемся на персональный канал для уведомлений
+                const userChannel = ably.channels.get(`user-${currentUser.id}`);
+                userChannel.subscribe('new-private-chat', (message) => {
+                    const { chatId, pairKey, participants, avatar, timestamp } = message.data;
+                    
+                    // Игнорируем старые сообщения (более 10 секунд)
+                    if (Date.now() - timestamp > 10000) return;
+                    
+                    if (!participants.includes(currentUser.id)) return;
+                    if (myChats.some(c => c.id === chatId)) return;
+                    
+                    const otherUserId = participants.find(id => id !== currentUser.id);
+                    const otherUser = allUsers.find(u => u.id === otherUserId);
+                    const newChat = {
+                        id: chatId,
+                        name: '',
+                        pair_key: pairKey,
+                        avatar: otherUser ? otherUser.avatar : '👤',
+                        is_public: false,
+                        type: 'private',
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    myChats.push(newChat);
+                    localStorage.setItem(`myChats_${currentUser.id}`, JSON.stringify(myChats));
+                    
+                    if (ably) {
+                        subscribeToChatChannel(newChat.id);
+                    }
+                    
+                    updateChatsList();
+                });
+
+                myChats.forEach(chat => {
+                    if (!chat.is_public) {
+                        subscribeToChatChannel(chat.id);
+                    }
+                });
+            });
+
+            ably.connection.on('disconnected', () => {
+                console.log('Ably disconnected, attempting to reconnect...');
+                if (ablyReconnectTimer) {
+                    clearTimeout(ablyReconnectTimer);
+                }
+                ablyReconnectTimer = setTimeout(() => {
+                    if (currentUser && ably.connection.state !== 'connected') {
+                        ably.connection.connect();
+                    }
+                }, 500); // уменьшили до 500 мс
+            });
+
+            ably.connection.on('failed', () => {
+                console.log('Ably failed, reinitializing...');
+                if (ablyReconnectTimer) {
+                    clearTimeout(ablyReconnectTimer);
+                }
+                ablyReconnectTimer = setTimeout(() => {
+                    if (currentUser) initAbly();
+                }, 2000);
+            });
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (ably && ably.connection.state === 'connected' && currentUser) {
+                    const presenceChannel = ably.channels.get('presence');
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar || '👤',
+                            bio: currentUser.bio || '',
+                            isAdmin: currentUser.isAdmin || false,
+                            dnd: currentUser.dnd || false,
+                            lastSeen: Date.now()
+                        });
+                    }
+                }
+            }, 20000);
+        }
+
+        function startPresenceUpdates() {
+            if (presenceUpdateInterval) clearInterval(presenceUpdateInterval);
+            presenceUpdateInterval = setInterval(() => {
+                if (ably && ably.connection.state === 'connected' && currentUser) {
+                    const presenceChannel = ably.channels.get('presence');
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name,
+                            avatar: currentUser.avatar || '👤',
+                            bio: currentUser.bio || '',
+                            isAdmin: currentUser.isAdmin || false,
+                            dnd: currentUser.dnd || false,
+                            lastSeen: Date.now()
+                        });
+                    }
+                }
+            }, 20000);
+        }
+
+        function startStatusUpdates() {
+            if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+            statusUpdateInterval = setInterval(() => {
+                if (currentTab === 'users' || currentTab === 'chats') {
+                    updateChatsList();
+                }
+                updateChatStatus();
+            }, 2000);
+        }
+
+        async function handleBeforeUnload() {
+            if (currentUser && ably) {
+                await updateUserLastSeen();
+                const presenceChannel = ably.channels.get('presence');
+                // Проверяем, прикреплён ли канал
+                if (presenceChannel.state === 'attached') {
+                    presenceChannel.presence.leave();
+                }
+            }
+        }
+
+        // ========== ОБНОВЛЕНИЕ UI ==========
+        function updateChatsList() {
+            const list = document.getElementById('chatsList');
+            if (!list) return;
+            
+            let items = [];
+            
+            if (currentTab === 'chats') {
+                items = [...myChats].sort((a, b) => {
+                    // Сначала избранное
+                    const aIsSaved = a.type === 'private' && a.pair_key === `${currentUser.id}_${currentUser.id}`;
+                    const bIsSaved = b.type === 'private' && b.pair_key === `${currentUser.id}_${currentUser.id}`;
+                    if (aIsSaved && !bIsSaved) return -1;
+                    if (!aIsSaved && bIsSaved) return 1;
+                    
+                    const aPinned = isChatPinned(a.id);
+                    const bPinned = isChatPinned(b.id);
+                    
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
+                    
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+            } else if (currentTab === 'public') {
+                items = [...publicChats].sort((a, b) => {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+            } else if (currentTab === 'users') {
+                const allUsersList = allUsers.map(user => {
+                    const onlineUser = onlineUsers[user.id];
+                    const isCurrentUser = user.id === currentUser.id;
+                    
+                    if (isCurrentUser) return null;
+                    
+                    return {
+                        id: user.id,
+                        name: user.username,
+                        avatar: user.avatar || '👤',
+                        bio: user.bio || '',
+                        online: onlineUser ? onlineUser.online : false,
+                        isAdmin: user.username === ADMIN_USERNAME,
+                        dnd: onlineUser ? onlineUser.dnd : (user.dnd || false),
+                        lastSeen: onlineUser ? onlineUser.lastSeen : (user.last_seen ? new Date(user.last_seen).getTime() : null)
+                    };
+                }).filter(Boolean);
+                
+                items = allUsersList;
+            }
+            
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (searchTerm) {
+                items = items.filter(item => 
+                    (item.name || '').toLowerCase().includes(searchTerm) ||
+                    (item.description || '').toLowerCase().includes(searchTerm) ||
+                    (item.bio || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            let newHTML = '';
+            
+            if (items.length === 0) {
+                newHTML = '<div class="empty-state">Ничего не найдено</div>';
+            } else {
+                const fragment = [];
+                
+                items.forEach(item => {
+                    if (currentTab === 'users') {
+                        fragment.push(renderUserItem(item));
+                    } else {
+                        fragment.push(renderChatItem(item));
+                    }
+                });
+                
+                newHTML = fragment.join('');
+            }
+            
+            list.innerHTML = newHTML;
+        }
+
+        function renderUserItem(user) {
+            const statusClass = user.online ? (user.dnd ? 'dnd' : 'online') : 'offline';
+            const lastSeenText = !user.online && user.lastSeen ? formatLastSeen(user.lastSeen) : '';
+            
+            return `
+                <div class="chat-item" onclick="createPrivateChat({id: '${user.id}', name: '${user.name}', avatar: '${user.avatar}'})">
+                    <div class="chat-avatar">${user.avatar}</div>
+                    <div class="chat-details">
+                        <div class="chat-name">
+                            ${user.name}
+                            ${user.isAdmin ? '<span class="creator-badge">Создатель</span>' : ''}
+                            <div class="status-container">
+                                <span class="status-dot ${statusClass}"></span>
+                                ${!user.online && lastSeenText ? `<span class="last-seen">${lastSeenText}</span>` : ''}
+                                ${user.dnd && user.online ? '<span class="dnd-badge">Не беспокоить</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="chat-last-message">${user.bio || 'Нет информации'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChatItem(chat) {
+            const lastMsg = messages[chat.id] && messages[chat.id].length > 0 ? messages[chat.id][messages[chat.id].length - 1] : null;
+            const unread = unreadCounts[chat.id] || 0;
+            const isPinned = isChatPinned(chat.id);
+            
+            let lastMessageText = 'Нет сообщений';
+            if (lastMsg) {
+                lastMessageText = lastMsg.text ? lastMsg.text : (lastMsg.audio ? '🎤 Голосовое' : '📷 Медиа');
+            }
+            
+            const timeText = lastMsg ? lastMsg.time : '';
+            
+            let displayName = chat.name;
+            let avatar = chat.avatar || '👥';
+            
+            if (chat.type === 'private' && currentUser) {
+                if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                    // Это чат "Избранное"
+                    displayName = 'Избранное';
+                    avatar = '⭐';
+                } else {
+                    // Ищем собеседника
+                    const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                    const otherUser = allUsers.find(u => u.id === otherId);
+                    if (otherUser) {
+                        displayName = otherUser.username;
+                        avatar = otherUser.avatar || '👤';
+                    } else {
+                        displayName = 'Пользователь';
+                    }
+                }
+            }
+            
+            return `
+                <div class="chat-item ${currentChat?.id === chat.id ? 'active' : ''}" onclick="joinChat(${JSON.stringify(chat).replace(/"/g, '&quot;')})">
+                    <div class="chat-avatar">${avatar}</div>
+                    <div class="chat-details">
+                        <div class="chat-name">
+                            ${displayName}
+                            ${isPinned ? '<span class="pin-icon">📌</span>' : ''}
+                            ${chat.is_public ? '<span class="lock-icon">🌐</span>' : '<span class="lock-icon">🔒</span>'}
+                            ${currentUser?.isAdmin && currentUser.name === ADMIN_USERNAME && currentTab === 'public' ? 
+                                `<button class="delete-chat-btn" onclick="deleteChat('${chat.id}', event)">Удалить</button>` : ''}
+                            <button class="pin-chat-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinChat('${chat.id}', event)">📌</button>
+                        </div>
+                        <div class="chat-last-message">${lastMessageText}</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div class="chat-time">${timeText}</div>
+                        ${unread > 0 ? `<div class="chat-unread">${unread}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateProfileUI() {
+            if (!currentUser) return;
+            
+            const nameSpan = document.getElementById('profileName');
+            nameSpan.innerHTML = '';
+            
+            const nameText = document.createTextNode(currentUser.name + ' ');
+            nameSpan.appendChild(nameText);
+            
+            if (currentUser.isAdmin) {
+                const badge = document.createElement('span');
+                badge.className = 'creator-badge';
+                badge.textContent = 'Создатель';
+                nameSpan.appendChild(badge);
+            }
+            
+            const statusDisplay = document.getElementById('profileStatusDisplay');
+            if (currentUser.dnd) {
+                statusDisplay.innerHTML = '<span class="dnd-indicator"></span> Не беспокоить';
+            } else {
+                statusDisplay.innerHTML = '<span class="online-indicator"></span> в сети';
+            }
+            
+            document.getElementById('profileAvatar').textContent = currentUser.avatar || '👤';
+            document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
+            document.getElementById('profileBioInput').value = currentUser.bio || '';
+            document.getElementById('profileDNDCheckbox').checked = currentUser.dnd || false;
+        }
+
+        // ========== АУДИО ==========
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            const messageInput = document.getElementById('messageInput');
+            
+            if (messageInput.value.trim().length > 0) {
+                return;
+            }
+            
+            if (!currentChat) {
+                alert('Сначала выберите чат');
+                return;
+            }
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Ваш браузер не поддерживает запись аудио');
+                return;
+            }
+            
+            recordingStartTime = Date.now();
+            
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaStream = stream;
+                    
+                    let mimeType = 'audio/webm';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                        mimeType = 'audio/ogg;codecs=opus';
+                    }
+                    
+                    const options = { mimeType: mimeType };
+                    
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        mediaRecorder = new MediaRecorder(stream);
+                    }
+                    
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const duration = Math.round((Date.now() - recordingStartTime) / 1000);
+                        
+                        if (mediaStream) {
+                            mediaStream.getTracks().forEach(track => track.stop());
+                            mediaStream = null;
+                        }
+                        
+                        if (audioBlob.size > 0 && duration > 0.1) {
+                            await sendAudioMessage(audioBlob, duration);
+                        }
+                        
+                        document.getElementById('micBtn').classList.remove('recording');
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('micBtn').classList.add('recording');
+                    
+                    recordingTimeout = setTimeout(() => {
+                        if (isRecording) stopRecording();
+                    }, 60000);
+                })
+                .catch(err => {
+                    console.error('Microphone access error:', err);
+                    alert('Не удалось получить доступ к микрофону');
+                });
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                if (recordingTimeout) {
+                    clearTimeout(recordingTimeout);
+                    recordingTimeout = null;
+                }
+            }
+        }
+
+        function toggleAudio(messageId, audioSrc) {
+            if (!audioElements[messageId]) {
+                try {
+                    audioElements[messageId] = new Audio(audioSrc);
+                    
+                    audioElements[messageId].ontimeupdate = () => updateAudioProgress(messageId);
+                    
+                    audioElements[messageId].onended = () => {
+                        updateAudioButton(messageId, false);
+                        updateAudioProgress(messageId);
+                    };
+                    
+                    audioElements[messageId].onpause = () => {
+                        updateAudioButton(messageId, false);
+                    };
+                    
+                    audioElements[messageId].onplay = () => {
+                        updateAudioButton(messageId, true);
+                    };
+                    
+                    audioElements[messageId].onerror = (e) => {
+                        console.error('Audio playback error:', e);
+                        alert('Ошибка воспроизведения аудио.');
+                    };
+                } catch (e) {
+                    console.error('Error creating audio element:', e);
+                    alert('Не удалось создать аудио элемент');
+                    return;
+                }
+            }
+            
+            const audio = audioElements[messageId];
+            
+            if (activeAudioId === messageId && activeAudio) {
+                if (!activeAudio.paused) {
+                    activeAudio.pause();
+                    updateAudioButton(messageId, false);
+                } else {
+                    activeAudio.play().catch(e => {
+                        console.error('Play failed:', e);
+                        alert('Не удалось воспроизвести аудио');
+                    });
+                    updateAudioButton(messageId, true);
+                }
+                return;
+            }
+            
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio.currentTime = 0;
+                updateAudioButton(activeAudioId, false);
+            }
+            
+            activeAudio = audio;
+            activeAudioId = messageId;
+            
+            activeAudio.play().catch(e => {
+                console.error('Audio play error:', e);
+                alert('Не удалось воспроизвести аудио');
+            });
+            updateAudioButton(messageId, true);
+        }
+
+        function updateAudioButton(messageId, isPlaying) {
+            const btn = document.querySelector(`.play-pause-btn[data-message-id="${messageId}"]`);
+            if (btn) {
+                btn.innerHTML = isPlaying ? '⏸️' : '▶️';
+                if (isPlaying) {
+                    btn.classList.add('playing');
+                } else {
+                    btn.classList.remove('playing');
+                }
+            }
+        }
+
+        function updateAudioProgress(messageId) {
+            const audio = audioElements[messageId];
+            if (!audio) return;
+            
+            const progressFill = document.querySelector(`.audio-progress-fill[data-message-id="${messageId}"]`);
+            const currentTimeSpan = document.querySelector(`.audio-current-time[data-message-id="${messageId}"]`);
+            const durationSpan = document.querySelector(`.audio-duration[data-message-id="${messageId}"]`);
+            
+            if (progressFill) {
+                const percent = (audio.currentTime / audio.duration) * 100 || 0;
+                progressFill.style.width = percent + '%';
+            }
+            
+            if (currentTimeSpan) {
+                currentTimeSpan.textContent = formatTime(audio.currentTime);
+            }
+            
+            if (durationSpan && audio.duration && !isNaN(audio.duration)) {
+                durationSpan.textContent = formatTime(audio.duration);
+            }
+        }
+
+        function seekAudio(messageId, event) {
+            const audio = audioElements[messageId];
+            if (!audio) return;
+            
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percent = Math.max(0, Math.min(1, clickX / rect.width));
+            audio.currentTime = percent * audio.duration;
+            updateAudioProgress(messageId);
+        }
+
+        // ========== ЗВОНКИ (WebRTC) с защитой от устаревших звонков ==========
+        async function preloadSounds() {
+            return new Promise((resolve) => {
+                callRingtone = new Audio();
+                callRingtone.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+                callRingtone.loop = true;
+                
+                callAcceptedSound = new Audio();
+                callAcceptedSound.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+                
+                callEndedSound = new Audio();
+                callEndedSound.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//8kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+                
+                setTimeout(resolve, 100);
+            });
+        }
+
+        async function cleanupOldCalls() {
+            if (!callsTableExists) return;
+            try {
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                await supabaseClient
+                    .from('calls')
+                    .delete()
+                    .lt('created_at', fiveMinutesAgo);
+            } catch (err) {
+                console.error('Error cleaning up old calls:', err);
+                if (err.code === 'PGRST116') {
+                    callsTableExists = false;
+                }
+            }
+        }
+
+        function getIceServers() {
+            return {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ]
+            };
+        }
+
+        async function startCall() {
+            if (!callsTableExists) {
+                await checkCallsTable();
+                if (!callsTableExists) {
+                    alert('Функция звонков недоступна.');
+                    return;
+                }
+            }
+            if (!currentChat || currentChat.is_public) return;
+            
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                alert('Нельзя звонить самому себе');
+                return;
+            }
+            
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
+            if (!otherUser) {
+                alert('Не удалось определить собеседника');
+                return;
+            }
+            const receiverId = otherUser.id;
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                peerConnection = new RTCPeerConnection(getIceServers());
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                const callId = generateUUID();
+                const timestamp = Date.now();
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate && ably) {
+                        const userChannel = ably.channels.get(`user-${receiverId}`);
+                        userChannel.publish('ice-candidate', {
+                            callId,
+                            candidate: event.candidate,
+                            senderId: currentUser.id,
+                            timestamp: Date.now()
+                        });
+                    }
+                };
+                
+                peerConnection.ontrack = (event) => {
+                    console.log('Received remote track');
+                    const remoteStream = event.streams[0];
+                    const audioElement = document.createElement('audio');
+                    audioElement.srcObject = remoteStream;
+                    audioElement.autoplay = true;
+                    audioElement.controls = false;
+                    audioElement.style.display = 'none';
+                    document.body.appendChild(audioElement);
+                    
+                    const playAudio = () => {
+                        audioElement.play().catch(e => console.warn('Play failed:', e));
+                        document.removeEventListener('click', playAudio);
+                    };
+                    document.addEventListener('click', playAudio, { once: true });
+                    
+                    document.getElementById('callStatus').textContent = 'В разговоре';
+                    if (!callTimerInterval) {
+                        startCallTimer();
+                    }
+                };
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                const callRecord = {
+                    caller_id: currentUser.id,
+                    receiver_id: receiverId,
+                    status: 'calling',
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('calls')
+                    .insert([callRecord])
+                    .select();
+                
+                if (error) throw error;
+                
+                const dbCallId = data[0].id;
+                
+                currentCall = {
+                    id: callId,
+                    dbId: dbCallId,
+                    receiverId,
+                    callerId: currentUser.id,
+                    callerName: currentUser.name,
+                    callerAvatar: currentUser.avatar,
+                    timestamp
+                };
+                
+                if (ably) {
+                    const userChannel = ably.channels.get(`user-${receiverId}`);
+                    userChannel.publish('offer', {
+                        callId,
+                        dbCallId,
+                        offer,
+                        callerId: currentUser.id,
+                        callerName: currentUser.name,
+                        callerAvatar: currentUser.avatar,
+                        timestamp
+                    });
+                }
+                
+                showOutgoingCallModal();
+                
+            } catch (err) {
+                console.error('Error starting call:', err);
+                alert('Не удалось начать звонок: ' + (err.message || 'проверьте консоль'));
+            }
+        }
+
+        function showIncomingCallModal(callerName, callerAvatar, timestamp) {
+            // Игнорируем устаревшие звонки (старше 10 секунд)
+            if (Date.now() - timestamp > 10000) {
+                console.log('Ignoring old call', timestamp);
+                return;
+            }
+            
+            if (!callModal) return;
+            
+            document.getElementById('callStatus').textContent = 'Входящий звонок...';
+            document.getElementById('callTimer').textContent = '';
+            document.getElementById('callerName').textContent = callerName;
+            document.getElementById('callAvatar').textContent = callerAvatar || '👤';
+            document.getElementById('incomingCallControls').style.display = 'flex';
+            document.getElementById('outgoingCallControls').style.display = 'none';
+            
+            document.getElementById('answerCallBtn').onclick = answerCall;
+            document.getElementById('rejectCallBtn').onclick = rejectCall;
+            document.getElementById('incomingMuteBtn').onclick = toggleMute;
+            document.getElementById('incomingMuteBtn').classList.remove('muted');
+            
+            callModal.classList.add('active');
+        }
+
+        function showOutgoingCallModal() {
+            if (!callModal) return;
+            
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const otherUser = allUsers.find(u => u.id === otherId);
+            let displayName = otherUser ? otherUser.username : 'Пользователь';
+            let avatar = otherUser ? (otherUser.avatar || '👤') : '👤';
+            
+            document.getElementById('callStatus').textContent = 'Соединение...';
+            document.getElementById('callTimer').textContent = '';
+            document.getElementById('callerName').textContent = displayName;
+            document.getElementById('callAvatar').textContent = avatar;
+            document.getElementById('incomingCallControls').style.display = 'none';
+            document.getElementById('outgoingCallControls').style.display = 'flex';
+            
+            document.getElementById('endCallBtn').onclick = endCall;
+            document.getElementById('muteCallBtn').onclick = toggleMute;
+            document.getElementById('muteCallBtn').classList.remove('muted');
+            
+            callModal.classList.add('active');
+        }
+
+        function startCallTimer() {
+            if (callTimerInterval) clearInterval(callTimerInterval);
+            callStartTime = Date.now();
+            callTimerInterval = setInterval(() => {
+                const elapsed = Date.now() - callStartTime;
+                if (elapsed >= CALL_DURATION_LIMIT) {
+                    alert('Длительность звонка превысила 30 минут. Звонок завершён.');
+                    endCall();
+                    return;
+                }
+                document.getElementById('callTimer').textContent = formatCallTime(elapsed);
+            }, 1000);
+        }
+
+        async function answerCall() {
+            if (!currentCall || !peerConnection) return;
+            
+            // Проверяем timestamp
+            if (Date.now() - currentCall.timestamp > 10000) {
+                alert('Звонок устарел');
+                endCall();
+                return;
+            }
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
+                
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                if (currentCall.dbId) {
+                    await supabaseClient
+                        .from('calls')
+                        .update({ status: 'active' })
+                        .eq('id', currentCall.dbId);
+                }
+                
+                if (ably) {
+                    const userChannel = ably.channels.get(`user-${currentCall.callerId}`);
+                    userChannel.publish('answer', {
+                        callId: currentCall.id,
+                        answer,
+                        timestamp: Date.now()
+                    });
+                }
+                
+                document.getElementById('incomingCallControls').style.display = 'none';
+                document.getElementById('outgoingCallControls').style.display = 'flex';
+                document.getElementById('muteCallBtn').onclick = toggleMute;
+                document.getElementById('muteCallBtn').classList.remove('muted');
+                document.getElementById('callStatus').textContent = 'В разговоре';
+                startCallTimer();
+                
+                if (callRingtone) {
+                    callRingtone.pause();
+                    callRingtone.currentTime = 0;
+                }
+                
+                if (callAcceptedSound) {
+                    callAcceptedSound.play().catch(() => {});
+                }
+                
+            } catch (err) {
+                console.error('Error answering call:', err);
+                alert('Не удалось ответить на звонок');
+            }
+        }
+
+        async function rejectCall() {
+            if (currentCall && ably) {
+                const userChannel = ably.channels.get(`user-${currentCall.callerId}`);
+                userChannel.publish('end', {
+                    callId: currentCall.id,
+                    timestamp: Date.now()
+                });
+                
+                if (currentCall.dbId) {
+                    await supabaseClient
+                        .from('calls')
+                        .update({ status: 'ended' })
+                        .eq('id', currentCall.dbId);
+                }
+            }
+            
+            endCall();
+        }
+
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callStartTime = null;
+            
+            if (callModal) {
+                callModal.classList.remove('active');
+            }
+            
+            if (callRingtone) {
+                callRingtone.pause();
+                callRingtone.currentTime = 0;
+            }
+            
+            if (callEndedSound) {
+                callEndedSound.play().catch(() => {});
+            }
+            
+            currentCall = null;
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+            
+            const enabled = !audioTracks[0].enabled;
+            audioTracks.forEach(track => {
+                track.enabled = enabled;
+            });
+            
+            callMuted = !enabled;
+            
+            const muteBtn = document.getElementById('muteCallBtn');
+            const incomingMuteBtn = document.getElementById('incomingMuteBtn');
+            
+            [muteBtn, incomingMuteBtn].forEach(btn => {
+                if (btn) {
+                    if (callMuted) {
+                        btn.textContent = '🔴';
+                        btn.classList.add('muted');
+                    } else {
+                        btn.textContent = '🎤';
+                        btn.classList.remove('muted');
+                    }
+                }
+            });
+        }
+
+        function listenForIncomingCalls() {
+            if (!ably || !currentUser) return;
+            
+            const userChannel = ably.channels.get(`user-${currentUser.id}`);
+            
+            userChannel.subscribe('offer', async (message) => {
+                const { offer, callerId, callerName, callerAvatar, callId, dbCallId, timestamp } = message.data;
+                
+                // Игнорируем устаревшие звонки
+                if (Date.now() - timestamp > 10000) {
+                    console.log('Ignoring old call offer', timestamp);
+                    return;
+                }
+                
+                if (currentCall) {
+                    userChannel.publish('end', { callId, timestamp: Date.now() });
+                    return;
+                }
+                
+                peerConnection = new RTCPeerConnection(getIceServers());
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate && ably) {
+                        userChannel.publish('ice-candidate', {
+                            callId,
+                            candidate: event.candidate,
+                            senderId: currentUser.id,
+                            timestamp: Date.now()
+                        });
+                    }
+                };
+                
+                peerConnection.ontrack = (event) => {
+                    console.log('Received remote track (incoming)');
+                    const remoteStream = event.streams[0];
+                    const audioElement = document.createElement('audio');
+                    audioElement.srcObject = remoteStream;
+                    audioElement.autoplay = true;
+                    audioElement.controls = false;
+                    audioElement.style.display = 'none';
+                    document.body.appendChild(audioElement);
+                    
+                    const playAudio = () => {
+                        audioElement.play().catch(e => console.warn('Play failed:', e));
+                        document.removeEventListener('click', playAudio);
+                    };
+                    document.addEventListener('click', playAudio, { once: true });
+                    
+                    document.getElementById('callStatus').textContent = 'В разговоре';
+                    if (!callTimerInterval) {
+                        startCallTimer();
+                    }
+                };
+                
+                currentCall = {
+                    id: callId,
+                    dbId: dbCallId,
+                    callerId,
+                    callerName,
+                    callerAvatar,
+                    offer,
+                    timestamp
+                };
+                
+                showIncomingCallModal(callerName, callerAvatar, timestamp);
+                
+                if (!currentUser.dnd && callRingtone) {
+                    callRingtone.loop = true;
+                    callRingtone.play().catch(() => {});
+                }
+            });
+
+            userChannel.subscribe('answer', async (message) => {
+                const { answer, callId, timestamp } = message.data;
+                if (!currentCall || currentCall.id !== callId) return;
+                
+                if (Date.now() - timestamp > 10000) {
+                    console.log('Ignoring old answer');
+                    return;
+                }
+                
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                    document.getElementById('callStatus').textContent = 'В разговоре';
+                    startCallTimer();
+                    
+                    if (callAcceptedSound) {
+                        callAcceptedSound.play().catch(() => {});
+                    }
+                } catch (err) {
+                    console.error('Error setting remote description:', err);
+                }
+            });
+
+            userChannel.subscribe('ice-candidate', (message) => {
+                const { candidate, callId, timestamp } = message.data;
+                if (!currentCall || currentCall.id !== callId) return;
+                
+                if (Date.now() - timestamp > 10000) return;
+                
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
+                    console.error('Error adding ICE candidate:', err);
+                });
+            });
+
+            userChannel.subscribe('end', (message) => {
+                const { callId, timestamp } = message.data;
+                if (!currentCall || currentCall.id !== callId) return;
+                
+                endCall();
+            });
+        }
+
+        // ========== МОДАЛЬНЫЕ ОКНА ==========
+        function openCreateChatModal() {
+            document.getElementById('createChatModal').classList.add('active');
+        }
+
+        function closeCreateChatModal() {
+            document.getElementById('createChatModal').classList.remove('active');
+            document.getElementById('chatNameInput').value = '';
+        }
+
+        function closeEditMessageModal() {
+            document.getElementById('editMessageModal').classList.remove('active');
+            document.getElementById('editMessageText').value = '';
+            messageToEdit = null;
+        }
+
+        function openProfileModal() {
+            document.getElementById('profileNameInput').value = currentUser.name;
+            document.getElementById('profileBioInput').value = currentUser.bio || '';
+            document.getElementById('profileDNDCheckbox').checked = currentUser.dnd || false;
+            document.getElementById('profileAvatarLarge').textContent = currentUser.avatar || '👤';
+            
+            populateThemeGrid();
+            
+            document.getElementById('profileModal').classList.add('active');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('active');
+        }
+
+        async function saveProfile() {
+            const newName = document.getElementById('profileNameInput').value.trim();
+            const newBio = document.getElementById('profileBioInput').value.trim();
+            const dnd = document.getElementById('profileDNDCheckbox').checked;
+            
+            if (newName && newName !== currentUser.name) {
+                const { data: existingUsers } = await supabaseClient
+                    .from('profiles')
+                    .select('username')
+                    .eq('username', newName)
+                    .neq('id', currentUser.id)
+                    .limit(1);
+                
+                if (existingUsers && existingUsers.length > 0) {
+                    alert('Пользователь с таким именем уже существует');
+                    return;
+                }
+                
+                currentUser.name = newName;
+            }
+            
+            currentUser.bio = newBio;
+            currentUser.dnd = dnd;
+            
+            try {
+                await supabaseClient
+                    .from('profiles')
+                    .update({
+                        username: currentUser.name,
+                        bio: currentUser.bio,
+                        dnd: currentUser.dnd,
+                        avatar: currentUser.avatar
+                    })
+                    .eq('id', currentUser.id);
+                
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                if (ably) {
+                    const presenceChannel = ably.channels.get('presence');
+                    if (presenceChannel.state === 'attached') {
+                        presenceChannel.presence.update({ 
+                            name: currentUser.name, 
+                            avatar: currentUser.avatar,
+                            bio: currentUser.bio,
+                            isAdmin: currentUser.isAdmin,
+                            dnd: dnd,
+                            lastSeen: Date.now()
+                        });
+                    }
+                }
+                
+                updateProfileUI();
+                closeProfileModal();
+                
+                await loadAllUsers();
+                
+            } catch (err) {
+                console.error('Error updating profile:', err);
+                alert('Ошибка при сохранении профиля');
+            }
+        }
+
+        function openAvatarModal() {
+            const grid = document.getElementById('avatarGrid');
+            grid.innerHTML = '';
+            weirdEmojis.forEach(emoji => {
+                const div = document.createElement('div');
+                div.className = 'avatar-option';
+                div.textContent = emoji;
+                div.onclick = () => selectAvatar(emoji, div);
+                if (currentUser.avatar === emoji) div.classList.add('selected');
+                grid.appendChild(div);
+            });
+            document.getElementById('avatarModal').classList.add('active');
+        }
+
+        let selectedAvatar = null;
+        function selectAvatar(emoji, element) {
+            document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedAvatar = emoji;
+        }
+
+        async function saveAvatar() {
+            if (selectedAvatar) {
+                currentUser.avatar = selectedAvatar;
+                
+                try {
+                    await supabaseClient
+                        .from('profiles')
+                        .update({ avatar: currentUser.avatar })
+                        .eq('id', currentUser.id);
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateProfileUI();
+                    
+                    if (ably) {
+                        const presenceChannel = ably.channels.get('presence');
+                        if (presenceChannel.state === 'attached') {
+                            presenceChannel.presence.update({ 
+                                name: currentUser.name, 
+                                avatar: selectedAvatar,
+                                bio: currentUser.bio,
+                                isAdmin: currentUser.isAdmin,
+                                dnd: currentUser.dnd,
+                                lastSeen: Date.now()
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error saving avatar:', err);
+                    alert('Ошибка при сохранении аватара');
+                }
+            }
+            closeAvatarModal();
+        }
+
+        function closeAvatarModal() {
+            document.getElementById('avatarModal').classList.remove('active');
+            selectedAvatar = null;
+        }
+
+        function openChatUserProfile() {
+            if (!currentChat || currentChat.is_public) return;
+            
+            if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                // Это чат "Избранное" — показываем свой профиль
+                openProfileModal();
+                return;
+            }
+            
+            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
+            const user = allUsers.find(u => u.id === otherId);
+            if (!user) return;
+            
+            const onlineUser = onlineUsers[user.id];
+            const isOnline = onlineUser ? onlineUser.online : false;
+            const dnd = onlineUser ? onlineUser.dnd : user.dnd;
+            const lastSeen = onlineUser ? onlineUser.lastSeen : (user.last_seen ? new Date(user.last_seen).getTime() : null);
+            
+            let statusText = '';
+            if (isOnline) {
+                statusText = dnd ? 'Не беспокоит' : 'В сети';
+            } else {
+                statusText = lastSeen ? `Был(а) ${formatLastSeen(lastSeen)}` : 'Был(а) давно';
+            }
+            
+            const content = `
+                <div class="user-profile-avatar">${user.avatar || '👤'}</div>
+                <div class="user-profile-name">${user.username}</div>
+                <div class="user-profile-bio">${user.bio || 'Нет информации'}</div>
+                <div class="user-profile-status">
+                    <span class="status-dot ${isOnline ? (dnd ? 'dnd' : 'online') : 'offline'}"></span>
+                    ${statusText}
+                </div>
+            `;
+            
+            document.getElementById('userProfileContent').innerHTML = content;
+            document.getElementById('userProfileModal').classList.add('active');
+        }
+
+        function closeUserProfileModal() {
+            document.getElementById('userProfileModal').classList.remove('active');
+        }
+
+        // ========== ВСПОМОГАТЕЛЬНЫЕ UI ФУНКЦИИ ==========
+        function switchAuthMode(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginTab = document.getElementById('loginTabBtn');
+            const registerTab = document.getElementById('registerTabBtn');
+            if (mode === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginTab.className = 'auth-tab active';
+                registerTab.className = 'auth-tab';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                loginTab.className = 'auth-tab';
+                registerTab.className = 'auth-tab active';
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabChats').className = tab === 'chats' ? 'tab active' : 'tab';
+            document.getElementById('tabPublic').className = tab === 'public' ? 'tab active' : 'tab';
+            document.getElementById('tabUsers').className = tab === 'users' ? 'tab active' : 'tab';
+            document.getElementById('searchInput').value = '';
+            
+            if (tab === 'users') {
+                loadAllUsers();
+            } else if (tab === 'public') {
+                // Просто обновляем список (публичные чаты уже загружены)
+                // Ничего дополнительно не загружаем
+            }
+            
+            updateChatsList();
+            updateCreateChatButtonVisibility();
+        }
+
+        function updateCreateChatButtonVisibility() {
+            const createBtn = document.getElementById('createChatBtn');
+            if (createBtn) {
+                createBtn.style.display = currentTab === 'public' ? 'flex' : 'none';
+            }
+        }
+
+        function handleSearch() {
+            updateChatsList();
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function handleTextInput() {}
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        function updateUrlWithChat(chat) {
+            if (chat) {
+                const newUrl = `${window.location.pathname}#${chat.id}`;
+                window.history.replaceState({ chatId: chat.id }, chat.name, newUrl);
+                let title = chat.name;
+                if (chat.type === 'private' && currentUser) {
+                    if (chat.pair_key === `${currentUser.id}_${currentUser.id}`) {
+                        title = 'Избранное';
+                    } else {
+                        const otherId = chat.pair_key.split('_').find(id => id !== currentUser.id);
+                        const otherUser = allUsers.find(u => u.id === otherId);
+                        title = otherUser ? otherUser.username : 'Приватный чат';
+                    }
+                }
+                document.title = `${title} - Telegram Web`;
+            } else {
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, 'Telegram Web', newUrl);
+                document.title = 'Telegram Web';
+            }
+        }
+
+        function checkUrlForChat() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
+                if (chat) setTimeout(() => joinChat(chat), 500);
+            }
+        }
+
+        function openMedia(url) {
+            const viewer = document.getElementById('mediaViewer');
+            const content = document.getElementById('mediaViewerContent');
+            if (url.match(/\.(mp4|webm|ogg)$/i) || url.includes('video')) {
+                content.innerHTML = `<video src="${url}" controls autoplay></video>`;
+            } else {
+                content.innerHTML = `<img src="${url}" style="max-width: 100%; max-height: 100%;">`;
+            }
+            viewer.classList.add('active');
+        }
+
+        function closeMediaViewer() {
+            document.getElementById('mediaViewer').classList.remove('active');
+            document.getElementById('mediaViewerContent').innerHTML = '';
+        }
+
+        function updateBackButtonVisibility() {
+            const backButton = document.getElementById('backButton');
+            if (window.innerWidth <= 768) {
+                backButton.classList.add('mobile-visible');
+            } else {
+                backButton.classList.remove('mobile-visible');
+            }
+        }
+
+        function setupMobileHandlers() {
+            const setVH = () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            };
+            
+            setVH();
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', setVH);
+            
+            forceShowInput();
+        }
+
+        function scrollToBottomOnMobile() {
+            setTimeout(() => {
+                const container = document.getElementById('messagesContainer');
+                if (container) {
+                    container.scrollTo({
+                        top: container.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 300);
+        }
+
+        function forceShowInput() {
+            const inputContainer = document.getElementById('messageInputContainer');
+            const emojiBtn = document.querySelector('.emoji-toggle-btn');
+            const micBtn = document.getElementById('micBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (inputContainer) {
+                inputContainer.style.display = 'flex';
+                inputContainer.style.visibility = 'visible';
+                inputContainer.style.opacity = '1';
+            }
+            
+            if (emojiBtn) {
+                emojiBtn.style.display = 'flex';
+                emojiBtn.style.visibility = 'visible';
+                emojiBtn.style.opacity = '1';
+            }
+            
+            if (micBtn) {
+                micBtn.style.display = 'flex';
+                micBtn.style.visibility = 'visible';
+                micBtn.style.opacity = '1';
+            }
+            
+            if (sendBtn) {
+                sendBtn.style.display = 'flex';
+                sendBtn.style.visibility = 'visible';
+                sendBtn.style.opacity = '1';
+            }
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function populateEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.innerHTML = '';
+            emojiList.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-btn';
+                btn.textContent = emoji;
+                btn.onclick = () => addEmoji(emoji);
+                picker.appendChild(btn);
+            });
+        }
+
+        function addEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + emoji.length;
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+        }
+
+        function handleMessagesContainerClick(event) {
+            if (activeMessageId) {
+                const activeMessage = document.querySelector(`.message[data-id="${activeMessageId}"]`);
+                if (activeMessage && !activeMessage.contains(event.target)) {
+                    hideMessageActions();
+                }
+            }
+        }
+
+        function showMessageActions(messageId, event) {
+            event.stopPropagation();
+            
+            if (activeMessageId) {
+                const prevActive = document.querySelector(`.message-actions[data-message-id="${activeMessageId}"]`);
+                if (prevActive) {
+                    prevActive.classList.remove('visible');
+                }
+            }
+            
+            const actions = document.querySelector(`.message-actions[data-message-id="${messageId}"]`);
+            if (actions) {
+                actions.classList.add('visible');
+                activeMessageId = messageId;
+                
+                setTimeout(() => {
+                    if (activeMessageId === messageId) {
+                        hideMessageActions();
+                    }
+                }, 5000);
+            }
+        }
+
+        function hideMessageActions() {
+            if (activeMessageId) {
+                const actions = document.querySelector(`.message-actions[data-message-id="${activeMessageId}"]`);
+                if (actions) {
+                    actions.classList.remove('visible');
+                }
+                activeMessageId = null;
+            }
+        }
+
+        function disableSendButton() {
+            sendBtnDisabled = true;
+            document.getElementById('sendBtn').classList.add('disabled');
+            setTimeout(() => {
+                sendBtnDisabled = false;
+                document.getElementById('sendBtn').classList.remove('disabled');
+            }, MESSAGE_COOLDOWN);
+        }
+
+        // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+        window.addEventListener('popstate', function(event) {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const chat = myChats.find(c => c.id === hash) || publicChats.find(c => c.id === hash);
+                if (chat) setTimeout(() => joinChat(chat), 500);
+            } else {
+                currentChat = null;
+                renderMessages();
+                updateUrlWithChat(null);
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            updateBackButtonVisibility();
+            if (window.innerWidth > 768) document.getElementById('sidebar').classList.remove('active');
+            
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            forceShowInput();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMediaViewer();
+                hideMessageActions();
+                if (callModal && callModal.classList.contains('active')) {
+                    endCall();
+                }
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            const emojiPicker = document.getElementById('emojiPicker');
+            const emojiBtn = document.querySelector('.emoji-toggle-btn');
+            if (emojiPicker.style.display === 'flex' && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+                emojiPicker.style.display = 'none';
+            }
+        });
+
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateEmojiPicker();
+            document.getElementById('loginModal').classList.add('active');
+            init();
+        });
+    </script>
+    <!-- ========== PRODUCTION ARCHITECTURE RECOMMENDATIONS ========== -->
+    <!--
+    1. Таблицы Supabase:
+       profiles:
+         - id (uuid, primary key)
+         - username (text, unique)
+         - avatar (text)
+         - bio (text)
+         - dnd (boolean)
+         - last_seen (timestamp)
+         - created_at (timestamp)
+         Индексы: username, last_seen
+
+       chats:
+         - id (uuid, primary key)
+         - name (text)
+         - is_public (boolean)
+         - type (text) - 'private' или 'public'
+         - pair_key (text) - для приватных чатов хранит отсортированные ID через '_' (уникальный)
+         - created_at (timestamp)
+         Индексы: type, pair_key (unique for private)
+
+       messages:
+         - id (uuid, primary key)
+         - chat_id (uuid, references chats)
+         - sender_id (uuid, references profiles)
+         - text (text)
+         - audio_url (text) - ссылка на файл в Supabase Storage
+         - duration (integer) - длительность аудио в секундах
+         - created_at (timestamp)
+         - edited (boolean)
+         - reply_to (uuid, self-reference) - для ответов на сообщения
+         - is_deleted (boolean)
+         Индексы: chat_id, sender_id, created_at
+
+       calls:
+         - id (uuid, primary key)
+         - caller_id (uuid, references profiles)
+         - receiver_id (uuid, references profiles)
+         - status (text) - 'calling', 'active', 'ended', 'missed'
+         - created_at (timestamp)
+         - ended_at (timestamp)
+         Индексы: caller_id, receiver_id, status, created_at
+
+    2. Ably каналы:
+       - chat:{chat_id} - для сообщений в чате
+       - user:{user_id} - для персональных уведомлений (звонки, новые чаты)
+       - presence:global - для онлайн статусов
+       - typing:{chat_id} - для индикации печатания
+
+    3. RLS политики:
+       messages:
+         - INSERT: auth.uid() = sender_id
+         - SELECT: auth.role() = 'authenticated'
+         - UPDATE: auth.uid() = sender_id
+         - DELETE: auth.uid() = sender_id OR is_admin()
+
+       chats:
+         - SELECT: auth.role() = 'authenticated'
+         - INSERT: (is_public AND check_public_limit()) OR is_admin()
+         - UPDATE: is_admin()
+         - DELETE: is_admin()
+
+       calls:
+         - INSERT: auth.uid() = caller_id
+         - SELECT: auth.uid() = caller_id OR auth.uid() = receiver_id
+         - UPDATE: auth.uid() = caller_id OR auth.uid() = receiver_id
+
+    4. Обработка username:
+       - Все связи используют user_id (uuid)
+       - При смене username обновляется только profiles.username
+       - Сообщения хранят sender_id, при рендере подставляем актуальное имя из profiles
+       - Для приватных чатов используется pair_key (отсортированные ID)
+
+    5. Защита от дубликатов:
+       - Каждое сообщение имеет client_id на фронтенде
+       - При получении из Ably проверяем по id, не дублируем
+       - Supabase гарантирует уникальность id
+       - В Ably используем echoMessages: false для исключения эхо
+
+    6. Статусы сообщений:
+       - sent: сохранено в БД
+       - delivered: получено подтверждение от Ably (delivery_receipt)
+       - read: получено подтверждение прочтения (read_receipt)
+       - pending: ожидает отправки (офлайн режим)
+
+    7. Production оптимизации:
+       - Использовать Supabase Realtime для тех, кто не хочет Ably
+       - Кэшировать сообщения в localStorage для офлайн доступа
+       - Использовать IndexedDB для больших объемов
+       - Web Workers для фоновой синхронизации
+       - Push-уведомления через Service Workers
+    -->
 </body>
 </html>
