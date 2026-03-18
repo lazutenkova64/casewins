@@ -2321,18 +2321,27 @@
         let pendingMessages = {};          // неотправленные сообщения (офлайн)
         let messageQueue = {};              // очередь сообщений для пользователей
 
-        // Состояние звонка
-        let currentCall = null;              // { id, dbId, callerId, receiverId, ... }
-        let localStream = null;
+        // Состояние звонка (переработанное)
+        let currentCall = {
+            status: null, // null, 'calling', 'ringing', 'connecting', 'connected', 'ended', 'rejected'
+            peerId: null,
+            callId: null,
+            dbId: null,
+            isInitiator: false,
+            callerInfo: null,
+            startTime: null,
+            timeout: null
+        };
         let peerConnection = null;
+        let localStream = null;
         let callRingtone = null;
         let callAcceptedSound = null;
         let callEndedSound = null;
         let callModal = null;
         let callMuted = false;
         let callTimerInterval = null;
-        let callStartTime = null;
         const CALL_DURATION_LIMIT = 30 * 60 * 1000; // 30 минут
+        const CALL_RING_TIMEOUT = 30000; // 30 секунд на ответ
 
         // Флаг наличия таблицы calls
         let callsTableExists = true;
@@ -2590,10 +2599,20 @@
             toggleNotification(currentChat.id);
         }
 
+        // FIX: Улучшенное воспроизведение звука на мобильных устройствах
         function playIncomingMessageSound() {
-            if (incomingMessageSound) {
-                incomingMessageSound.play().catch(() => {});
-            }
+            if (!incomingMessageSound) return;
+            // Пытаемся воспроизвести звук, игнорируем ошибки (автозапуск может быть заблокирован)
+            incomingMessageSound.play().catch(() => {
+                // Если не получилось, добавляем обработчик первого касания для разблокировки
+                const unlockAudio = () => {
+                    incomingMessageSound.play().catch(() => {});
+                    document.removeEventListener('touchstart', unlockAudio);
+                    document.removeEventListener('click', unlockAudio);
+                };
+                document.addEventListener('touchstart', unlockAudio, { once: true });
+                document.addEventListener('click', unlockAudio, { once: true });
+            });
         }
 
         // ========== ЧАТ "ИЗБРАННОЕ" ==========
@@ -2849,6 +2868,7 @@
                         sendPendingMessages();
                         processMessageQueue();
                         
+                        // FIX: Обновленная подписка на звонки
                         listenForIncomingCalls();
                         
                         populateThemeGrid();
@@ -2889,13 +2909,21 @@
             }
         }
 
-        // FIX 1: Обработчик видимости страницы
+        // FIX 1: Обработчик видимости страницы — улучшенный
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible' && currentUser) {
                 console.log('App became visible, refreshing messages and Ably connection');
                 // Переподключаем Ably, если нужно
                 if (ably && ably.connection.state !== 'connected') {
                     ably.connection.connect();
+                } else if (ably && ably.connection.state === 'connected') {
+                    // Принудительно переаттачим каналы для гарантии подписки
+                    myChats.forEach(chat => {
+                        const channel = ably.channels.get(`tok_chat_${chat.id}`);
+                        if (channel.state !== 'attached') {
+                            channel.attach();
+                        }
+                    });
                 }
                 // Загружаем пропущенные сообщения
                 loadAllMessages();
@@ -5076,7 +5104,7 @@
             updateAudioProgress(messageId);
         }
 
-        // ========== ЗВОНКИ (WebRTC) с защитой от устаревших звонков ==========
+        // ========== ЗВОНКИ (НОВЫЙ ФЛОУ) ==========
         async function preloadSounds() {
             return new Promise((resolve) => {
                 callRingtone = new Audio();
@@ -5125,6 +5153,42 @@
             };
         }
 
+        // FIX: Новая логика звонков
+        function resetCallState() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            if (currentCall.timeout) {
+                clearTimeout(currentCall.timeout);
+                currentCall.timeout = null;
+            }
+            callMuted = false;
+            currentCall = {
+                status: null,
+                peerId: null,
+                callId: null,
+                dbId: null,
+                isInitiator: false,
+                callerInfo: null,
+                startTime: null,
+                timeout: null
+            };
+            if (callModal) callModal.classList.remove('active');
+            if (callRingtone) {
+                callRingtone.pause();
+                callRingtone.currentTime = 0;
+            }
+        }
+
         async function startCall() {
             if (!callsTableExists) {
                 await checkCallsTable();
@@ -5134,12 +5198,15 @@
                 }
             }
             if (!currentChat || currentChat.is_public) return;
-            
             if (currentChat.pair_key === `${currentUser.id}_${currentUser.id}`) {
                 alert('Нельзя звонить самому себе');
                 return;
             }
-            
+            if (currentCall.status) {
+                alert('У вас уже есть активный звонок');
+                return;
+            }
+
             const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
             const otherUser = allUsers.find(u => u.id === otherId);
             if (!otherUser) {
@@ -5147,33 +5214,176 @@
                 return;
             }
             const receiverId = otherUser.id;
-            
+
+            // Проверяем, не занят ли собеседник (по наличию в onlineUsers и флагу dnd? но лучше по своему состоянию)
+            // Здесь мы полагаемся на то, что если собеседник онлайн, он получит запрос, иначе отправим уведомление позже.
+            // Можно было бы хранить статус звонка в БД, но для простоты оставим так.
+
+            const callId = generateUUID();
+            const timestamp = Date.now();
+
+            // Сохраняем в БД (опционально)
+            let dbCallId = null;
+            try {
+                const { data, error } = await db
+                    .from('calls')
+                    .insert([{
+                        caller_id: currentUser.id,
+                        receiver_id: receiverId,
+                        status: 'calling',
+                        created_at: new Date().toISOString()
+                    }])
+                    .select();
+                if (!error && data) dbCallId = data[0].id;
+            } catch (err) {
+                console.warn('Failed to save call to DB, continuing anyway', err);
+            }
+
+            currentCall = {
+                status: 'calling',
+                peerId: receiverId,
+                callId: callId,
+                dbId: dbCallId,
+                isInitiator: true,
+                callerInfo: { id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar },
+                startTime: null,
+                timeout: null
+            };
+
+            // Отправляем запрос на вызов
+            if (ably) {
+                const userChannel = ably.channels.get(`user-${receiverId}`);
+                userChannel.publish('call_request', {
+                    callId,
+                    dbCallId,
+                    callerId: currentUser.id,
+                    callerName: currentUser.name,
+                    callerAvatar: currentUser.avatar,
+                    timestamp
+                });
+            }
+
+            // Показываем модалку "Идет гудок"
+            showCallModal('calling', otherUser.name, otherUser.avatar);
+
+            // Таймаут на ответ
+            currentCall.timeout = setTimeout(() => {
+                if (currentCall.status === 'calling') {
+                    alert('Абонент не ответил');
+                    endCall();
+                }
+            }, CALL_RING_TIMEOUT);
+        }
+
+        function showCallModal(status, peerName, peerAvatar) {
+            if (!callModal) return;
+            const statusEl = document.getElementById('callStatus');
+            const callerNameEl = document.getElementById('callerName');
+            const callerAvatarEl = document.getElementById('callAvatar');
+            const incomingControls = document.getElementById('incomingCallControls');
+            const outgoingControls = document.getElementById('outgoingCallControls');
+
+            if (status === 'calling') {
+                statusEl.textContent = 'Идет гудок...';
+                incomingControls.style.display = 'none';
+                outgoingControls.style.display = 'flex';
+                document.getElementById('endCallBtn').onclick = endCall;
+                document.getElementById('muteCallBtn').onclick = toggleMute;
+                document.getElementById('muteCallBtn').classList.remove('muted');
+            } else if (status === 'ringing') {
+                statusEl.textContent = 'Входящий звонок...';
+                incomingControls.style.display = 'flex';
+                outgoingControls.style.display = 'none';
+                document.getElementById('answerCallBtn').onclick = answerCall;
+                document.getElementById('rejectCallBtn').onclick = rejectCall;
+                document.getElementById('incomingMuteBtn').onclick = toggleMute;
+                document.getElementById('incomingMuteBtn').classList.remove('muted');
+            } else if (status === 'connected') {
+                statusEl.textContent = 'В разговоре';
+                incomingControls.style.display = 'none';
+                outgoingControls.style.display = 'flex';
+                document.getElementById('endCallBtn').onclick = endCall;
+                document.getElementById('muteCallBtn').onclick = toggleMute;
+                document.getElementById('muteCallBtn').classList.remove('muted');
+            }
+
+            callerNameEl.textContent = peerName || 'Пользователь';
+            callerAvatarEl.textContent = peerAvatar || '👤';
+            callModal.classList.add('active');
+        }
+
+        function handleIncomingCallRequest(data) {
+            const { callId, dbCallId, callerId, callerName, callerAvatar, timestamp } = data;
+            if (Date.now() - timestamp > 10000) {
+                console.log('Ignoring old call request');
+                return;
+            }
+            if (currentCall.status) {
+                // Уже занят — отправляем отказ
+                if (ably) {
+                    const userChannel = ably.channels.get(`user-${callerId}`);
+                    userChannel.publish('call_rejected', {
+                        callId,
+                        reason: 'busy',
+                        timestamp: Date.now()
+                    });
+                }
+                return;
+            }
+
+            // Сохраняем входящий вызов
+            currentCall = {
+                status: 'ringing',
+                peerId: callerId,
+                callId: callId,
+                dbId: dbCallId,
+                isInitiator: false,
+                callerInfo: { id: callerId, name: callerName, avatar: callerAvatar },
+                startTime: null,
+                timeout: null
+            };
+
+            // Показываем модалку входящего
+            showCallModal('ringing', callerName, callerAvatar);
+
+            // Таймаут на ответ (если не ответит, звонок автоматически отклонится)
+            currentCall.timeout = setTimeout(() => {
+                if (currentCall.status === 'ringing') {
+                    rejectCall();
+                }
+            }, CALL_RING_TIMEOUT);
+
+            // Звоним рингтон, если не DND
+            if (!currentUser.dnd && callRingtone) {
+                callRingtone.play().catch(() => {});
+            }
+        }
+
+        async function answerCall() {
+            if (!currentCall || currentCall.status !== 'ringing') return;
+            if (currentCall.isInitiator) return; // Не должен быть инициатором
+
+            clearTimeout(currentCall.timeout);
+            currentCall.status = 'connecting';
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                
                 peerConnection = new RTCPeerConnection(getIceServers());
-                
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                
-                const callId = generateUUID();
-                const timestamp = Date.now();
-                
+
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate && ably) {
-                        const userChannel = ably.channels.get(`user-${receiverId}`);
-                        userChannel.publish('ice-candidate', {
-                            callId,
+                        const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                        userChannel.publish('ice_candidate', {
+                            callId: currentCall.callId,
                             candidate: event.candidate,
-                            senderId: currentUser.id,
                             timestamp: Date.now()
                         });
                     }
                 };
-                
+
                 peerConnection.ontrack = (event) => {
-                    console.log('Received remote track');
                     const remoteStream = event.streams[0];
                     const audioElement = document.createElement('audio');
                     audioElement.srcObject = remoteStream;
@@ -5181,119 +5391,130 @@
                     audioElement.controls = false;
                     audioElement.style.display = 'none';
                     document.body.appendChild(audioElement);
-                    
+                    // Для мобильных нужно разблокировать
                     const playAudio = () => {
                         audioElement.play().catch(e => console.warn('Play failed:', e));
                         document.removeEventListener('click', playAudio);
                     };
                     document.addEventListener('click', playAudio, { once: true });
-                    
-                    document.getElementById('callStatus').textContent = 'В разговоре';
-                    if (!callTimerInterval) {
-                        startCallTimer();
+
+                    currentCall.status = 'connected';
+                    currentCall.startTime = Date.now();
+                    showCallModal('connected', currentCall.callerInfo.name, currentCall.callerInfo.avatar);
+                    startCallTimer();
+
+                    if (callRingtone) {
+                        callRingtone.pause();
+                        callRingtone.currentTime = 0;
+                    }
+                    if (callAcceptedSound) {
+                        callAcceptedSound.play().catch(() => {});
+                    }
+
+                    // Обновляем статус в БД
+                    if (currentCall.dbId) {
+                        db.from('calls').update({ status: 'active' }).eq('id', currentCall.dbId);
                     }
                 };
-                
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                
-                const callRecord = {
-                    caller_id: currentUser.id,
-                    receiver_id: receiverId,
-                    status: 'calling',
-                    created_at: new Date().toISOString()
-                };
-                
-                const { data, error } = await db
-                    .from('calls')
-                    .insert([callRecord])
-                    .select();
-                
-                if (error) throw error;
-                
-                const dbCallId = data[0].id;
-                
-                currentCall = {
-                    id: callId,
-                    dbId: dbCallId,
-                    receiverId,
-                    callerId: currentUser.id,
-                    callerName: currentUser.name,
-                    callerAvatar: currentUser.avatar,
-                    timestamp
-                };
-                
-                if (ably) {
-                    const userChannel = ably.channels.get(`user-${receiverId}`);
-                    userChannel.publish('offer', {
-                        callId,
-                        dbCallId,
-                        offer,
-                        callerId: currentUser.id,
-                        callerName: currentUser.name,
-                        callerAvatar: currentUser.avatar,
-                        timestamp
+
+                // Отправляем ответ о принятии
+                const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                userChannel.publish('call_accepted', {
+                    callId: currentCall.callId,
+                    timestamp: Date.now()
+                });
+
+                // После этого ждем offer от инициатора
+            } catch (err) {
+                console.error('Error answering call:', err);
+                alert('Не удалось ответить на звонок');
+                endCall();
+            }
+        }
+
+        async function rejectCall() {
+            if (!currentCall || currentCall.status === 'ended') return;
+            if (currentCall.isInitiator) {
+                // Инициатор отменяет
+                if (ably && currentCall.peerId) {
+                    const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                    userChannel.publish('call_ended', {
+                        callId: currentCall.callId,
+                        reason: 'cancelled',
+                        timestamp: Date.now()
                     });
                 }
-                
-                showOutgoingCallModal();
-                
-            } catch (err) {
-                console.error('Error starting call:', err);
-                alert('Не удалось начать звонок: ' + (err.message || 'проверьте консоль'));
+            } else {
+                // Получатель отклоняет
+                if (ably && currentCall.callerInfo) {
+                    const userChannel = ably.channels.get(`user-${currentCall.callerInfo.id}`);
+                    userChannel.publish('call_rejected', {
+                        callId: currentCall.callId,
+                        reason: 'rejected',
+                        timestamp: Date.now()
+                    });
+                }
             }
+            // Обновляем статус в БД
+            if (currentCall.dbId) {
+                db.from('calls').update({ status: 'ended' }).eq('id', currentCall.dbId);
+            }
+            resetCallState();
+            if (callEndedSound) callEndedSound.play().catch(() => {});
         }
 
-        function showIncomingCallModal(callerName, callerAvatar, timestamp) {
-            if (Date.now() - timestamp > 10000) {
-                console.log('Ignoring old call', timestamp);
-                return;
+        function endCall() {
+            if (!currentCall) return;
+
+            // Отправляем сигнал завершения другой стороне
+            if (ably && currentCall.peerId && (currentCall.status === 'connected' || currentCall.status === 'calling' || currentCall.status === 'ringing')) {
+                const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                userChannel.publish('call_ended', {
+                    callId: currentCall.callId,
+                    reason: 'ended',
+                    timestamp: Date.now()
+                });
+            } else if (ably && currentCall.callerInfo && !currentCall.isInitiator && currentCall.status === 'ringing') {
+                // Получатель отменяет входящий (уже обработано в reject, но на всякий случай)
+                const userChannel = ably.channels.get(`user-${currentCall.callerInfo.id}`);
+                userChannel.publish('call_ended', {
+                    callId: currentCall.callId,
+                    reason: 'ended',
+                    timestamp: Date.now()
+                });
             }
-            
-            if (!callModal) return;
-            
-            document.getElementById('callStatus').textContent = 'Входящий звонок...';
-            document.getElementById('callTimer').textContent = '';
-            document.getElementById('callerName').textContent = callerName;
-            document.getElementById('callAvatar').textContent = callerAvatar || '👤';
-            document.getElementById('incomingCallControls').style.display = 'flex';
-            document.getElementById('outgoingCallControls').style.display = 'none';
-            
-            document.getElementById('answerCallBtn').onclick = answerCall;
-            document.getElementById('rejectCallBtn').onclick = rejectCall;
-            document.getElementById('incomingMuteBtn').onclick = toggleMute;
-            document.getElementById('incomingMuteBtn').classList.remove('muted');
-            
-            callModal.classList.add('active');
+
+            if (currentCall.dbId) {
+                db.from('calls').update({ status: 'ended' }).eq('id', currentCall.dbId);
+            }
+
+            resetCallState();
+            if (callEndedSound) callEndedSound.play().catch(() => {});
         }
 
-        function showOutgoingCallModal() {
-            if (!callModal) return;
-            
-            const otherId = currentChat.pair_key.split('_').find(id => id !== currentUser.id);
-            const otherUser = allUsers.find(u => u.id === otherId);
-            let displayName = otherUser ? otherUser.username : 'Пользователь';
-            let avatar = otherUser ? (otherUser.avatar || '👤') : '👤';
-            
-            document.getElementById('callStatus').textContent = 'Соединение...';
-            document.getElementById('callTimer').textContent = '';
-            document.getElementById('callerName').textContent = displayName;
-            document.getElementById('callAvatar').textContent = avatar;
-            document.getElementById('incomingCallControls').style.display = 'none';
-            document.getElementById('outgoingCallControls').style.display = 'flex';
-            
-            document.getElementById('endCallBtn').onclick = endCall;
-            document.getElementById('muteCallBtn').onclick = toggleMute;
-            document.getElementById('muteCallBtn').classList.remove('muted');
-            
-            callModal.classList.add('active');
+        function toggleMute() {
+            if (!localStream) return;
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+            const enabled = !audioTracks[0].enabled;
+            audioTracks.forEach(track => track.enabled = enabled);
+            callMuted = !enabled;
+
+            const muteBtn = document.getElementById('muteCallBtn');
+            const incomingMuteBtn = document.getElementById('incomingMuteBtn');
+            [muteBtn, incomingMuteBtn].forEach(btn => {
+                if (btn) {
+                    btn.textContent = callMuted ? '🔴' : '🎤';
+                    btn.classList.toggle('muted', callMuted);
+                }
+            });
         }
 
         function startCallTimer() {
             if (callTimerInterval) clearInterval(callTimerInterval);
-            callStartTime = Date.now();
+            const startTime = Date.now();
             callTimerInterval = setInterval(() => {
-                const elapsed = Date.now() - callStartTime;
+                const elapsed = Date.now() - startTime;
                 if (elapsed >= CALL_DURATION_LIMIT) {
                     alert('Длительность звонка превысила 30 минут. Звонок завершён.');
                     endCall();
@@ -5303,254 +5524,142 @@
             }, 1000);
         }
 
-        async function answerCall() {
-            if (!currentCall || !peerConnection) return;
-            
-            if (Date.now() - currentCall.timestamp > 10000) {
-                alert('Звонок устарел');
-                endCall();
-                return;
-            }
-            
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
-                
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                
-                if (currentCall.dbId) {
-                    await db
-                        .from('calls')
-                        .update({ status: 'active' })
-                        .eq('id', currentCall.dbId);
+        function listenForIncomingCalls() {
+            if (!ably || !currentUser) return;
+            const userChannel = ably.channels.get(`user-${currentUser.id}`);
+
+            userChannel.subscribe('call_request', (message) => {
+                handleIncomingCallRequest(message.data);
+            });
+
+            userChannel.subscribe('call_accepted', async (message) => {
+                const { callId, timestamp } = message.data;
+                if (!currentCall || currentCall.callId !== callId || !currentCall.isInitiator) return;
+                if (Date.now() - timestamp > 10000) return;
+
+                clearTimeout(currentCall.timeout);
+                currentCall.status = 'connecting';
+
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    peerConnection = new RTCPeerConnection(getIceServers());
+
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                    peerConnection.onicecandidate = (event) => {
+                        if (event.candidate && ably) {
+                            const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                            userChannel.publish('ice_candidate', {
+                                callId,
+                                candidate: event.candidate,
+                                timestamp: Date.now()
+                            });
+                        }
+                    };
+
+                    peerConnection.ontrack = (event) => {
+                        const remoteStream = event.streams[0];
+                        const audioElement = document.createElement('audio');
+                        audioElement.srcObject = remoteStream;
+                        audioElement.autoplay = true;
+                        audioElement.controls = false;
+                        audioElement.style.display = 'none';
+                        document.body.appendChild(audioElement);
+                        const playAudio = () => {
+                            audioElement.play().catch(e => console.warn('Play failed:', e));
+                            document.removeEventListener('click', playAudio);
+                        };
+                        document.addEventListener('click', playAudio, { once: true });
+
+                        currentCall.status = 'connected';
+                        currentCall.startTime = Date.now();
+                        showCallModal('connected', currentCall.callerInfo.name, currentCall.callerInfo.avatar);
+                        startCallTimer();
+
+                        if (callAcceptedSound) callAcceptedSound.play().catch(() => {});
+                        if (currentCall.dbId) {
+                            db.from('calls').update({ status: 'active' }).eq('id', currentCall.dbId);
+                        }
+                    };
+
+                    // Создаем offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                    userChannel.publish('webrtc_offer', {
+                        callId,
+                        offer,
+                        timestamp: Date.now()
+                    });
+                } catch (err) {
+                    console.error('Error in call_accepted handler:', err);
+                    endCall();
                 }
-                
-                if (ably) {
-                    const userChannel = ably.channels.get(`user-${currentCall.callerId}`);
-                    userChannel.publish('answer', {
-                        callId: currentCall.id,
+            });
+
+            userChannel.subscribe('call_rejected', (message) => {
+                const { callId, reason } = message.data;
+                if (!currentCall || currentCall.callId !== callId) return;
+                if (reason === 'busy') {
+                    alert('Абонент занят');
+                } else {
+                    alert('Вызов отклонен');
+                }
+                resetCallState();
+            });
+
+            userChannel.subscribe('call_ended', (message) => {
+                const { callId } = message.data;
+                if (!currentCall || currentCall.callId !== callId) return;
+                alert('Звонок завершен');
+                resetCallState();
+                if (callEndedSound) callEndedSound.play().catch(() => {});
+            });
+
+            userChannel.subscribe('webrtc_offer', async (message) => {
+                const { callId, offer, timestamp } = message.data;
+                if (!currentCall || currentCall.callId !== callId || currentCall.isInitiator) return;
+                if (Date.now() - timestamp > 10000) return;
+
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    const userChannel = ably.channels.get(`user-${currentCall.peerId}`);
+                    userChannel.publish('webrtc_answer', {
+                        callId,
                         answer,
                         timestamp: Date.now()
                     });
-                }
-                
-                document.getElementById('incomingCallControls').style.display = 'none';
-                document.getElementById('outgoingCallControls').style.display = 'flex';
-                document.getElementById('muteCallBtn').onclick = toggleMute;
-                document.getElementById('muteCallBtn').classList.remove('muted');
-                document.getElementById('callStatus').textContent = 'В разговоре';
-                startCallTimer();
-                
-                if (callRingtone) {
-                    callRingtone.pause();
-                    callRingtone.currentTime = 0;
-                }
-                
-                if (callAcceptedSound) {
-                    callAcceptedSound.play().catch(() => {});
-                }
-                
-            } catch (err) {
-                console.error('Error answering call:', err);
-                alert('Не удалось ответить на звонок');
-            }
-        }
-
-        async function rejectCall() {
-            if (currentCall && ably) {
-                const userChannel = ably.channels.get(`user-${currentCall.callerId}`);
-                userChannel.publish('end', {
-                    callId: currentCall.id,
-                    timestamp: Date.now()
-                });
-                
-                if (currentCall.dbId) {
-                    await db
-                        .from('calls')
-                        .update({ status: 'ended' })
-                        .eq('id', currentCall.dbId);
-                }
-            }
-            
-            endCall();
-        }
-
-        function endCall() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-            }
-            
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            
-            if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-            }
-            callStartTime = null;
-            
-            if (callModal) {
-                callModal.classList.remove('active');
-            }
-            
-            if (callRingtone) {
-                callRingtone.pause();
-                callRingtone.currentTime = 0;
-            }
-            
-            if (callEndedSound) {
-                callEndedSound.play().catch(() => {});
-            }
-            
-            currentCall = null;
-        }
-
-        function toggleMute() {
-            if (!localStream) return;
-            
-            const audioTracks = localStream.getAudioTracks();
-            if (audioTracks.length === 0) return;
-            
-            const enabled = !audioTracks[0].enabled;
-            audioTracks.forEach(track => {
-                track.enabled = enabled;
-            });
-            
-            callMuted = !enabled;
-            
-            const muteBtn = document.getElementById('muteCallBtn');
-            const incomingMuteBtn = document.getElementById('incomingMuteBtn');
-            
-            [muteBtn, incomingMuteBtn].forEach(btn => {
-                if (btn) {
-                    if (callMuted) {
-                        btn.textContent = '🔴';
-                        btn.classList.add('muted');
-                    } else {
-                        btn.textContent = '🎤';
-                        btn.classList.remove('muted');
-                    }
-                }
-            });
-        }
-
-        function listenForIncomingCalls() {
-            if (!ably || !currentUser) return;
-            
-            const userChannel = ably.channels.get(`user-${currentUser.id}`);
-            
-            userChannel.subscribe('offer', async (message) => {
-                const { offer, callerId, callerName, callerAvatar, callId, dbCallId, timestamp } = message.data;
-                
-                if (Date.now() - timestamp > 10000) {
-                    console.log('Ignoring old call offer', timestamp);
-                    return;
-                }
-                
-                if (currentCall) {
-                    userChannel.publish('end', { callId, timestamp: Date.now() });
-                    return;
-                }
-                
-                peerConnection = new RTCPeerConnection(getIceServers());
-                
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate && ably) {
-                        userChannel.publish('ice-candidate', {
-                            callId,
-                            candidate: event.candidate,
-                            senderId: currentUser.id,
-                            timestamp: Date.now()
-                        });
-                    }
-                };
-                
-                peerConnection.ontrack = (event) => {
-                    console.log('Received remote track (incoming)');
-                    const remoteStream = event.streams[0];
-                    const audioElement = document.createElement('audio');
-                    audioElement.srcObject = remoteStream;
-                    audioElement.autoplay = true;
-                    audioElement.controls = false;
-                    audioElement.style.display = 'none';
-                    document.body.appendChild(audioElement);
-                    
-                    const playAudio = () => {
-                        audioElement.play().catch(e => console.warn('Play failed:', e));
-                        document.removeEventListener('click', playAudio);
-                    };
-                    document.addEventListener('click', playAudio, { once: true });
-                    
-                    document.getElementById('callStatus').textContent = 'В разговоре';
-                    if (!callTimerInterval) {
-                        startCallTimer();
-                    }
-                };
-                
-                currentCall = {
-                    id: callId,
-                    dbId: dbCallId,
-                    callerId,
-                    callerName,
-                    callerAvatar,
-                    offer,
-                    timestamp
-                };
-                
-                showIncomingCallModal(callerName, callerAvatar, timestamp);
-                
-                if (!currentUser.dnd && callRingtone) {
-                    callRingtone.loop = true;
-                    callRingtone.play().catch(() => {});
+                } catch (err) {
+                    console.error('Error handling webrtc_offer:', err);
                 }
             });
 
-            userChannel.subscribe('answer', async (message) => {
-                const { answer, callId, timestamp } = message.data;
-                if (!currentCall || currentCall.id !== callId) return;
-                
-                if (Date.now() - timestamp > 10000) {
-                    console.log('Ignoring old answer');
-                    return;
-                }
-                
+            userChannel.subscribe('webrtc_answer', async (message) => {
+                const { callId, answer, timestamp } = message.data;
+                if (!currentCall || currentCall.callId !== callId || !currentCall.isInitiator) return;
+                if (Date.now() - timestamp > 10000) return;
+
                 try {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                    document.getElementById('callStatus').textContent = 'В разговоре';
-                    startCallTimer();
-                    
-                    if (callAcceptedSound) {
-                        callAcceptedSound.play().catch(() => {});
-                    }
                 } catch (err) {
-                    console.error('Error setting remote description:', err);
+                    console.error('Error handling webrtc_answer:', err);
                 }
             });
 
-            userChannel.subscribe('ice-candidate', (message) => {
-                const { candidate, callId, timestamp } = message.data;
-                if (!currentCall || currentCall.id !== callId) return;
-                
+            userChannel.subscribe('ice_candidate', async (message) => {
+                const { callId, candidate, timestamp } = message.data;
+                if (!currentCall || currentCall.callId !== callId) return;
                 if (Date.now() - timestamp > 10000) return;
-                
-                peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
-                    console.error('Error adding ICE candidate:', err);
-                });
-            });
 
-            userChannel.subscribe('end', (message) => {
-                const { callId, timestamp } = message.data;
-                if (!currentCall || currentCall.id !== callId) return;
-                
-                endCall();
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (err) {
+                    console.error('Error adding ICE candidate:', err);
+                }
             });
         }
 
